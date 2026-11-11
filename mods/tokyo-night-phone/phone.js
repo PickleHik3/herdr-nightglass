@@ -4,7 +4,7 @@
 // Herdr home, unlike JS imports, which cannot leave their own mod folder.
 import { svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { settings } from "herdr";
+import { settings, shared, setShared } from "herdr";
 import { C, anchorBelow } from "./lib.js";
 
 export const MOD = "tokyo-night-phone";
@@ -46,3 +46,14 @@ export function anchorBelowRight(e, width, win) {
   const maxX = win > 0 ? Math.max(m, win - wpx - m) : Infinity;
   return { x: Math.min(maxX, Math.max(m, Math.round(a.x + e.bounds.width - wpx))), y: a.y };
 }
+
+// ---- popup toggles ----
+// A press outside a popup closes it, and the same tap's click then reaches the button that opened it, which would
+// open it again: a second tap on the button never closed it. Each popup copy reports (main.js init / close) when it is
+// open and when it closed; a button that toggles a popup ignores a click within GUARD_MS of the close and, while the popup
+// is open, closes it itself.
+const GUARD_MS = 400;
+export const popupOpened = (name) => { setShared(`tokyo-night-phone.${name}-open`, true); };
+export const popupClosed = (name) => { setShared(`tokyo-night-phone.${name}-open`, false); setShared(`tokyo-night-phone.${name}-closed`, Date.now()); };
+export const popupIsOpen = (name) => shared(`tokyo-night-phone.${name}-open`) === true;
+export const popupJustClosed = (name) => Date.now() - (shared(`tokyo-night-phone.${name}-closed`) ?? 0) < GUARD_MS;

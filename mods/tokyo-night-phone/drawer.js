@@ -7,7 +7,7 @@ import { h_flex, v_flex } from "gpui-base";
 import { openOverlay, closeOverlay, props, shared, setShared, run } from "herdr";
 import { C, M, MONO, CLEAR, SCHEMES, COLORS_KEY, alpha, dur, ico, mark, level, machineColor, nearBlack, darkOf, lightOf, anchorBelow } from "./lib.js";
 import { snapshot, LOCAL, ALL, mArg, lastSeen, statsMachine } from "./data.js";
-import { MOD, WIN, DESIGN_W, zoom, dsg } from "./phone.js";
+import { MOD, WIN, DESIGN_W, zoom, dsg, popupIsOpen, popupJustClosed } from "./phone.js";
 import { focusRow } from "./strip.js";
 
 const machineIcon = (m, size, color) => ico(m.key === LOCAL ? "monitor" : "server", size, color);
@@ -44,7 +44,9 @@ function tile(view, m, open, w) {
     })
     .on_click((_e, cx) => {
       if (sel && view.colorsAt) {
-        openOverlay({ mod: MOD, kind: "popup", frame: "none", width: COLORS_W, height: COLORS_H, at: view.colorsAt, props: { role: "colors", machine: m.key, name: m.name } });
+        if (popupJustClosed("colors")) return;                                              // the outside press just closed it
+        if (popupIsOpen("colors") && view.colorsId) { closeOverlay(view.colorsId); return; } // a second tap closes it
+        view.colorsId = openOverlay({ mod: MOD, kind: "popup", frame: "none", width: COLORS_W, height: COLORS_H, at: view.colorsAt, props: { role: "colors", machine: m.key, name: m.name } });
       } else { view.goMachine(m.key); view.pollStats(cx, true); }
       cx.notify();
     })

@@ -10,14 +10,14 @@
 // Data (data.js) and helpers (lib.js) are the desktop tokyo-night mod's files, copied verbatim.
 import { View, div } from "gpui-kit";
 import { props, exec, run, layout } from "herdr";
-import { renderTopbar, renderUsage, pollChanges, pollUsage, usageOpened, usageClosed } from "./topbar.js";
+import { renderTopbar, renderUsage, pollChanges, pollUsage } from "./topbar.js";
 import { renderNewMenu, prefetchAgents } from "./newmenu.js";
 import { renderStrip, renderTabs } from "./strip.js";
 import { renderComposer, initComposer } from "./composer.js";
 import { renderDrawer, renderColorsPopup } from "./drawer.js";
 import { snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
 import { findNode, machineScheme, ALL_THEME } from "./lib.js";
-import { WIN, DESIGN_W, zoom, dsg } from "./phone.js";
+import { WIN, DESIGN_W, zoom, dsg, popupOpened, popupClosed } from "./phone.js";
 
 // Soft keyboard: the display resizes, so the window gets short. The design's core (top bar to
 // composer) is 595 px; below HIDE_BELOW the drawer would be under ~45 px, so it is hidden, and it
@@ -53,11 +53,11 @@ export default class TokyoNightPhone extends View {
     if (role === "watch") cx.timer.every(1000, () => this.evalDrawer());
     if (role === "tabs") cx.timer.every(1000, (cx) => { if (this.armed) cx.notify(); }); // the armed close expires
     if (role === "menu") prefetchAgents(cx);
-    if (role === "usage") usageOpened();
+    if (role === "usage" || role === "menu" || role === "colors") popupOpened(role); // popup toggles: phone.js
   }
 
   async close() {
-    if (this.role === "usage") usageClosed();
+    if (this.role === "usage" || this.role === "menu" || this.role === "colors") popupClosed(this.role);
   }
 
   // ---- the open machine: the person's choice (kept), else the focused space's machine ----

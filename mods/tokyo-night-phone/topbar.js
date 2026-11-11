@@ -5,12 +5,10 @@ import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, props, spaces, panes, machines, focused, shared, setShared, exec } from "herdr";
 import { C, MONO, CLEAR, alpha, dur, ico, ring, level } from "./lib.js";
 import { USAGE_MACHINE, parseUsageJson, snapshot } from "./data.js";
-import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS } from "./phone.js";
+import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, popupIsOpen, popupJustClosed } from "./phone.js";
 import { menuHeight } from "./newmenu.js";
 
 const USAGE_KEY = "tokyo-night.usage";                   // the desktop mod's key: same data, same format
-const USAGE_OPEN = "tokyo-night-phone.usage-open";     // true while the popover is shown
-const USAGE_CLOSED = "tokyo-night-phone.usage-closed";  // ms when it last closed
 // Popover (Glass usage panel, as the desktop's): 10 pad, legend 16, one 62 px well per account, 8 gaps, 10 pad.
 const UROW = 62;
 const usageHeight = (n) => 20 + 16 + n * UROW + n * 8;
@@ -67,14 +65,14 @@ const ringColors = (u) => [level(u.week ?? 0, C.accent), level(u.five ?? 0, C.te
 export function renderTopbar(view) {
   const u = shared(USAGE_KEY);
   const rows = u?.rows ?? [];
-  const usageOpen = shared(USAGE_OPEN) === true;
+  const usageOpen = popupIsOpen("usage");
   const z = zoom();
   const Wd = WIN.w > 0 ? dsg(WIN.w) : DESIGN_W;      // window width, designed px
   const Hd = WIN.h > 0 ? dsg(WIN.h) : 915;           // window height, designed px
   const openUsage = () => {
-    // A press outside the popover closes it first; don't reopen it with the click that follows.
-    if (Date.now() - (shared(USAGE_CLOSED) ?? 0) < 400) return;
-    if (usageOpen && view.usageId) { closeOverlay(view.usageId); return; }
+    // A press outside the popover closes it first; don't reopen it with the click that follows (phone.js popup toggles).
+    if (popupJustClosed("usage")) return;
+    if (popupIsOpen("usage") && view.usageId) { closeOverlay(view.usageId); return; }
     // Width: a share of the window with 8 designed px margins. Height: at most the window below the bar, minus a margin;
     // the popover shrinks to its rows (a popup is "as tall as its content, `height` the most") and scrolls beyond that.
     // `at` is in screen px (window.rs: px(num)), so the 8 / 58 designed offsets are multiplied by the zoom.
@@ -96,9 +94,13 @@ export function renderTopbar(view) {
   const showIcons = n > 0 && wellsW(RING, true) <= room;
   if (n > 0 && !showIcons && wellsW(RING, false) > room) RING = 12;
   // The menu is a sheet like the usage popover: full width minus 8 px margins, hanging under the bar (`at` in screen px).
-  const openMenu = () => openOverlay({ mod: MOD, kind: "popup", frame: "none", width: (Wd - 16) / Wd,
-    height: Math.min(menuHeight(snapshot()), Math.max(200, Hd - 58 - 12)), at: { x: Math.round(8 * z), y: Math.round(58 * z) },
-    props: { role: "menu", changes: view.changes ?? 0 } });
+  const openMenu = () => {
+    if (popupJustClosed("menu")) return;                                           // the outside press just closed it
+    if (popupIsOpen("menu") && view.menuId) { closeOverlay(view.menuId); return; } // a second tap closes it
+    view.menuId = openOverlay({ mod: MOD, kind: "popup", frame: "none", width: (Wd - 16) / Wd,
+      height: Math.min(menuHeight(snapshot()), Math.max(200, Hd - 58 - 12)), at: { x: Math.round(8 * z), y: Math.round(58 * z) },
+      props: { role: "menu", changes: view.changes ?? 0 } });
+  };
   return h_flex().id("tnp-top").size_full().pl(14).pr(8).pt(4).gap(6).items_center()
     .on_size_change((size, cx) => { WIN.w = size.width; if (Math.abs((view.topW ?? 0) - size.width) >= 1) { view.topW = size.width; cx.notify(); } })
     // app button
@@ -125,9 +127,6 @@ export function renderTopbar(view) {
 }
 
 // ---- popover: usage (the desktop's Glass usage panel: legend + one well per account) ----
-// Called by the popover copy's init() and close() (main.js): the bar shows its pressed state from this.
-export function usageOpened() { setShared(USAGE_OPEN, true); }
-export function usageClosed() { setShared(USAGE_OPEN, false); setShared(USAGE_CLOSED, Date.now()); }
 
 export function renderUsage() {
   const p = props();
