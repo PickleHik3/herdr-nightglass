@@ -34,7 +34,7 @@ export function pollChanges(view, cx) {
     if (n !== view.changes) { view.changes = n; cx.notify(); }
   });
 }
-// ai-usage on USAGE_MACHINE every 120 s (it calls the Anthropic usage endpoints), shared as parsed data.
+// ai-usage (by path: ~/.local/bin isn't on sh's PATH there) on USAGE_MACHINE every 120 s (it calls the Anthropic usage endpoints), shared as parsed data.
 export function pollUsage(view, cx) {
   if (view.usageBusy) return;
   const m = machines().find(x => x.name === USAGE_MACHINE);
@@ -46,7 +46,7 @@ export function pollUsage(view, cx) {
   cx.spawn(async (cx) => {
     let rows = null;
     try {
-      const r = await exec("sh", ["-lc", "ai-usage"], { on: USAGE_MACHINE, timeout: 60000 });
+      const r = await exec("sh", ["-c", '"$HOME/.local/bin/ai-usage"'], { on: USAGE_MACHINE, timeout: 60000 });
       if (r.code === 0) rows = parseUsage(r.stdout);
     } catch { rows = null; }
     view.usageBusy = false;
