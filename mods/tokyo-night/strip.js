@@ -105,7 +105,7 @@ function tabRow(view, snap, att) {
   const mc = machineColor(mkey(sp?.machine ?? null));
   const tab = (t) => {
     const on = t.active;
-    return h_flex().id(`tn-tab-${t.id}`).h(30).min_w(0).max_w(220).flex_shrink(1).px(10).gap(7).items_center().rounded(8)
+    return h_flex().id(`tn-tab-${t.id}`).h(30).min_w(0).max_w(220).flex_shrink(1).pl(10).pr(3).gap(7).items_center().rounded(8)
       .bg(on ? alpha(mc, 0.16) : raisedFill(C.surface)).border(1).border_color(on ? alpha(mc, 0.55) : alpha(C.fg, 0.06))
       .when(on, el => el.shadow_md()).when(!on, el => el.shadow_sm())
       .cursor_pointer().hover(s => s.bg(on ? alpha(mc, 0.2) : mix(C.fg, C.raised, 0.05)))
@@ -114,11 +114,16 @@ function tabRow(view, snap, att) {
       .child(mark(t.status ? TAB_KIND[t.status] ?? "idle" : "idle"))
       .child(div().min_w(0).truncate().text_size(12).font_medium().text_color(on ? C.fg : C.muted).child(t.name))
       .when(t.panes > 1, el => el.child(div().flex_none().font_family(MONO).text_size(10).text_color(C.dim).child(`×${t.panes}`)))
-      // Close on hover; tab.close asks first when it would close the space's last tab.
-      .when(view.tabHover === t.id, el => el.child(h_flex().id(`tn-tab-x-${t.id}`).size(16).flex_none().justify_center().items_center()
-        .rounded(4).cursor_pointer().hover(s => s.bg(alpha(C.red, 0.25))).tooltip("Close tab")
-        .on_mouse_down("left", stop).on_click((_e, cx) => { view.tabHover = null; run("tab.close", { id: t.id }); cx.notify(); })
-        .child(ico("win-close", 9, C.muted))));
+      // Close on hover. The slot is always there and only its width and opacity change, natively
+      // transitioned, so the pill grows smoothly and its neighbours slide over instead of jumping.
+      // tab.close asks first when it would close the space's last tab.
+      .child(h_flex().id(`tn-tab-xs-${t.id}`).h(16).flex_none().overflow_hidden().items_center()
+        .w(view.tabHover === t.id ? 20 : 0).opacity(view.tabHover === t.id ? 1 : 0)
+        .transition("width", { duration: 160, easing: "ease-out" }).transition("opacity", { duration: 160, easing: "ease-out" })
+        .child(h_flex().id(`tn-tab-x-${t.id}`).size(16).flex_none().justify_center().items_center()
+          .rounded(4).cursor_pointer().hover(s => s.bg(alpha(C.red, 0.25))).tooltip("Close tab")
+          .on_mouse_down("left", stop).on_click((_e, cx) => { view.tabHover = null; run("tab.close", { id: t.id }); cx.notify(); })
+          .child(ico("win-close", 9, C.muted))));
   };
   const tabs = (sp?.tabs ?? []).filter(t => !t.settled || t.active);
   return h_flex().w_full().h(TABS).flex_none().gap(10).items_center()
