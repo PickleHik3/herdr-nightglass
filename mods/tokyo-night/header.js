@@ -116,7 +116,6 @@ function windowButtons() {
   ];
 }
 
-const TOOL_ICON = 12;
 const toolIcon = (tool, size) => image(`icons/${tool === "codex" ? "codex" : "claude"}.svg`).size(size).flex_none();
 const resetIn = (at) => at ? dur(at * 1000 - Date.now()) : null;
 const ringColors = (u) => [level(u.week ?? 0, C.accent), level(u.five ?? 0, C.teal)];
@@ -175,13 +174,15 @@ export function usageCard(view) {
     const g = groups.find(x => x.tool === tool) ?? (groups.push({ tool, rows: [] }), groups[groups.length - 1]);
     g.rows.push(r);
   }
+  // Each tool's icon and rings sit in a capsule; icons match the 20 px rings, and every ring
+  // gets the same slot width so they stay evenly spaced across both capsules.
+  const RING = 20, CAP_PAD = 4, GROUP_GAP = 8;
   const inner = (view.width ?? 268) - 20 - 24 - 2;
-  const GROUP_GAP = 10;
-  const slot = Math.max(22, Math.floor((inner - groups.length * (TOOL_ICON + 6) - (groups.length - 1) * GROUP_GAP) / rows.length));
-  const head = h_flex().id("tn-usage-head").w_full().h(20).flex_none().items_center().cursor_pointer().on_click(toggle)
-    .children(groups.map((g, i) => h_flex().flex_none().items_center().when(i > 0, el => el.ml(GROUP_GAP))
-      .child(h_flex().w(TOOL_ICON + 6).flex_none().items_center().child(toolIcon(g.tool, TOOL_ICON)))
-      .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return h_flex().w(slot).flex_none().justify_center().child(ring(20, r.week, r.five, wc, hc)); }))));
+  const slot = Math.max(RING + 2, Math.floor((inner - groups.length * (2 * CAP_PAD + RING + 4) - (groups.length - 1) * GROUP_GAP) / rows.length));
+  const head = h_flex().id("tn-usage-head").w_full().h(28).flex_none().gap(GROUP_GAP).items_center().cursor_pointer().on_click(toggle)
+    .children(groups.map(g => h_flex().h(28).flex_none().px(CAP_PAD).items_center().rounded(14).bg(C.chrome) // darker than the ring track, so it stays visible
+      .child(h_flex().w(RING + 4).flex_none().items_center().child(toolIcon(g.tool, RING)))
+      .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return h_flex().w(slot).flex_none().justify_center().child(ring(RING, r.week, r.five, wc, hc)); }))));
   const card = v_flex().id("tn-usage").w_full().flex_none().bg(C.surface).rounded(16).px(12).pt(10).pb(11).gap(8)
     .opacity(u.stale ? 0.6 : 1).hover(s => s.bg(openState ? C.surface : C.raised))
     .tooltip(openState ? "" : `Claude usage · ${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage-tui on ${USAGE_MACHINE}`)
