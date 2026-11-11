@@ -1,7 +1,7 @@
 // tokyo-night: shared helpers (palette, icons, status marks, popup anchors, formatting).
 import { svg, image, div } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { theme, keys, window, layout } from "herdr";
+import { theme, keys, window, layout, shared } from "herdr";
 
 export const M = "mods/tokyo-night";
 export const MONO = "JetBrains Mono";
@@ -40,6 +40,13 @@ export function mix(top, base, a) {
   const n = (h, i) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
   return "#" + [0, 1, 2].map(i => Math.round(n(top, i) * a + n(base, i) * (1 - a)).toString(16).padStart(2, "0")).join("");
 }
+// Per-machine colors the person picked (right-click a machine); the theme accent by default.
+export const COLORS_KEY = "tokyo-night.colors";
+export const SWATCHES = ["#7aa2f7", "#7dcfff", "#73daca", "#9ece6a", "#e0af68", "#ff9e64", "#f7768e", "#bb9af7"];
+export const machineColor = (key) => {
+  const c = shared(COLORS_KEY)?.[key];
+  return HEX.test(c ?? "") ? c : C.accent;
+};
 export const stop = (_e, cx) => cx.stop_propagation();
 
 export function dur(ms) {

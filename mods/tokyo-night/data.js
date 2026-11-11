@@ -6,6 +6,7 @@ export const mkey = (n) => n ?? LOCAL;
 export const mname = (k) => k === LOCAL ? "This computer" : k;
 export const mArg = (k) => k === LOCAL ? "" : k;     // space.new {machine}
 export const onArg = (k) => k === LOCAL ? null : k;  // exec {on}
+export const ALL = "@all"; // the "All" tile's key
 export const short = (a) => String(a ?? "").split("/").pop();
 
 // Elapsed tracking: when a terminal was first seen in its present status ("N m observed"),
@@ -102,6 +103,13 @@ export function snapshot() {
   }
   return { machines: ms, spaces: allSpaces, rows, foc, now, mBy,
     offline: ms.filter(m => m.offline && m.spaces.length > 0) };
+}
+
+// The machine whose stats the card shows: the open one; in All, the focused space's (else the first).
+export function statsMachine(snap, key) {
+  if (key !== ALL) return snap.mBy.get(key) ?? null;
+  const f = snap.foc && snap.spaces.find(s => s.id === snap.foc.space);
+  return snap.mBy.get(f?.machine) ?? snap.machines[0] ?? null;
 }
 
 // ---- machine stats: one exec, two /proc/stat samples 0.5 s apart ----

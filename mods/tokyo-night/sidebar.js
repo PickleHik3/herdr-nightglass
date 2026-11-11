@@ -1,10 +1,10 @@
 // tokyo-night: the sidebar (expanded and rail), its New popup and the rail's spaces popup.
 import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { run, openOverlay, closeOverlay, setAgentOrder, props, spaces, focused, shared, knownAgents } from "herdr";
+import { run, openOverlay, closeOverlay, setAgentOrder, props, spaces, focused, shared, setShared, knownAgents } from "herdr";
 import { C, M, MONO, CLEAR, BADGES, alpha, dur, hash, ico, prog, mark, level, stop, nodePx,
-  anchorBelow, anchorRight, setPressed, getPressed, bindingOf } from "./lib.js";
-import { snapshot, LOCAL, mkey, mArg, onArg, lastSeen, upText } from "./data.js";
+  anchorBelow, anchorRight, setPressed, getPressed, bindingOf, machineColor, SWATCHES, COLORS_KEY } from "./lib.js";
+import { snapshot, LOCAL, ALL, mkey, mArg, onArg, lastSeen, upText, statsMachine } from "./data.js";
 import { usageCard } from "./header.js";
 
 const MOD = "tokyo-night";
@@ -56,17 +56,29 @@ function light(m, top, right) {
   return slot.child(mark(m.light));
 }
 const machineIcon = (m, size, color) => ico(m.key === LOCAL ? "monitor" : "server", size, color);
+// Right-click on a machine opens the color picker.
+const pickColor = (m) => (_e, cx) => {
+  cx.stop_propagation();
+  openOverlay({ mod: MOD, kind: "popup", frame: "none", width: 220, height: 118, at: "pointer", props: { role: "colors", machine: m.key, name: m.name } });
+};
+// The most urgent light over all machines; offline only counts when every machine is offline.
+function allLight(snap) {
+  const lights = snap.machines.map(m => m.light);
+  for (const k of ["waiting", "working", "idle"]) if (lights.includes(k)) return k;
+  return lights.length && lights.every(l => l === "offline") ? "offline" : null;
+}
 
 // ---- capsules ----
 function rowEl(view, r, compact, onPick) {
   const hover = view.hover === r.address;
   const waiting = r.kind === "waiting";
-  const tint = r.focused ? alpha(C.accent, 0.16) : waiting ? alpha(C.red, 0.12) : CLEAR;
-  const ring = r.focused ? alpha(C.accent, 0.5) : waiting ? alpha(C.red, 0.45) : CLEAR;
+  const mc = machineColor(r.machine);
+  const tint = r.focused ? alpha(mc, 0.16) : waiting ? alpha(C.red, 0.12) : CLEAR;
+  const ring = r.focused ? alpha(mc, 0.5) : waiting ? alpha(C.red, 0.45) : CLEAR;
   const showNow = !compact && r.now && (hover || r.focused || waiting);
   return v_flex().id(`tn-row-${r.address}`).w_full().min_w(0).flex_none().rounded(14).bg(tint).border(1).border_color(ring)
     .pl(10).pr(5).py(3).gap(1).cursor_pointer().text_size(12).text_color(r.focused ? C.fg : C.muted)
-    .hover(s => s.bg(r.focused ? alpha(C.accent, 0.22) : waiting ? alpha(C.red, 0.18) : C.raised))
+    .hover(s => s.bg(r.focused ? alpha(mc, 0.22) : waiting ? alpha(C.red, 0.18) : C.raised))
     .on_hover((h, cx) => { if (h) view.hover = r.address; else if (view.hover === r.address) view.hover = null; cx.notify(); })
     .on_click((_e, cx) => { cx.stop_propagation(); onPick?.(); focusRow(r); })
     .on_mouse_down("right", (_e, cx) => {
@@ -78,7 +90,7 @@ function rowEl(view, r, compact, onPick) {
       .child(div().flex_1().min_w(0).truncate().font_medium().child(r.title))
       .child(div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(r.kind === "offline" ? "" : dur(r.ms)))
       .child(h_flex().flex_none().h(18).px(7).rounded(9).items_center().font_family(MONO).text_size(11)
-        .bg(r.focused ? C.accent : C.raised).text_color(r.focused ? C.onAccent : C.dim).child(r.short)))
+        .bg(r.focused ? mc : C.raised).text_color(r.focused ? C.onAccent : C.dim).child(r.short)))
     .when(showNow, el => el.child(div().pl(18).w_full().min_w(0).truncate().font_family(MONO).text_size(11)
       .text_color(waiting ? C.red : C.dim).child(r.now)));
 }
@@ -105,6 +117,31 @@ function sectionTitle(m) {
   return h_flex().w_full().h(20).flex_none().gap(8).px(6).items_center()
     .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(C.dim).child(m.name.toUpperCase()))
     .child(div().flex_none().font_family(MONO).text_size(11).text_color(wait ? C.red : C.dim).child(m.summary));
+}
+
+const newSpaceRow = (id, m, h, label) => h_flex().id(id).w_full().h(h).flex_none().px(12).gap(8).items_center().rounded(16)
+  .border(1).border_color(C.input).text_size(12).text_color(C.dim).cursor_pointer()
+  .hover(s => s.bg(C.surface))
+  .on_click((_e, cx) => { cx.stop_propagation(); run("space.new", { machine: mArg(m.key) }); })
+  .child(ico("folder", 13, C.dim)).child(div().truncate().child(label));
+
+// The "All" view: one card per machine, tinted in its color, with its capsules inside.
+// onHead is null in the rail popup (it has no sidebar state to open a machine in).
+function allGroups(view, snap, compact, onHead, onPick) {
+  return snap.machines.map(m => {
+    const color = machineColor(m.key);
+    return v_flex().id(`tn-all-${m.key}`).w_full().flex_none().rounded(18).p(6).gap(6)
+      .bg(alpha(color, 0.06)).border(1).border_color(alpha(color, 0.35)).opacity(m.offline ? 0.62 : 1)
+      .child(h_flex().id(`tn-all-h-${m.key}`).w_full().h(24).flex_none().gap(8).px(6).items_center().rounded(12)
+        .when(!!onHead, el => el.cursor_pointer().hover(s => s.bg(alpha(color, 0.12))).on_click((_e, cx) => onHead(m, cx)))
+        .on_mouse_down("right", pickColor(m))
+        .child(machineIcon(m, 13, color))
+        .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name))
+        .child(div().flex_none().font_family(MONO).text_size(11).text_color(m.offline ? C.amber : m.count.waiting ? C.red : C.dim).child(m.summary)))
+      .children(m.spaces.map(sp => capsule(view, sp, m, compact, onPick)))
+      .when(m.spaces.length === 0, el => el.child(div().px(8).py(2).text_size(11).text_color(C.dim).child("No spaces")))
+      .child(newSpaceRow(`tn-all-new-${m.key}`, m, 28, "New space"));
+  });
 }
 
 // ---- stats card ----
@@ -146,15 +183,31 @@ function diskRow(data) {
 // ---- tiles ----
 function tile(view, m, open, w) {
   const sel = open === m.key;
+  const mc = machineColor(m.key);
   return v_flex().id(`tn-m-${m.key}`).w(w).h(58).flex_none().relative().items_center().justify_center().gap(5).px(6).rounded(6)
-    .bg(sel ? alpha(C.accent, 0.16) : C.surface).border(1).border_color(sel ? alpha(C.accent, 0.55) : CLEAR)
+    .bg(sel ? alpha(mc, 0.16) : C.surface).border(1).border_color(sel ? alpha(mc, 0.55) : CLEAR)
     .opacity(m.offline ? 0.62 : 1).cursor_pointer().tooltip(`${m.name} · ${m.summary}`)
-    .hover(s => s.bg(sel ? alpha(C.accent, 0.2) : C.raised))
+    .hover(s => s.bg(sel ? alpha(mc, 0.2) : C.raised))
     .on_click((_e, cx) => { view.goMachine(m.key); view.pollStats(cx, true); cx.notify(); })
-    .child(h_flex().size(24).rounded(6).justify_center().items_center().bg(sel ? alpha(C.accent, 0.24) : C.raised)
-      .child(machineIcon(m, 14, sel ? C.accent : C.muted)))
+    .on_mouse_down("right", pickColor(m))
+    .child(h_flex().size(24).rounded(6).justify_center().items_center().bg(sel ? alpha(mc, 0.24) : C.raised)
+      .child(machineIcon(m, 14, mc)))
     .child(div().max_w(Math.max(20, w - 14)).truncate().text_size(11).font_medium().text_color(sel ? C.fg : C.muted).child(m.name))
     .when(!!m.light, el => el.child(light(m, 6, 6)));
+}
+// The All tile: no machine, so no color to pick; clicking it only changes what the sidebar lists.
+function allTile(view, snap, open, w) {
+  const sel = open === ALL;
+  const l = allLight(snap);
+  return v_flex().id("tn-m-all").w(w).h(58).flex_none().relative().items_center().justify_center().gap(5).px(6).rounded(6)
+    .bg(sel ? alpha(C.accent, 0.16) : C.surface).border(1).border_color(sel ? alpha(C.accent, 0.55) : CLEAR)
+    .cursor_pointer().tooltip("All machines")
+    .hover(s => s.bg(sel ? alpha(C.accent, 0.2) : C.raised))
+    .on_click((_e, cx) => { view.setOpen(ALL); view.pollStats(cx, true); cx.notify(); })
+    .child(h_flex().size(24).rounded(6).justify_center().items_center().bg(sel ? alpha(C.accent, 0.24) : C.raised)
+      .child(ico("logo", 14, sel ? C.accent : C.muted)))
+    .child(div().max_w(Math.max(20, w - 14)).truncate().text_size(11).font_medium().text_color(sel ? C.fg : C.muted).child("All"))
+    .when(!!l, el => el.child(light({ light: l }, 6, 6)));
 }
 
 // ---- expanded ----
@@ -167,23 +220,23 @@ function brand(snap, open) {
 }
 
 function full(base, view, snap, open, w) {
-  const m = open ? snap.mBy.get(open) : null;
+  const all = open === ALL;
+  const m = open && !all ? snap.mBy.get(open) : null;
+  const sm = all ? statsMachine(snap, open) : m;
   const tileW = Math.max(40, Math.floor((w - 20 - 12) / 3));
   const usage = usageCard(view);
   return base.px(10).pt(10).pb(12).gap(14)
     .child(brand(snap, open))
-    .child(h_flex().w_full().flex_none().flex_wrap().gap(6).children(snap.machines.map(mm => tile(view, mm, open, tileW))))
+    .child(h_flex().w_full().flex_none().flex_wrap().gap(6).child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW))))
+    .when(all, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
+      .children(allGroups(view, snap, false, (mm, cx) => { view.goMachine(mm.key); view.pollStats(cx, true); cx.notify(); }))))
     .when(!!m, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
       .child(sectionTitle(m))
       .children(m.spaces.map(sp => capsule(view, sp, m, false)))
-      .child(h_flex().id("tn-newspace").w_full().h(34).flex_none().px(12).gap(8).items_center().rounded(16)
-        .border(1).border_color(C.input).text_size(12).text_color(C.dim).cursor_pointer()
-        .hover(s => s.bg(C.surface))
-        .on_click(() => run("space.new", { machine: mArg(m.key) }))
-        .child(ico("folder", 13, C.dim)).child(div().truncate().child(`New space on ${m.name}`)))))
-    .when(!m, el => el.child(div().flex_1()))
+      .child(newSpaceRow("tn-newspace", m, 34, `New space on ${m.name}`))))
+    .when(!m && !all, el => el.child(div().flex_1()))
     .when(!!usage, el => el.child(usage))
-    .when(!!m, el => el.child(statsCard(view, m)));
+    .when(!!sm, el => el.child(statsCard(view, sm)));
 }
 
 // ---- rail ----
@@ -192,15 +245,20 @@ function rail(base, view, snap) {
     .child(h_flex().size(28).flex_none().rounded(6).bg(C.accent).justify_center().items_center().child(ico("logo", 16, C.onAccent)))
     .child(iconBtn("tn-new", "plus", 14, C.accent, alpha(C.accent, 0.14), "New", 36, 32, () => openNewMenu(snap, null)))
     .child(div().w(24).h(1).flex_none().my(2).bg(C.raised))
+    .child(h_flex().id("tn-rm-all").w(40).h(40).flex_none().relative().justify_center().items_center().rounded(6)
+      .bg(C.surface).cursor_pointer().tooltip("All machines")
+      .hover(s => s.bg(C.raised))
+      .on_mouse_down("left", (e, cx) => { cx.stop_propagation(); setPressed(anchorRight(e)); })
+      .on_click(() => openSpaces(snap, ALL))
+      .child(ico("logo", 16, C.muted))
+      .when(!!allLight(snap), el => el.child(light({ light: allLight(snap) }, 4, 4))))
     .children(snap.machines.map(m => h_flex().id(`tn-rm-${m.key}`).w(40).h(40).flex_none().relative().justify_center().items_center().rounded(6)
       .bg(C.surface).opacity(m.offline ? 0.62 : 1).cursor_pointer().tooltip(`${m.name} · ${m.summary}`)
       .hover(s => s.bg(C.raised))
       .on_mouse_down("left", (e, cx) => { cx.stop_propagation(); setPressed(anchorRight(e)); })
-      .on_click(() => {
-        const h = spacesHeight(m);
-        openOverlay({ mod: MOD, kind: "popup", frame: "none", width: 268, height: h, at: getPressed(), props: { role: "spaces", machine: m.key, h } });
-      })
-      .child(machineIcon(m, 16, C.muted))
+      .on_mouse_down("right", pickColor(m))
+      .on_click(() => openSpaces(snap, m.key))
+      .child(machineIcon(m, 16, machineColor(m.key)))
       .when(!!m.light, el => el.child(light(m, 4, 4)))))
     .child(div().flex_1())
     .child(iconBtn("tn-expand", "panel", 15, C.dim, CLEAR, "Expand sidebar", 36, 32, () => run("layout.resize", { id: "sidebar", px: 268 })));
@@ -243,21 +301,51 @@ export function renderNewMenu(view) {
         .child(view.agentsFailed ? "Could not load agents" : "Checking installed agents…"))));
 }
 
-// ---- popup: a machine's spaces, from the rail ----
-function spacesHeight(m) {
-  const body = m.spaces.reduce((n, s) => n + 10 + 28 + s.rows.length * 30 + 8, 0);
-  return Math.min(640, 16 + 22 + 8 + Math.max(body, 40));
+// ---- popup: a machine's spaces (or all machines), from the rail ----
+function spacesHeight(snap, key) {
+  const group = (m) => m.spaces.reduce((n, s) => n + 10 + 28 + s.rows.length * 30 + 8, 0);
+  if (key === ALL) {
+    const body = snap.machines.reduce((n, m) => n + 12 + 24 + 6 + group(m) + (m.spaces.length ? 0 : 20) + 28 + 6, 0);
+    return Math.min(520, 16 + 22 + 8 + Math.max(body, 40));
+  }
+  return Math.min(640, 16 + 22 + 8 + Math.max(group(snap.mBy.get(key)), 40));
+}
+function openSpaces(snap, key) {
+  const h = spacesHeight(snap, key);
+  openOverlay({ mod: MOD, kind: "popup", frame: "none", width: 268, height: h, at: getPressed(), props: { role: "spaces", machine: key, h } });
 }
 export function renderSpacesPopup(view) {
   const p = props();
   const snap = snapshot();
-  const m = snap.mBy.get(p.machine) ?? snap.machines[0];
-  const h = p.h ?? spacesHeight(m);
+  const all = p.machine === ALL;
+  const m = all ? null : snap.mBy.get(p.machine) ?? snap.machines[0];
+  const h = p.h ?? spacesHeight(snap, all ? ALL : m.key);
   const close = () => closeOverlay(p.overlay);
   return v_flex().id("tn-spaces").w_full().h(h).bg(C.chrome).rounded(16).border(1).border_color(C.raised).overflow_hidden().p(8).gap(8)
     .child(h_flex().w_full().h(22).flex_none().gap(8).px(6).items_center()
-      .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(C.dim).child(m.name.toUpperCase()))
-      .child(div().flex_none().font_family(MONO).text_size(11).text_color(m.count.waiting ? C.red : C.dim).child(m.summary)))
+      .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(C.dim).child(all ? "ALL MACHINES" : m.name.toUpperCase()))
+      .when(!all, el => el.child(div().flex_none().font_family(MONO).text_size(11).text_color(m.count.waiting ? C.red : C.dim).child(m.summary))))
     .child(v_flex().id("tn-spaces-list").w_full().h(h - 16 - 22 - 8).gap(8).overflow_y_scrollbar()
-      .children(m.spaces.map(sp => capsule(view, sp, m, true, close))));
+      .when(all, el => el.children(allGroups(view, snap, true, null, close)))
+      .when(!all, el => el.children(m.spaces.map(sp => capsule(view, sp, m, true, close)))));
+}
+
+// ---- popup: color of a machine ----
+export function renderColorsPopup() {
+  const p = props();
+  const cur = shared(COLORS_KEY) ?? {};
+  const set = (c) => {
+    const next = { ...cur };
+    if (c) next[p.machine] = c; else delete next[p.machine];
+    setShared(COLORS_KEY, next);
+    closeOverlay(p.overlay);
+  };
+  return v_flex().id("tn-colors").w_full().h(118).bg(C.surface).rounded(6).border(1).border_color(C.raised).overflow_hidden().p(10).gap(10)
+    .child(div().w_full().h(16).flex_none().truncate().text_size(11).font_semibold().text_color(C.dim).child(`COLOR FOR ${String(p.name ?? p.machine).toUpperCase()}`))
+    .child(h_flex().w_full().h(26).flex_none().gap(3).items_center()
+      .children(SWATCHES.map(c => h_flex().id(`tn-sw-${c}`).size(22).flex_none().rounded(11).bg(c).cursor_pointer()
+        .border(2).border_color(cur[p.machine] === c ? C.fg : CLEAR)
+        .on_click(() => set(c)))))
+    .child(h_flex().id("tn-sw-default").w_full().h(24).flex_none().px(6).items_center().rounded(4).text_size(12).text_color(C.muted)
+      .cursor_pointer().hover(s => s.bg(C.raised)).on_click(() => set(null)).child("Default"));
 }
