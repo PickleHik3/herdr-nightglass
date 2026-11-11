@@ -1,6 +1,6 @@
 // tokyo-night-phone: one multi-role mod for the "tokyo-night-phone" layout (portrait phone, 412 x 915).
-//   topbar    app button, search button, stats rings, usage rings, panel toggle (with the changes dot); polls
-//             changes, usage and the stats of the machine in front; closes the panel at load
+//   topbar    search button, finished count, stats rings, usage rings (opt-in: prop "usage": true), panel toggle (with the changes dot); polls
+//             changes, the stats (and usage when on) of the machine in front; closes the panel at load
 //   strip     unreachable banner / one-line chips for agents that wait or finished (hidden when empty)
 //   tabs      tab pills: every agent across machines, plus "+"; its timer shows / hides / sizes the strip
 //   composer  prompt field + send (hc send)
@@ -33,8 +33,10 @@ export default class TokyoNightPhone extends View {
       if (props()?.fit_zoom) cx.timer.every(400, () => this.fitZoom());
       pollChanges(this, cx);
       cx.timer.every(2000, (cx) => pollChanges(this, cx));
-      pollUsage(this, cx);
-      cx.timer.every(5000, (cx) => pollUsage(this, cx));
+      if (props()?.usage === true) { // opt-in (layout prop "usage": true on the topbar block): no usage fetching otherwise
+        pollUsage(this, cx);
+        cx.timer.every(5000, (cx) => pollUsage(this, cx));
+      }
       pollStats(this, cx, true);
       cx.timer.every(3000, (cx) => pollStats(this, cx));
     }

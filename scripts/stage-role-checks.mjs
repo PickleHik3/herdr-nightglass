@@ -25,8 +25,8 @@ themeColors.ansi0 = theme.ansi[0];
 
 // name -> { role, scenario, props }
 const CASES = {
-  topbar: { role: "topbar", scen: "normal" },
-  "topbar-nousage": { role: "topbar", scen: "nousage" },
+  topbar: { role: "topbar", scen: "normal" },                      // default: usage off
+  "topbar-usage": { role: "topbar", scen: "usage" },               // usage widget on (prop usage: true)
   "topbar-panel-open": { role: "topbar", scen: "panel-open" },     // toggle in its active look
   "topbar-done0": { role: "topbar", scen: "done0" },               // finished count 0: the green button is absent
   "topbar-done3": { role: "topbar", scen: "done3" },               // finished count 3
@@ -99,7 +99,7 @@ const store = new Map([["tokyo-night.usage", SCEN === "nousage" ? undefined : US
 const done = Promise.resolve({ code: 0, stdout: "", stderr: "" });
 if (SCEN === "all") { try { localStorage.setItem("open", JSON.stringify({ set: true, key: "@all" })); } catch {} }
 
-export const props = () => ({ role: ROLE, fit_zoom: true, openAgents: SCEN === "agents" ? "@local" : null, overlay: "ov1", changes: 3, h: 428, machine: "amal-build", name: "amal-build" });
+export const props = () => ({ role: ROLE, fit_zoom: true, usage: SCEN === "usage" ? true : undefined, openAgents: SCEN === "agents" ? "@local" : null, overlay: "ov1", changes: 3, h: 428, machine: "amal-build", name: "amal-build" });
 export const theme = () => THEME;
 export const settings = () => ({ zoom: 2.5 });
 export const keys = () => [];

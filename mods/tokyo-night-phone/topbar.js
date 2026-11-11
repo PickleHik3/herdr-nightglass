@@ -12,7 +12,6 @@ const USAGE_KEY = "tokyo-night.usage";                   // the desktop mod's ke
 const STATS_KEY = "tokyo-night-phone.stats";             // { key, name, at, data, fail, offline } of the machine in front
 // Stats popover: 10 pad, header 16, three 22 px rows, 8 gaps, 10 pad.
 const STATS_H = 20 + 16 + 3 * 22 + 3 * 8;
-const RS = 24; // stats ring size (icon 12 inside)
 const diskUsed = (data) => data.diskTotal > 0 ? Math.round(100 - data.diskFree / data.diskTotal * 100) : 0;
 const diskFreeText = (data) => `${data.diskFree >= 100 ? Math.round(data.diskFree) : data.diskFree.toFixed(1)} GB free`;
 // Popover (Glass usage panel, as the desktop's): 10 pad, legend 16, one 62 px well per account, 8 gaps, 10 pad.
@@ -95,7 +94,8 @@ const ringColors = (u) => [level(u.week ?? 0, C.accent), level(u.five ?? 0, C.te
 // ---- the bar ----
 export function renderTopbar(view) {
   const u = shared(USAGE_KEY);
-  const rows = u?.rows ?? [];
+  // The usage widget is opt-in: the top bar block's layout prop "usage": true (absent = off, no pill, no polling: main.js).
+  const rows = props()?.usage === true ? (u?.rows ?? []) : [];
   const usageOpen = popupIsOpen("usage");
   const z = zoom();
   const Wd = WIN.w > 0 ? dsg(WIN.w) : DESIGN_W;      // window width, designed px
@@ -139,19 +139,31 @@ export function renderTopbar(view) {
   const wellsW = (size, icons, pad) => G * 2 * pad + n * size + (n - G) * 2 + (icons ? G * 18 : 0) + Math.max(0, G - 1) * 4;
   const items = 3 + (finished > 0 ? 1 : 0) + (n > 0 ? 1 : 0);      // search, stats, toggle (+ count, + usage)
   const gaps = items - 1;
-  const statsW = 2 * 8 + 3 * RS + 2 * 2;
-  const fixed = 40 + (finished > 0 ? 30 : 0) + statsW + 40;
+  // The stats pill: with the usage widget it is three 24 px rings with icons; without it the pill gets the room: the biggest of
+  // [28 px rings + a percentage each, 24 px rings + percentages, 24 px rings] that still leaves gaps of 6 (then it grows past 24).
+  const variants = n > 0 ? [{ rs: 24, txt: false }] : [{ rs: 28, txt: true }, { rs: 24, txt: true }, { rs: 24, txt: false }];
+  const pillW = (v, pad) => 2 * pad + 3 * (v.rs + (v.txt ? 6 + 28 : 0)) + 2 * (v.txt ? 6 : 2);
+  const rest = 40 + (finished > 0 ? 30 : 0) + 40;                   // search, count, toggle
+  const roomFor = (v) => Wd - 24 - rest - gaps * 6 - pillW(v, 8);
+  const sv = variants.find(v => roomFor(v) - (n > 0 ? wellsW(12, false, 8) : 0) >= 0) ?? variants[variants.length - 1]; // (the pill's own padding can still grow)
+  const RS = sv.rs;
+  const statsW = pillW(sv, 8);
+  const fixed = rest + statsW;
   const room = Wd - 24 - fixed - gaps * 6;
-  const showIcons = n > 0 && wellsW(RING, true, 8) <= room;
-  if (n > 0 && !showIcons && wellsW(RING, false, 8) > room) RING = 12;
+  const showIcons = n > 0 && wellsW(16, true, 8) <= room;
+  if (n > 0 && !showIcons && wellsW(16, false, 8) > room) RING = 12;
   const used = fixed + (n > 0 ? wellsW(RING, showIcons, 8) : 0);
   const surplus = Math.max(0, (Wd - 24 - used) - gaps * 24);
   const pills = 1 + G;
-  const grow = Math.min(24, surplus / pills / 2);                   // extra padding per side, per pill
+  const grow = Math.min(n > 0 ? 24 : 40, surplus / pills / 2);      // extra padding per side, per pill
   const padS = 8 + grow;
-  const ringIcon = (name, pct, color) => h_flex().relative().size(RS).flex_none()
-    .child(ringS(RS, pct, 0, color, C.teal))
-    .child(div().absolute().top((RS - 12) / 2).left((RS - 12) / 2).child(ico(name, 12, C.muted)));
+  const ICO = RS >= 28 ? 14 : 12;
+  const pct = (p) => p == null ? "–" : `${Math.round(p)}%`;
+  const ringIcon = (name, p, color) => h_flex().gap(6).items_center().flex_none()
+    .child(h_flex().relative().size(RS).flex_none()
+      .child(ringS(RS, p, 0, color, C.teal))
+      .child(div().absolute().top((RS - ICO) / 2).left((RS - ICO) / 2).child(ico(name, ICO, C.muted))))
+    .when(sv.txt, el => el.child(div().w(28).flex_none().font_family(MONO).text_size(11).text_color(C.muted).child(pct(p))));
   const open = panelOpen();
   const hasChanges = (view.changes ?? 0) > 0;
   const BTN = 40, DONE_H = 30;
@@ -168,12 +180,12 @@ export function renderTopbar(view) {
         .on_click((_e, cx) => { setFinishedOpen(!finishedOpen()); cx.notify(); })
         .child(div().font_family(MONO).text_size(13).font_semibold().text_color(C.ink).child(String(finished)))))
     // stats rings, each with its icon (cpu chip, ram module, disk): one well, opens the popover
-    .child(h_flex().id("tnp-stats").h(BTN).flex_none().px(padS).gap(2).items_center().rounded(20).cursor_pointer()
+    .child(h_flex().id("tnp-stats").h(BTN).flex_none().px(padS).gap(sv.txt ? 6 : 2).items_center().rounded(20).cursor_pointer()
       .bg(statsOpen ? C.raised : C.well).border(1).border_color(C.rim).opacity(sdata && !sm?.offline ? 1 : 0.55)
       .on_click(openStats)
       .child(ringIcon("cpu", sdata?.cpu, level(sdata?.cpu ?? 0, C.accent)))
       .child(ringIcon("ram", sdata?.memPct, level(sdata?.memPct ?? 0, C.teal)))
-      .child(ringIcon("disk", sdata ? diskUsed(sdata) : 0, level(sdata ? diskUsed(sdata) : 0, C.fg))))
+      .child(ringIcon("disk", sdata ? diskUsed(sdata) : null, level(sdata ? diskUsed(sdata) : 0, C.fg))))
     // usage rings: one well per tool; all of them open the popover
     .when(n > 0, el => el.child(h_flex().id("tnp-rings").flex_none().gap(4).items_center().cursor_pointer()
       .opacity(u?.stale ? 0.6 : 1)

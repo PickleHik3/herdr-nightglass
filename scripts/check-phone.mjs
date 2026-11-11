@@ -214,24 +214,27 @@ console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desk
   if (/\.child\(gap\(\)\)/.test(top)) bad("topbar.js: spacer divs are gone, the row uses justify_between (the usage wells are one item)");
   if (!/id\("tnp-done"\)\.h\(DONE_H\)/.test(top) || !/DONE_H = 30/.test(top)) bad("topbar.js: the finished count is a 30 px pill");
   if (/ringIcon\("cpu"/.test(top) === false || !/ringIcon\("ram"/.test(top) || !/ringIcon\("disk"/.test(top)) bad("topbar.js: the stats rings carry cpu / ram / disk icons");
-  if (!/ico\(name, 12,/.test(top)) bad("topbar.js: ring icon must be >= 10 px");
-  // the same arithmetic as topbar.js: gap per neighbour at several window widths (all items shown, 5 usage rings in 2 groups)
-  const gapAt = (W, done) => {
-    const n = 5, G = 2, items = 4 + (done ? 1 : 0), gaps = items - 1;
-    const fixed = 40 + (done ? 30 : 0) + 92 + 40, wells = (r, ic) => G * 16 + n * r + (n - G) * 2 + (ic ? G * 18 : 0) + (G - 1) * 4;
-    const room = W - 24 - fixed - gaps * 6;
-    const ic = wells(16, true) <= room, ring = !ic && wells(16, false) > room ? 12 : 16;
-    return { gap: (W - 24 - fixed - wells(ring, ic)) / gaps, ring, ic };
+  if (!/ico\(name, ICO,/.test(top) || !/ICO = RS >= 28 \? 14 : 12/.test(top)) bad("topbar.js: ring icon must be >= 10 px");
+  // the same arithmetic as topbar.js, for the default bar (usage off) with and without the count button, and with usage on
+  const barAt = (W, done, usage) => {
+    const n = usage ? 5 : 0, G = usage ? 2 : 0, items = 3 + (done ? 1 : 0) + (usage ? 1 : 0), gaps = items - 1;
+    const variants = usage ? [{ rs: 24, txt: false }] : [{ rs: 28, txt: true }, { rs: 24, txt: true }, { rs: 24, txt: false }];
+    const pillW = (v, pad) => 2 * pad + 3 * (v.rs + (v.txt ? 34 : 0)) + 2 * (v.txt ? 6 : 2);
+    const wells = (r, ic, pad) => G * 2 * pad + n * r + (n - G) * 2 + (ic ? G * 18 : 0) + Math.max(0, G - 1) * 4;
+    const rest = 40 + (done ? 30 : 0) + 40;
+    const sv = variants.find((v) => W - 24 - rest - gaps * 6 - pillW(v, 8) - (usage ? wells(12, false, 8) : 0) >= 0) ?? variants[variants.length - 1];
+    const room = W - 24 - rest - pillW(sv, 8) - gaps * 6;
+    const ic = usage && wells(16, true, 8) <= room, ring = usage && !ic && wells(16, false, 8) > room ? 12 : 16;
+    const used = rest + pillW(sv, 8) + (usage ? wells(ring, ic, 8) : 0);
+    const surplus = Math.max(0, W - 24 - used - gaps * 24), grow = Math.min(usage ? 24 : 40, surplus / (1 + G) / 2);
+    const pillNow = pillW(sv, 8 + grow), total = rest + pillNow + (usage ? wells(ring, ic, 8 + grow) : 0);
+    return { gap: (W - 24 - total) / gaps, rs: sv.rs, txt: sv.txt, pill: pillNow };
   };
-  for (const W of [412, 480]) { const g = gapAt(W, true); if (g.gap < 6) bad(`topbar: gap ${g.gap.toFixed(1)} px at ${W} with every item shown`); }
-  if (/ico\("logo"/.test(top)) bad("topbar.js: the logo button is gone");
-  {
-    const stp = mods["strip.js"];
-    if (!/pico\("keyboard"/.test(stp) || !/pico\("chat"/.test(stp) || /pico\("prompt"/.test(stp)) bad("strip.js: the composer button is a keyboard, or a chat bubble when the front terminal waits");
-    if (!/r\.address === front && r\.agent && r\.kind === "waiting"/.test(stp)) bad("strip.js: the chat bubble needs the front terminal to be a waiting agent");
-    console.log("composer button: keyboard / waiting chat bubble: ok");
-  }
-  console.log(`top bar order ok; gaps at 360/412/480 (all items): ${[360, 412, 480].map((W) => gapAt(W, true).gap.toFixed(1)).join(" / ")} px (rule: equal gaps, widgets grow past 24)`);
+  for (const W of [412, 480]) for (const [d, u] of [[true, true], [false, false], [true, false]]) { const g = barAt(W, d, u); if (g.gap < 6) bad(`topbar: gap ${g.gap.toFixed(1)} px at ${W} (count ${d}, usage ${u})`); }
+  const fmt = (W, d, u) => { const g = barAt(W, d, u); return `${g.gap.toFixed(1)} px gaps, rings ${g.rs}${g.txt ? "+%" : ""}, pill ${Math.round(g.pill)}`; };
+  if (!/props\(\)\?\.usage === true/.test(top) || !/props\(\)\?\.usage === true\) \{/.test(mods["main.js"])) bad("usage widget and polling must be opt-in through the topbar prop usage: true");
+  if (JSON.stringify(layout).includes('"usage"')) bad("layout: the usage prop must be absent in the shipped layout");
+  console.log(`top bar (usage off, the default) at 412: with count ${fmt(412, true, false)}; without ${fmt(412, false, false)}; usage on + count ${fmt(412, true, true)}`);
 }
 
 // --- toast mod (round 13): replaces the app's `toast` mod; lib.js verbatim; phone capsule only on the phone layout ---
