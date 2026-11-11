@@ -1,0 +1,96 @@
+{
+  "id": "root",
+  "type": "row",
+  "titlebar": "none",
+  "traffic_lights": [20, 22],
+  "theme": "tokyo-night",
+  "background": "canvas",
+  "padding": 8,
+  "gap": 8,
+  "terminal_padding": [14, 22],
+  "terminal_opacity": 0,
+  "preview": "layouts/tokyo-night.svg",
+  "ui_font": "Inter",
+  "font": "JetBrains Mono",
+  "font_size": 13,
+  "children": [
+    {
+      "id": "sidebar",
+      "type": "block",
+      "size": { "px": 268 },
+      "min": 56,
+      "max": 480,
+      "background": "chrome",
+      "radius": 6,
+      "content": { "mod": "tokyo-night", "props": { "role": "sidebar" } }
+    },
+    {
+      "id": "work",
+      "type": "column",
+      "gap": 8,
+      "resizable": false,
+      "children": [
+        {
+          "id": "header",
+          "type": "block",
+          "size": { "px": 38 },
+          "window_drag": true,
+          "content": { "mod": "tokyo-night", "props": { "role": "header" } }
+        },
+        {
+          "id": "strip",
+          "type": "block",
+          "size": { "px": 40 },
+          "content": { "mod": "tokyo-night", "props": { "role": "strip" } }
+        },
+        {
+          "id": "work-body",
+          "type": "row",
+          "gap": 8,
+          "children": [
+            {
+              "id": "main",
+              "type": "block",
+              "content": {
+                "tab": "active",
+                "pane": {
+                  "gap": 8,
+                  "radius": 6,
+                  "background": "chrome",
+                  "lone": true,
+                  "border": { "width": 0, "color": "chrome" },
+                  "focus": { "width": 1, "color": "#7aa2f766" },
+                  "header": {
+                    "content": { "mod": "tokyo-night", "props": { "role": "pane" } },
+                    "height": 38,
+                    "position": "top",
+                    "reveal": "always"
+                  }
+                }
+              }
+            },
+            {
+              "id": "panel",
+              "type": "column",
+              "size": { "px": 368 },
+              "min": 280,
+              "max": 900,
+              "hidden": true,
+              "children": [
+                {
+                  "id": "panel-body",
+                  "type": "stack",
+                  "active": "files",
+                  "children": [
+                    { "id": "files", "type": "block", "content": { "mod": "files" } },
+                    { "id": "changes", "type": "block", "content": { "mod": "changes" } }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
