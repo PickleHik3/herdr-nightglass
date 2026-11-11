@@ -176,7 +176,7 @@ function statsBlock(view, m) {
     .when(!!data, el => el
       .child(bar("cpu", data.cpu, `${data.cpu}% · ${data.cores} cores`))
       .child(bar("ram", data.memPct, data.memText))
-      .child(diskRow(data)))
+      .child(bar("disk", diskUsed(data), diskFreeText(data))))
     .when(!data, el => el.child(div().font_family(MONO).text_size(11).text_color(C.dim)
       .child(st?.fail ? "stats unavailable" : "reading…")));
 }
@@ -205,16 +205,9 @@ function usageOverlay(view, panel) {
     .child(panel);
 }
 
-// Disk as text: what's free matters more than a bar. Amber under 15% free, red under 5%.
-function diskRow(data) {
-  const size = (g) => g >= 100 ? `${Math.round(g)} GB` : `${g.toFixed(1)} GB`;
-  const freePct = data.diskTotal > 0 ? data.diskFree / data.diskTotal * 100 : 100;
-  const tint = freePct < 5 ? C.red : freePct < 15 ? C.amber : C.fg;
-  return h_flex().w_full().h(16).flex_none().gap(8).items_center().font_family(MONO).text_size(11)
-    .child(h_flex().w(14).flex_none().items_center().tooltip("disk").child(ico("disk", 13, C.dim)))
-    .child(div().flex_1().min_w(0).whitespace_nowrap().text_color(tint).child(`${size(data.diskFree)} free`))
-    .child(div().flex_none().whitespace_nowrap().text_color(C.dim).child(`of ${size(data.diskTotal)}`));
-}
+// Disk: a used bar like cpu/ram, and what's free as the text (df's Available, so the two agree).
+const diskUsed = (data) => data.diskTotal > 0 ? Math.round(100 - data.diskFree / data.diskTotal * 100) : 0;
+const diskFreeText = (data) => `${data.diskFree >= 100 ? Math.round(data.diskFree) : data.diskFree.toFixed(1)} GB free`;
 
 // ---- tiles ----
 function tile(view, m, open, w) {
