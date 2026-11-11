@@ -1,24 +1,24 @@
-// tokyo-night: the attention strip (quiet / offline banner / "Needs you" cards), the pane header
+// tokyo-night: the strip (tab bar + status capsule, offline banner, "Needs you" cards), the pane header
 // and the empty view (a machine with no spaces).
 import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { run, openOverlay, panes, props, exec, shared, setShared } from "herdr";
+import { run, openOverlay, panes, props, exec, shared, setShared, spaces } from "herdr";
 import { C, MONO, alpha, mix, raised, raisedFill, dur, ico, prog, mark, stop, nodePx, anchorBelowRight, setPressed, getPressed, machineColor } from "./lib.js";
-import { snapshot, short, LOCAL, mArg, mname } from "./data.js";
+import { snapshot, short, LOCAL, mArg, mname, mkey } from "./data.js";
 
 export const EMPTY_KEY = "tokyo-night.empty"; // machine key shown in the empty view, or null
-const BANNER = 44, QUIET = 40, GAP = 8, CARD = 76, HEAD = 18, PAD = 22, MAX_CARDS = 6;
+const BANNER = 44, TABS = 40, GAP = 8, CARD = 76, HEAD = 18, PAD = 22, MAX_CARDS = 6;
 
 function plan(snap) {
   const att = snap.rows.filter(r => r.agent && (r.kind === "waiting" || r.kind === "done"))
     .sort((a, b) => (a.kind === "waiting" ? 0 : 1) - (b.kind === "waiting" ? 0 : 1) || a.ms - b.ms);
   const offline = snap.offline;
-  const parts = [];
+  const parts = [TABS];
   if (offline.length) parts.push(BANNER);
   if (att.length) {
     const rows = Math.ceil(Math.min(att.length, MAX_CARDS) / 2);
     parts.push(PAD + HEAD + GAP + rows * CARD + (rows - 1) * GAP);
-  } else if (!offline.length) parts.push(QUIET);
+  }
   return { att, offline, px: parts.reduce((s, n) => s + n, 0) + GAP * (parts.length - 1) };
 }
 
@@ -93,12 +93,50 @@ export function renderStrip(view) {
     }
   }
   return v_flex().id("tn-strip").size_full().gap(GAP).overflow_hidden()
+    .child(tabRow(snap, att))
     .when(offline.length > 0, el => el.child(banner(snap, offline)))
-    .when(att.length > 0, el => el.child(attention(snap, att)))
-    .when(att.length === 0 && offline.length === 0, el => el.child(raised(h_flex().w_full().h(QUIET).flex_none().px(14).gap(10).items_center().rounded(6), C.chrome).shadow_md()
-      .child(ico("check-circle", 15, C.green))
-      .child(div().font_medium().text_color(C.fg).child("Nothing needs you"))
-      .child(div().text_color(C.dim).child(summary(snap)))));
+    .when(att.length > 0, el => el.child(attention(snap, att)));
+}
+
+// ---- tab bar: the shown space's tabs (Ctrl+Shift+T makes one), status capsule on the right ----
+const TAB_KIND = { blocked: "waiting", working: "working", done: "done", idle: "idle" };
+function tabRow(snap, att) {
+  const sp = spaces().find(s => s.active);
+  const mc = machineColor(mkey(sp?.machine ?? null));
+  const tab = (t) => {
+    const on = t.active;
+    return h_flex().id(`tn-tab-${t.id}`).h(30).min_w(0).max_w(220).flex_shrink(1).px(10).gap(7).items_center().rounded(8)
+      .bg(on ? alpha(mc, 0.16) : raisedFill(C.surface)).border(1).border_color(on ? alpha(mc, 0.55) : alpha(C.fg, 0.06))
+      .when(on, el => el.shadow_md()).when(!on, el => el.shadow_sm())
+      .cursor_pointer().hover(s => s.bg(on ? alpha(mc, 0.2) : mix(C.fg, C.raised, 0.05)))
+      .on_click(() => { if (!on) run("tab.select", { id: t.id }); })
+      .child(mark(t.status ? TAB_KIND[t.status] ?? "idle" : "idle"))
+      .child(div().min_w(0).truncate().text_size(12).font_medium().text_color(on ? C.fg : C.muted).child(t.name))
+      .when(t.panes > 1, el => el.child(div().flex_none().font_family(MONO).text_size(10).text_color(C.dim).child(`×${t.panes}`)));
+  };
+  const tabs = (sp?.tabs ?? []).filter(t => !t.settled || t.active);
+  return h_flex().w_full().h(TABS).flex_none().gap(10).items_center()
+    .child(h_flex().id("tn-tabs").flex_1().min_w(0).h_full().gap(6).items_center().overflow_x_scroll()
+      .children(tabs.map(tab))
+      .child(h_flex().id("tn-tab-new").size(30).flex_none().justify_center().items_center().rounded(8)
+        .bg(alpha(mc, 0.14)).cursor_pointer().hover(s => s.bg(alpha(mc, 0.24))).tooltip("New tab")
+        .on_click(() => run("tab.new", {})).child(ico("plus", 13, mc))))
+    .child(statusCapsule(snap, att));
+}
+function statusCapsule(snap, att) {
+  const nWait = att.filter(r => r.kind === "waiting").length, nDone = att.length - nWait;
+  const pill = raised(h_flex().id("tn-status").h(30).flex_none().px(12).gap(8).items_center().rounded(15), C.chrome).shadow_md();
+  if (!att.length) return pill
+    .child(ico("check-circle", 14, C.green))
+    .child(div().text_size(12).font_medium().text_color(C.fg).child("Nothing needs you"))
+    .child(div().text_size(12).text_color(C.dim).child(summary(snap)));
+  const count = (label, n, color) => h_flex().gap(6).items_center()
+    .child(div().text_size(12).font_medium().text_color(C.fg).child(label))
+    .child(div().px(5).rounded(4).bg(color).font_family(MONO).text_size(11).font_medium().text_color(C.ink).child(String(n)));
+  return pill
+    .when(nWait > 0, el => el.child(count("Needs you", nWait, C.red)))
+    .when(nDone > 0, el => el.child(count("Done", nDone, C.green)))
+    .child(div().text_size(12).text_color(C.dim).child(summary(snap)));
 }
 
 // ---- pane header ----
