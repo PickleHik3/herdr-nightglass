@@ -4,14 +4,24 @@
 // Herdr home, unlike JS imports, which cannot leave their own mod folder.
 import { svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
+import { settings } from "herdr";
 import { C, anchorBelow } from "./lib.js";
 
 export const MOD = "tokyo-night-phone";
 const PM = `mods/${MOD}`;
 
-// The window as the observer role (main.js "watch") last measured it, in logical px. Module
-// scope: every role of this mod shares it. `dropped`: the drawer is hidden for the soft keyboard.
+// The design's width: the layout is drawn for a 412 px wide phone at zoom 1.
+export const DESIGN_W = 412;
+
+// App zoom (settings.json "zoom"; settings() carries it). Layout px are "as designed" and drawn at zoom x px.
+export const zoom = () => { const z = Number(settings()?.zoom); return z > 0 ? z : 1; };
+
+// The window as measured (main.js "watch" for the height, the top bar for the width). on_size_change reports
+// SCREEN px, i.e. designed px x zoom (materialize.rs: bounds.size), and overlay `at` points are screen px too,
+// while overlay width/height and every layout/mod px are designed px. So: WIN holds screen px; `dsg` converts.
+// Module scope: every role of this mod shares it. `dropped`: the drawer is hidden for the soft keyboard.
 export const WIN = { w: 0, h: 0, dropped: false };
+export const dsg = (screenPx) => screenPx / zoom();
 
 // An icon that lives in this mod's folder (menu, arrow-up, prompt); the rest come from lib.js `ico`.
 export const pico = (name, size, color) => svg(`${PM}/${name}.svg`).size(size).flex_none().text_color(color ?? C.dim);
@@ -27,11 +37,12 @@ export function ringS(size, wPct, hPct, wColor, hColor) {
     .when(h > 0, el => el.child(layer(`h-${h}`, hColor)));
 }
 
-// Right edge of the pressed element on the right edge of a `width` px popup, kept inside [8, win - width - 8]
-// (overlays are not clamped by the app).
+// Right edge of the pressed element on the right edge of a popup `width` designed px wide, kept inside the window.
+// `win`: the window width in screen px. Event positions and `at` are screen px; `width` is designed px.
 export function anchorBelowRight(e, width, win) {
   const a = anchorBelow(e);
   if (a === "pointer") return a;
-  const maxX = win > 0 ? Math.max(8, win - width - 8) : Infinity;
-  return { x: Math.min(maxX, Math.max(8, Math.round(a.x + e.bounds.width - width))), y: a.y };
+  const wpx = width * zoom(), m = 8 * zoom();
+  const maxX = win > 0 ? Math.max(m, win - wpx - m) : Infinity;
+  return { x: Math.min(maxX, Math.max(m, Math.round(a.x + e.bounds.width - wpx))), y: a.y };
 }

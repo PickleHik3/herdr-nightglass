@@ -71,8 +71,9 @@ const store = new Map([["tokyo-night.usage", SCEN === "nousage" ? undefined : US
 const done = Promise.resolve({ code: 0, stdout: "", stderr: "" });
 if (SCEN === "all") { try { localStorage.setItem("open", JSON.stringify({ set: true, key: "@all" })); } catch {} }
 
-export const props = () => ({ role: ROLE, overlay: "ov1", changes: 3, h: 428, machine: "amal-build", name: "amal-build" });
+export const props = () => ({ role: ROLE, fit_zoom: true, overlay: "ov1", changes: 3, h: 428, machine: "amal-build", name: "amal-build" });
 export const theme = () => THEME;
+export const settings = () => ({ zoom: 2.5 });
 export const keys = () => [];
 export const window = () => ({ platform: "linux", titlebar: "none", buttons: false, maximized: false, fullscreen: false, active: true });
 export const layout = () => ({ id: "root", type: "row", children: [{ id: "phone", type: "column", children: [{ id: "core", type: "column", children: [{ id: "strip", type: "block", size: { px: 36 } }] }, { id: "drawer", type: "block", size: { px: 320 }, hidden: false }] }] });

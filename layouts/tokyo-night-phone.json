@@ -20,6 +20,7 @@
         {
           "id": "core",
           "type": "column",
+          "size": { "weight": 7 },
           "gap": 6,
           "resizable": false,
           "children": [
@@ -27,7 +28,7 @@
               "id": "topbar",
               "type": "block",
               "size": { "px": 52 },
-              "content": { "mod": "tokyo-night-phone", "props": { "role": "topbar" } }
+              "content": { "mod": "tokyo-night-phone", "props": { "role": "topbar", "fit_zoom": true } }
             },
             {
               "id": "strip",
@@ -76,7 +77,7 @@
         {
           "id": "drawer",
           "type": "block",
-          "size": { "px": 320 },
+          "size": { "weight": 3 },
           "min": 120,
           "max": 640,
           "content": { "mod": "tokyo-night-phone", "props": { "role": "drawer" } }

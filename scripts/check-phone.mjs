@@ -25,7 +25,7 @@ const kit = readFileSync(process.env.GPUI_KIT_DTS ?? join(DESK, "gpui-kit.d.ts")
 const ABSENT_013 = new Set(["ScrollHandle", "scroll_to_item"]);
 // Used by the phone mod, not by the desktop mod, and built without error by `herdr-app check` on 0.1.13
 // (14 staged role checks, scripts/stage-role-checks.mjs: they run init() and render() with fixtures).
-const PROVEN = new Set(["Input", "InputState", "new", "on", "overflow_x_scroll", "overflow_y_scroll", "line_height", "self_center"]);
+const PROVEN = new Set(["settings", "Input", "InputState", "new", "on", "overflow_x_scroll", "overflow_y_scroll", "line_height", "self_center"]);
 // Phone-only, but only reached inside event handlers / timers, which `check` does not run. Taken from the
 // 0.1.13 typings instead (gpui-kit.d.ts InputState: set_value, value, release; herdr.d.ts: hc).
 const TYPED_ONLY = new Set(["set_value", "value", "release", "hc"]);

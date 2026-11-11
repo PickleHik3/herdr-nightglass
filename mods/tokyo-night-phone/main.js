@@ -16,12 +16,14 @@ import { renderComposer, initComposer } from "./composer.js";
 import { renderDrawer, renderColorsPopup } from "./drawer.js";
 import { snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
 import { C, findNode, machineScheme, ALL_THEME } from "./lib.js";
-import { WIN } from "./phone.js";
+import { WIN, DESIGN_W, zoom, dsg } from "./phone.js";
 
 // Soft keyboard: the display resizes, so the window gets short. The design's core (top bar to
 // composer) is 595 px; below HIDE_BELOW the drawer would be under ~45 px, so it is hidden, and it
 // comes back only at SHOW_AT (a dead band between them: no flicker while the keyboard animates).
-const HIDE_BELOW = 640;
+// Heights are designed px (the watch's reported height is screen px = designed x zoom: see phone.js).
+// Keyboard down the window is ~800 designed px on the test phone, keyboard up ~540.
+const HIDE_BELOW = 650;
 const SHOW_AT = 720;
 
 export default class TokyoNightPhone extends View {
@@ -32,6 +34,8 @@ export default class TokyoNightPhone extends View {
     this.statsBusy = {};
     this.changes = 0;
     if (role === "topbar") {
+      // The layout is drawn for 412 designed px: when props.fit_zoom is on, step the app zoom to window / 412.
+      if (props()?.fit_zoom) cx.timer.every(400, () => this.fitZoom());
       pollChanges(this, cx);
       cx.timer.every(2000, (cx) => pollChanges(this, cx));
       pollUsage(this, cx);
@@ -45,6 +49,7 @@ export default class TokyoNightPhone extends View {
       cx.timer.every(30000, (cx) => cx.notify()); // elapsed times
       cx.timer.every(500, (cx) => this.watchFocus(cx));
     }
+    if (role === "watch") cx.timer.every(1000, () => this.evalDrawer());
     if (role === "usage") usageOpened();
   }
 
@@ -142,16 +147,33 @@ export default class TokyoNightPhone extends View {
     });
   }
 
+  // The layout only makes sense at zoom ~ window width / DESIGN_W (every px in it is designed px). There is no
+  // layout-level zoom and no "set zoom" command, only app.zoom_in / app.zoom_out (one 0.1 step each, written to
+  // settings.json by the app). So: one step per 400 ms tick until the zoom is within 0.05 of the target, then stop
+  // for good (until the layout is loaded again), so a later manual zoom is never fought.
+  fitZoom() {
+    if (this.zoomDone || !(WIN.w > 0)) return;
+    const target = Math.min(3, Math.max(0.5, Math.round((WIN.w / DESIGN_W) * 10) / 10));
+    const z = Math.round(zoom() * 10) / 10;
+    if (Math.abs(z - target) < 0.05 || (this.zoomSteps ?? 0) >= 30) { this.zoomDone = true; return; }
+    this.zoomSteps = (this.zoomSteps ?? 0) + 1;
+    run(target > z ? "app.zoom_in" : "app.zoom_out", {});
+  }
+
   // The observer: its block is 1 px wide and as tall as the window, so its height is the window's.
   renderWatch() {
     return div().id("tnp-watch").size_full().bg(C.canvas)
-      .on_size_change((size) => {
-        WIN.h = size.height;
-        const hidden = !!findNode(layout(), "drawer")?.hidden;
-        const want = hidden ? size.height < SHOW_AT : size.height < HIDE_BELOW;
-        WIN.dropped = want;
-        if (want !== hidden) run(want ? "layout.hide" : "layout.show", { id: "drawer" });
-      });
+      .on_size_change((size) => { WIN.h = size.height; this.evalDrawer(); }); // screen px
+  }
+  // Hide / restore the drawer from the window height in designed px. Also run on a timer: a zoom step changes the
+  // designed height without changing the screen size, so no size event fires.
+  evalDrawer() {
+    if (!(WIN.h > 0)) return;
+    const h = dsg(WIN.h);
+    const hidden = !!findNode(layout(), "drawer")?.hidden;
+    const want = hidden ? h < SHOW_AT : h < HIDE_BELOW;
+    WIN.dropped = want;
+    if (want !== hidden) run(want ? "layout.hide" : "layout.show", { id: "drawer" });
   }
 
   // Every role gets the design's 13 px body size as its base.

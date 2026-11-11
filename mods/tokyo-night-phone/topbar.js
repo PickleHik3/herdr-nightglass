@@ -5,15 +5,16 @@ import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, props, spaces, panes, machines, focused, shared, setShared, exec } from "herdr";
 import { C, MONO, CLEAR, alpha, mix, dur, ico, ring, level, setPressed, getPressed, raised, rim, inset } from "./lib.js";
 import { USAGE_MACHINE, parseUsageJson } from "./data.js";
-import { MOD, WIN, pico, ringS, anchorBelowRight } from "./phone.js";
+import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, anchorBelowRight } from "./phone.js";
 
 const USAGE_KEY = "tokyo-night.usage";                   // the desktop mod's key: same data, same format
 const USAGE_OPEN = "tokyo-night-phone.usage-open";     // true while the popover is shown
 const USAGE_CLOSED = "tokyo-night-phone.usage-closed";  // ms when it last closed
 const MENU_W = 232;
 const MENU_ITEM = 44;
-// Popover: 10 pad + legend 22 + n rows of 62, n gaps of 6, 10 pad (phone board: first row at y 96, rows 62 apart).
-const usageHeight = (n) => 20 + 22 + n * 62 + n * 6;
+// Popover: 10 pad + legend 22 + n rows, n gaps of 6, 10 pad. A row measured on the phone (zoom 2.5) is ~92 designed px
+// (ring 34 + three text lines at the app's line height), not the board's 62; the list scrolls when the window is shorter.
+const usageHeight = (n) => 20 + 22 + n * 92 + n * 6;
 
 // ---- pollers (called from timers, each with its own cx): as the desktop header does ----
 const place = (s) => {
@@ -68,14 +69,18 @@ export function renderTopbar(view) {
   const u = shared(USAGE_KEY);
   const rows = u?.rows ?? [];
   const usageOpen = shared(USAGE_OPEN) === true;
+  const z = zoom();
+  const Wd = WIN.w > 0 ? dsg(WIN.w) : DESIGN_W;      // window width, designed px
+  const Hd = WIN.h > 0 ? dsg(WIN.h) : 915;           // window height, designed px
   const openUsage = () => {
     // A press outside the popover closes it first; don't reopen it with the click that follows.
     if (Date.now() - (shared(USAGE_CLOSED) ?? 0) < 400) return;
     if (usageOpen && view.usageId) { closeOverlay(view.usageId); return; }
-    const w = WIN.w > 0 ? WIN.w : 412;
-    const h = Math.min(usageHeight(rows.length), Math.max(160, (WIN.h > 0 ? WIN.h : 915) - 58 - 8));
-    // Not clamped by the app (a px width wider than the window overflows): a share of the window, 8 px margins.
-    view.usageId = openOverlay({ mod: MOD, kind: "popup", frame: "none", width: (w - 16) / w, height: h, at: { x: 8, y: 58 }, props: { role: "usage", h } });
+    // Width: a share of the window with 8 designed px margins. Height: at most the window below the bar, minus a margin;
+    // the popover shrinks to its rows (a popup is "as tall as its content, `height` the most") and scrolls beyond that.
+    // `at` is in screen px (window.rs: px(num)), so the 8 / 58 designed offsets are multiplied by the zoom.
+    const h = Math.min(usageHeight(rows.length), Math.max(160, Hd - 58 - 12));
+    view.usageId = openOverlay({ mod: MOD, kind: "popup", frame: "none", width: (Wd - 16) / Wd, height: h, at: { x: Math.round(8 * z), y: Math.round(58 * z) }, props: { role: "usage", h } });
   };
   // Rings grouped by tool, each group led by its icon (as the desktop usage card does).
   const groups = [];
@@ -84,6 +89,13 @@ export function renderTopbar(view) {
     const g = groups.find(x => x.tool === tool) ?? (groups.push({ tool, rows: [] }), groups[groups.length - 1]);
     g.rows.push(r);
   }
+  // Bar: 14 + 28 + 4 + 44 + 8 + 3 gaps of 6 = 116 designed px besides the search and rings pills.
+  const SEARCH_MIN = 150, n = rows.length;
+  let RING = 16;
+  const ringsW = (size, icons) => 16 + n * size + Math.max(0, n - 1) * 2 + (icons ? groups.length * 18 + (groups.length - 1) * 4 : 0);
+  const room = Wd - 116 - SEARCH_MIN;
+  const showIcons = n > 0 && ringsW(RING, true) <= room;
+  if (n > 0 && !showIcons && ringsW(RING, false) > room) RING = 12;
   return h_flex().id("tnp-top").size_full().pl(14).pr(8).pt(4).gap(6).items_center()
     .on_size_change((size, cx) => { WIN.w = size.width; if (Math.abs((view.topW ?? 0) - size.width) >= 1) { view.topW = size.width; cx.notify(); } })
     // app button
@@ -94,14 +106,14 @@ export function renderTopbar(view) {
       .on_click(() => run("app.palette"))
       .child(ico("search", 14, C.dim))
       .child(div().min_w(0).truncate().child("Search")))
-    // usage rings
+    // usage rings: a compact pill; tool icons only when the search pill keeps >= SEARCH_MIN designed px
     .when(rows.length > 0, el => el.child((usageOpen ? h_flex().bg(inset()).border(1).border_color(rim()) : raised(h_flex(), C.chrome))
-      .id("tnp-rings").h(40).flex_none().px(8).gap(6).items_center().rounded(20).cursor_pointer()
+      .id("tnp-rings").h(40).flex_none().px(8).gap(showIcons ? 6 : 0).items_center().rounded(20).cursor_pointer()
       .opacity(u?.stale ? 0.6 : 1)
       .on_click(openUsage)
       .children(groups.map(g => h_flex().flex_none().gap(2).items_center()
-        .child(h_flex().w(18).flex_none().items_center().child(toolIcon(g.tool, 14)))
-        .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return ringS(16, r.week, r.five, wc, hc); }))))))
+        .when(showIcons, e => e.child(h_flex().w(18).flex_none().items_center().child(toolIcon(g.tool, 14))))
+        .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return ringS(RING, r.week, r.five, wc, hc); }))))))
     // menu, with the amber dot while the focused space has uncommitted changes
     .child(h_flex().id("tnp-menu").size(44).flex_none().relative().justify_center().items_center().rounded(8).cursor_pointer()
       .on_mouse_down("left", (e, cx) => { cx.stop_propagation(); setPressed(anchorBelowRight(e, MENU_W, view.topW || WIN.w)); })
@@ -156,7 +168,7 @@ export function renderUsage() {
         .when(!!r.note, el => el.child(div().text_size(11).text_color(C.amber).truncate().child(r.note)))
         .when(!r.note, el => el.child(bar("wk", r.week, resetIn(r.weekAt))).child(bar("5h", r.five, resetIn(r.fiveAt)))));
   };
-  return v_flex().id("tnp-usage").w_full().h(p.h ?? usageHeight(rows.length)).bg(mix("#000000", C.chrome, 0.18)).rounded(14).border(1).border_color(rim())
+  return v_flex().id("tnp-usage").w_full().max_h(p.h ?? usageHeight(rows.length)).min_h(0).bg(mix("#000000", C.chrome, 0.18)).rounded(14).border(1).border_color(rim())
     .shadow_2xl().overflow_hidden().p(10).gap(6).opacity(u?.stale ? 0.6 : 1)
     .child(h_flex().w_full().h(22).flex_none().gap(12).px(4).items_center().text_size(11).text_color(C.dim)
       .child(h_flex().gap(5).items_center().child(div().size(9).rounded(5).border(2).border_color(C.dim)).child(div().child("outer: week")))

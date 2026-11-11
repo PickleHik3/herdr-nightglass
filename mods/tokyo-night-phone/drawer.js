@@ -5,7 +5,7 @@ import { h_flex, v_flex } from "gpui-base";
 import { openOverlay, closeOverlay, props, shared, setShared } from "herdr";
 import { C, M, MONO, CLEAR, BADGES, SCHEMES, COLORS_KEY, alpha, mix, dur, hash, ico, mark, level, machineColor, raisedFill, rim, anchorBelow } from "./lib.js";
 import { snapshot, LOCAL, ALL, lastSeen, statsMachine } from "./data.js";
-import { MOD, WIN } from "./phone.js";
+import { MOD, WIN, DESIGN_W, zoom, dsg } from "./phone.js";
 import { focusRow } from "./strip.js";
 
 const machineIcon = (m, size, color) => ico(m.key === LOCAL ? "monitor" : "server", size, color);
@@ -32,9 +32,10 @@ function tile(view, m, open, w) {
     .on_mouse_down("left", (e, cx) => {
       cx.stop_propagation();
       if (!sel || !e?.local_position || !e?.bounds) { view.colorsAt = null; return; }
-      const a = anchorBelow(e);
-      const maxX = WIN.w > 0 ? Math.max(8, WIN.w - COLORS_W - 8) : 8;
-      view.colorsAt = { x: Math.min(maxX, Math.max(8, a.x)), y: Math.max(8, a.y - e.bounds.height - 8 - COLORS_H) };
+      // `at` and event positions are screen px, popup sizes are designed px
+      const z = zoom(), a = anchorBelow(e);
+      const maxX = WIN.w > 0 ? Math.max(8 * z, WIN.w - (COLORS_W + 8) * z) : 8 * z;
+      view.colorsAt = { x: Math.round(Math.min(maxX, Math.max(8 * z, a.x))), y: Math.round(Math.max(8 * z, a.y - e.bounds.height - (8 + COLORS_H) * z)) };
     })
     .on_click((_e, cx) => {
       if (sel && view.colorsAt) {
@@ -144,13 +145,18 @@ export function renderDrawer(view) {
   const all = open === ALL;
   const m = open && !all ? snap.mBy.get(open) : null;
   const sm = all ? statsMachine(snap, open) : m;
-  const w = view.width ?? 412;
-  const tileW = Math.max(40, Math.floor((w - 20 - 6) / 2));
+  const w = view.width ? dsg(view.width) : DESIGN_W; // designed px (the size event reports screen px)
+  // Machine cards: with two or fewer, two equal columns inside the 10 px padding; with more, one horizontally
+  // scrollable row of the same cards, a third one peeking in. The agent rows stay on screen (three wrapped rows
+  // of cards would take ~160 px of an ~240 px drawer).
+  const cards = snap.machines.length + 1;
+  const tileW = cards <= 2 ? Math.floor((w - 20 - 6) / 2) : Math.floor((w - 20 - 12) / 2.35);
   return v_flex().id("tnp-drawer").size_full().bg(C.chrome).rounded_t(14).overflow_hidden()
     .on_size_change((size, cx) => { if (Math.abs((view.width ?? 0) - size.width) >= 1) { view.width = size.width; cx.notify(); } })
     .child(v_flex().w_full().flex_1().min_h(0).px(10).pt(6).gap(8)
       .child(div().w(36).h(4).rounded(2).bg(C.input).flex_none().self_center())
-      .child(h_flex().w_full().flex_none().flex_wrap().gap(6).child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW))))
+      .child(h_flex().id("tnp-machines-row").w_full().h(48).flex_none().gap(6).overflow_x_scroll()
+        .child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW))))
       .child(v_flex().id("tnp-spaces").w_full().flex_1().min_h(0).gap(6).overflow_y_scroll()
         .when(all, el => el.children(allGroups(view, snap)))
         .when(!!m, el => el.children(m.spaces.map(sp => folder(sp, m))))
