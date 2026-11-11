@@ -13,7 +13,7 @@ import { run, layout, setAgentOrder } from "herdr";
 import { C, MONO, CLEAR, alpha, dur, ico, mark, nodePx, findNode, machineColor } from "./lib.js";
 import { snapshot, lastSeen } from "./data.js";
 import { pico, swipeArea, swipeBody, watchScroll, tap, panelFull, finishedRows, finishedOpen, setFinishedOpen, dismissRows } from "./phone.js";
-import { toggleComposer, composerOpen } from "./composer.js";
+import { toggleComposer, composerOpen, targetTerminal } from "./composer.js";
 
 const BANNER = 56, CHIP = 28, CHIP_MAX_W = 230, GAP = 6, MAX_CARDS = 8;
 
@@ -151,12 +151,16 @@ export function renderTabs(view) {
   // "+": a new tab in the shown space, named explicitly (the desktop strip's +); never "whatever tab.new picks".
   const shown = snap.foc?.space ?? null;
   const open = composerOpen();
+  // The terminal the composer would bind to, when it is an agent waiting on the person: the button turns into a red chat bubble.
+  const front = targetTerminal();
+  const asks = !!front && snap.rows.some(r => r.address === front && r.agent && r.kind === "waiting");
   // The composer button sits at the start of the row, outside the scrolling part: it costs no height and is always in reach.
   return h_flex().id("tnp-pillbar").size_full().px(8).gap(6).items_center()
     .child(h_flex().id("tnp-composer-btn").size(40).flex_none().justify_center().items_center().rounded(20)
-      .bg(open ? C.raisedHi : C.raised).border(1).border_color(open ? alpha(C.accent, 0.6) : CLEAR).cursor_pointer()
+      .bg(asks ? alpha(C.red, 0.16) : open ? C.raisedHi : C.raised).border(1)
+      .border_color(asks ? alpha(C.red, 0.55) : open ? alpha(C.accent, 0.6) : CLEAR).cursor_pointer()
       .on_click(() => toggleComposer())
-      .child(pico("prompt", 15, open ? C.fg : C.muted)))
+      .child(asks ? pico("chat", 16, C.red) : pico("keyboard", 16, open ? C.fg : C.muted)))
     .child(swipeArea(watchScroll(h_flex().id("tnp-pills").flex_1().min_w(0).h_full().overflow_x_scroll(), view))
       .child(swipeBody(h_flex().h_full().flex_none().gap(6).items_center())
         .children(rows.map(pill))

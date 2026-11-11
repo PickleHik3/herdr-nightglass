@@ -39,7 +39,8 @@ const CASES = {
   "strip-fin-only": { role: "strip", scen: "fin-only" },           // finished row open, nothing waiting
   "strip-waiting-only": { role: "strip", scen: "one" },            // finished row closed, one waiting (same as strip-one)
   "strip-offline": { role: "strip", scen: "offline" },
-  tabs: { role: "tabs", scen: "normal" },
+  tabs: { role: "tabs", scen: "normal" },                          // composer button: keyboard glyph
+  "tabs-asks": { role: "tabs", scen: "asks" },                     // front terminal waiting: red chat bubble
   composer: { role: "composer", scen: "normal" },
   "composer-open": { role: "composer", scen: "composer-open" },
   "composer-moved": { role: "composer", scen: "composer-moved" },
@@ -71,7 +72,7 @@ const SPACES = [
 ];
 const P = (pane, terminal, tabId, title, status, focused) => ({ pane, terminal, tab: tabId, title, cwd: "/home/u/x", branch: "main", status, app: status ? "claude-code" : null, program: prog(status ? "claude" : "shell", status ? "Claude Code" : "zsh", !!status), focused, zoomed: false, movable: false });
 const PANES = [
-  P("p1", "t1", "tb1", "Herdr Dynamic Board", "idle", true),
+  P("p1", "t1", "tb1", "Herdr Dynamic Board", SCEN === "asks" ? "blocked" : "idle", true),
   P("amal-build/p2", "amal-build/t15", "amal-build/tb2", "AI Architecture", "working", false),
   P("amal-build/p3", "amal-build/t16", "amal-build/tb3", "Word Border", SCEN === "quiet" || SCEN === "fin-only" ? "working" : "blocked", false),
   P("amal-build/p4", "amal-build/t14", "amal-build/tb4", "Issue #35", SCEN === "quiet" || SCEN === "one" || SCEN === "done0" ? "idle" : "done", false),

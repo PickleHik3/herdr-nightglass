@@ -1,4 +1,4 @@
-// tokyo-night-phone: the top bar (app button, search button, stats rings, usage rings, panel toggle with the changes dot)
+// tokyo-night-phone: the top bar (search button, stats rings, usage rings, panel toggle with the changes dot)
 // and the two popovers its widgets open: Claude/Codex usage and machine stats (cpu / ram / disk of the machine in front).
 // Design: design/Phone.dc.html (header, usage sheet); look: Glass (design/GLASS.md).
 import { div, image } from "gpui-kit";
@@ -127,9 +127,9 @@ export function renderTopbar(view) {
     if (popupIsOpen("stats") && view.statsId) { closeOverlay(view.statsId); return; }
     view.statsId = openOverlay({ mod: MOD, kind: "popup", frame: "none", width: (Wd - 16) / Wd, height: STATS_H, at: { x: Math.round(8 * z), y: Math.round(58 * z) }, props: { role: "stats", h: STATS_H } });
   };
-  // Spacing rule: every item (app, search, finished count when shown, stats, usage wells, panel toggle) is followed by
+  // Spacing rule: every item (search, finished count when shown, stats, usage wells, panel toggle) is followed by
   // an equal flexible gap (equal flex_1 spacers), with equal 12 px side padding, so the gaps are the same at any window
-  // width. Items first (designed px): app 32, search 40, count 40, stats pill 2 x PAD + 3 x 24 + 2 x 2, usage wells
+  // width. Items first (designed px): search 40, count 40, stats pill 2 x PAD + 3 x 24 + 2 x 2, usage wells
   // (4 apart, each 2 x PAD + rings), toggle 40; the usage wells drop their tool icons, then shrink their rings 16 -> 12,
   // while the gaps would be under 6. When the gap would exceed MAX_GAP (24) the stats pill and each usage well grow:
   // the surplus beyond 24 per gap is added to their inner padding, split evenly over those pills.
@@ -137,10 +137,10 @@ export function renderTopbar(view) {
   const n = rows.length, G = groups.length;
   let RING = 16;
   const wellsW = (size, icons, pad) => G * 2 * pad + n * size + (n - G) * 2 + (icons ? G * 18 : 0) + Math.max(0, G - 1) * 4;
-  const items = 4 + (finished > 0 ? 1 : 0) + (n > 0 ? 1 : 0);      // app, search, stats, toggle (+ count, + usage)
+  const items = 3 + (finished > 0 ? 1 : 0) + (n > 0 ? 1 : 0);      // search, stats, toggle (+ count, + usage)
   const gaps = items - 1;
   const statsW = 2 * 8 + 3 * RS + 2 * 2;
-  const fixed = 32 + 40 + (finished > 0 ? 40 : 0) + statsW + 40;
+  const fixed = 40 + (finished > 0 ? 40 : 0) + statsW + 40;
   const room = Wd - 24 - fixed - gaps * 6;
   const showIcons = n > 0 && wellsW(RING, true, 8) <= room;
   if (n > 0 && !showIcons && wellsW(RING, false, 8) > room) RING = 12;
@@ -158,9 +158,6 @@ export function renderTopbar(view) {
   const BTN = 40;
   return h_flex().id("tnp-top").size_full().px(12).pt(4).items_center()
     .on_size_change((size, cx) => { WIN.w = size.width; if (Math.abs((view.topW ?? 0) - size.width) >= 1) { view.topW = size.width; cx.notify(); } })
-    // app button
-    .child(h_flex().size(32).flex_none().rounded(8).bg(C.accent).justify_center().items_center().child(ico("logo", 16, C.onAccent)))
-    .child(gap())
     // search: a round button that opens the app's command palette (as the pill did; a text field cannot be hosted here)
     .child(h_flex().id("tnp-search").size(BTN).flex_none().justify_center().items_center().rounded(20)
       .bg(C.well).border(1).border_color(C.rim).cursor_pointer()
