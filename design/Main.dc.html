@@ -2,575 +2,331 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Herdr Dynamic Board</title>
+<title>herdr main window</title>
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-body{margin:0;background:#16161e}
-a{color:#7dcfff}a:hover{color:#b4f9f8}
-@keyframes hpulse{0%{box-shadow:0 0 0 0 rgba(158,206,106,.55)}70%{box-shadow:0 0 0 5px rgba(158,206,106,0)}100%{box-shadow:0 0 0 0 rgba(158,206,106,0)}}
-.pulse{animation:hpulse 2s ease-out infinite}
-@keyframes hwait{0%,55%{opacity:1}56%,100%{opacity:.3}}
-.wait{animation:hwait 1s step-end infinite}
-@keyframes hblink{0%,49%{opacity:1}50%,100%{opacity:0}}
-.caret{animation:hblink 1.1s step-end infinite}
+body{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left}
+button:focus-visible{outline:2px solid #e6e7eb;outline-offset:1px}
+/* the kit's shadow presets */
+.shadow_sm{box-shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1)}
+.shadow_md{box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1)}
+.shadow_2xl{box-shadow:0 25px 50px -12px rgba(0,0,0,.25)}
+.shadow_lg{box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1)}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.cut{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </helmet>
-<div style="width: 100%; height: 1000px; position: relative; display: flex; flex-direction: row; box-sizing: border-box; background: #16161e; color: #c0caf5; font-family: 'Inter', system-ui, sans-serif; font-size: 13px; overflow: hidden">
+<div style="width: 1600px; height: 1000px; box-sizing: border-box; display: flex; position: relative; isolation: isolate; overflow: hidden; background: #0e1016; color: #eceef2; font-family: Inter, system-ui, sans-serif; font-size: 12px; line-height: 1.3">
 
-  <!-- ===== Expanded sidebar ===== -->
-  <sc-if value="{{expanded}}" hint-placeholder-val="{{ true }}">
-  <nav aria-label="Machines and spaces" style="position: relative; width: 268px; flex: none; margin: 8px 0 8px 8px; background: #1a1b26; border-radius: 6px; display: flex; flex-direction: column; gap: 14px; padding: 10px 10px 12px; box-sizing: border-box">
-    <div style="display: flex; align-items: center; gap: 4px; height: 28px">
-      <div style="width: 22px; height: 22px; border-radius: 6px; background: {{accent}}; display: flex; align-items: center; justify-content: center; color: #16161e; margin-left: 2px">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><path d="M14 17h6"></path></svg>
-      </div>
-      <span style="font-weight: 600; font-size: 14px; letter-spacing: -0.01em; color: #c0caf5; padding-left: 6px; flex: 1">herdr</span>
-      <button type="button" aria-label="New" aria-haspopup="menu" aria-expanded="{{menuExpanded}}" onClick="{{toggleMenu}}" style="width: 28px; height: 28px; border: 0; border-radius: 6px; background: {{plusBg}}; color: {{accent}}; display: flex; align-items: center; justify-content: center; cursor: pointer">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+<svg aria-hidden="true" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: -1">
+<defs>
+<pattern id="wdots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#ffffff" fill-opacity=".07"/></pattern>
+</defs>
+<rect width="1600" height="1000" fill="#0e1016"/>
+<rect width="1600" height="1000" fill="url(#wdots)"/>
+<g fill="none" stroke="#ffffff" stroke-width="1">
+<circle cx="110" cy="1010" r="170" stroke-opacity=".10"/>
+<circle cx="110" cy="1010" r="300" stroke-opacity=".08"/>
+<circle cx="110" cy="1010" r="450" stroke-opacity=".06"/>
+<circle cx="1520" cy="-30" r="210" stroke-opacity=".09"/>
+<circle cx="1520" cy="-30" r="360" stroke-opacity=".06"/>
+<path d="M560 1000L980 0" stroke-opacity=".06"/>
+<path d="M1236 690h14M1243 683v14M316 118h14M323 111v14" stroke-opacity=".3"/>
+</g>
+<circle cx="268" cy="728" r="3" fill="#ffffff" fill-opacity=".45"/>
+<circle cx="1338" cy="212" r="3" fill="#ffffff" fill-opacity=".45"/>
+</svg>
+<!-- ============ Sidebar column: two floating boxes ============ -->
+<nav aria-label="Machines and spaces" style="flex: none; width: 268px; box-sizing: border-box; padding: 8px 0 8px 8px; display: flex; flex-direction: column; gap: 8px">
+
+  <!-- List box -->
+  <div class="shadow_2xl" style="flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 10px; border-radius: 16px; background: rgba(12,13,18,0.72); border: 1px solid rgba(255,255,255,0.10)">
+
+    <!-- brand -->
+    <div style="display: flex; align-items: center; gap: 8px; height: 28px">
+      <span aria-hidden="true" style="width: 22px; height: 22px; border-radius: 7px; background: {{accent}}; display: flex; align-items: center; justify-content: center; color: #0f1012">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9" width="5" height="5" rx="1.5"/><rect x="9" y="9" width="5" height="5" rx="1.5"/></svg>
+      </span>
+      <span style="flex: 1 1 0; font-size: 14px; font-weight: 600; letter-spacing: -0.01em">herdr</span>
+      <button aria-label="New" style="width: 28px; height: 28px; border-radius: 8px; background: rgba(255,255,255,0.09); color: {{accent}}; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
       </button>
-      <button type="button" aria-label="Collapse sidebar" style="width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: #8a92c2; display: flex; align-items: center; justify-content: center">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M9 4v16"></path></svg>
+      <button aria-label="Collapse sidebar" style="width: 28px; height: 28px; border-radius: 8px; color: #a8adba; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="2.5"/><path d="M6 2.5v11"/></svg>
       </button>
     </div>
 
-    <sc-if value="{{menuOpen}}" hint-placeholder-val="{{ false }}">
-      <div role="menu" aria-label="New" style="position: absolute; top: 44px; left: 92px; width: 228px; z-index: 4; background: #1f2335; border-radius: 6px; box-shadow: 0 0 0 1px #292e42, 0 12px 32px rgba(0,0,0,.5); padding: 6px; display: flex; flex-direction: column; gap: 2px">
-        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #8a92c2; padding: 6px 8px 4px">In {{open.name}}</span>
-        <button type="button" role="menuitem" style="height: 30px; border: 0; border-radius: 4px; background: transparent; color: #c0caf5; font: inherit; font-size: 13px; display: flex; align-items: center; gap: 8px; padding: 0 8px; text-align: left; cursor: pointer">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#73daca" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
-          <span style="flex: 1">Space</span>
-        </button>
-        <button type="button" role="menuitem" style="height: 30px; border: 0; border-radius: 4px; background: transparent; color: #c0caf5; font: inherit; font-size: 13px; display: flex; align-items: center; gap: 8px; padding: 0 8px; text-align: left; cursor: pointer">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7dcfff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 4 4-4 4M12 16h7"></path></svg>
-          <span style="flex: 1">Terminal tab</span>
-          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8a92c2">⌃T</span>
-        </button>
-        <div style="height: 1px; background: #292e42; margin: 4px 2px"></div>
-        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #8a92c2; padding: 4px 8px">Start an agent</span>
-        <button type="button" role="menuitem" style="height: 30px; border: 0; border-radius: 4px; background: color-mix(in srgb, {{accent}} 18%, transparent); color: #c0caf5; font: inherit; font-size: 13px; display: flex; align-items: center; gap: 8px; padding: 0 8px; text-align: left; cursor: pointer">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff9e64" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"></path></svg>
-          <span style="flex: 1">Claude Code</span>
-        </button>
-      </div>
-    </sc-if>
-
-    <!-- Machines as tiles -->
-    <div role="group" aria-label="Machines" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
-      <sc-for list="{{machines}}" as="m" hint-placeholder-count="2">
-        <button type="button" aria-pressed="{{m.pressed}}" aria-label="{{m.name}}, {{m.summary}}" onClick="{{m.pick}}" style="height: 58px; min-width: 0; border: 0; border-radius: 6px; background: {{m.bg}}; box-shadow: {{m.ring}}; opacity: {{m.opacity}}; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 0 6px; font: inherit; box-sizing: border-box; cursor: pointer">
-          <span style="width: 24px; height: 24px; border-radius: 6px; background: {{m.iconBg}}; color: {{m.iconColor}}; display: flex; align-items: center; justify-content: center">
-            <sc-if value="{{m.local}}" hint-placeholder-val="{{ false }}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"></rect><path d="M8 20h8M12 16v4"></path></svg>
-            </sc-if>
-            <sc-if value="{{m.remote}}" hint-placeholder-val="{{ true }}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="7" rx="1.5"></rect><rect x="3" y="13" width="18" height="7" rx="1.5"></rect><path d="M7 7.5h.01M7 16.5h.01"></path></svg>
-            </sc-if>
-          </span>
-          <span style="font-size: 11px; font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: {{m.label}}">{{m.name}}</span>
-          <sc-if value="{{m.lWorking}}" hint-placeholder-val="{{ true }}">
-            <span class="pulse" style="position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: #9ece6a"></span>
-          </sc-if>
-          <sc-if value="{{m.lWaiting}}" hint-placeholder-val="{{ false }}">
-            <span class="wait" style="position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 2px; background: #f7768e"></span>
-          </sc-if>
-          <sc-if value="{{m.lIdle}}" hint-placeholder-val="{{ false }}">
-            <span style="position: absolute; top: 6px; right: 6px; width: 5px; height: 5px; border-radius: 50%; border: 1.5px solid #8a92c2"></span>
-          </sc-if>
-          <sc-if value="{{m.lOffline}}" hint-placeholder-val="{{ false }}">
-            <svg style="position: absolute; top: 5px; right: 5px" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#e0af68" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M2 2l20 20"></path><path d="M8.5 16.5a5 5 0 0 1 7 0"></path><path d="M5 12.9a10 10 0 0 1 5.2-2.8"></path><path d="M19 12.9a10 10 0 0 0-2.3-1.6"></path><path d="M12 20h.01"></path></svg>
-          </sc-if>
-        </button>
-      </sc-for>
+    <!-- machine tiles: same 3-per-row wrap; unselected tiles lose their outline -->
+    <div style="display: flex; flex-wrap: wrap; gap: 6px">
+      <button aria-pressed="true" class="shadow_md" style="position: relative; width: 78px; height: 58px; border-radius: 10px; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.4); box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px">
+        <span role="img" aria-label="herdr mascot" style="width: 24px; height: 24px; border-radius: 6px; background: #eceef2"></span>
+        <span style="font-size: 11px; font-weight: 500">All</span>
+      </button>
+      <button style="position: relative; width: 78px; height: 58px; border-radius: 10px; background: rgba(255,255,255,0.09); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px">
+        <span aria-hidden="true" style="width: 24px; height: 24px; border-radius: 6px; background: rgba(79,209,184,0.16); color: #4fd1b8; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5"/></svg></span>
+        <span class="cut" style="max-width: 64px; font-size: 11px; font-weight: 500; color: #a8adba">This computer</span>
+        <span role="img" aria-label="working" style="position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 3px; background: #5fd38d"></span>
+      </button>
+      <button style="position: relative; width: 78px; height: 58px; border-radius: 10px; background: rgba(255,255,255,0.09); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px">
+        <span aria-hidden="true" style="width: 24px; height: 24px; border-radius: 6px; background: rgba(240,112,138,0.16); color: #f0708a; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="2.5" width="12" height="4.5" rx="1.5"/><rect x="2" y="9" width="12" height="4.5" rx="1.5"/></svg></span>
+        <span class="cut" style="max-width: 64px; font-size: 11px; font-weight: 500; color: #a8adba">amal-build</span>
+        <span role="img" aria-label="working" style="position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 3px; background: #5fd38d"></span>
+      </button>
+      <button style="position: relative; width: 78px; height: 58px; border-radius: 10px; background: rgba(255,255,255,0.09); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px">
+        <span aria-hidden="true" style="width: 24px; height: 24px; border-radius: 6px; background: rgba(110,155,255,0.16); color: #6e9bff; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="2.5" width="12" height="4.5" rx="1.5"/><rect x="2" y="9" width="12" height="4.5" rx="1.5"/></svg></span>
+        <span class="cut" style="max-width: 64px; font-size: 11px; font-weight: 500; color: #a8adba">termux</span>
+      </button>
     </div>
 
-    <!-- Folder capsules for the tapped machine -->
-    <sc-if value="{{hasOpen}}" hint-placeholder-val="{{ true }}">
-      <div aria-label="Spaces on {{open.name}}" style="display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: auto">
-        <div style="display: flex; align-items: center; gap: 8px; height: 20px; padding: 0 6px">
-          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #8a92c2; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{open.name}}</span>
-          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: {{open.summaryColor}}">{{open.summary}}</span>
+    <!-- machine cards -->
+    <div style="flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 8px">
+
+      <!-- This computer (teal) -->
+      <section style="display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 12px; background: rgba(79,209,184,0.09); border: 1px solid rgba(79,209,184,0.36)">
+        <div style="display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 6px">
+          <svg aria-hidden="true" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#4fd1b8" stroke-width="1.5" stroke-linecap="round" style="flex: none"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5"/></svg>
+          <span style="font-weight: 600">This computer</span>
+          <span class="cut" style="flex: 1 1 0; text-align: right; font-size: 11px; color: #a8adba">1 working · 1 idle</span>
         </div>
-        <sc-for list="{{open.folders}}" as="f" hint-placeholder-count="2">
-          <div role="group" aria-label="{{f.name}}" style="background: #1f2335; border-radius: 16px; padding: 5px; display: flex; flex-direction: column; gap: 2px">
-            <div style="height: 28px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 4px">
-              <span style="width: 20px; height: 20px; flex: none; border-radius: 999px; background: {{f.soft}}; color: {{f.color}}; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{f.initial}}</span>
-              <span style="flex: 1 1 auto; min-width: 0; font-size: 12px; font-weight: 600; color: #c0caf5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{f.name}}</span>
-              <sc-if value="{{f.showBranch}}" hint-placeholder-val="{{ true }}">
-                <span style="flex: none; max-width: 96px; display: flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #bb9af7; overflow: hidden; white-space: nowrap">
-                  <svg style="flex: none" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="8" r="2"></circle><path d="M6 8v8M18 10c0 4-6 3-10 6"></path></svg>
-                  <span style="overflow: hidden; text-overflow: ellipsis">{{f.branch}}</span>
-                </span>
-              </sc-if>
-              <sc-if value="{{f.showMeta}}" hint-placeholder-val="{{ false }}">
-                <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #e0af68; white-space: nowrap">{{f.meta}}</span>
-              </sc-if>
-            </div>
-            <sc-for list="{{f.agents}}" as="a" hint-placeholder-count="2">
-              <button type="button" aria-current="{{a.current}}" onMouseEnter="{{a.hoverIn}}" style="width: 100%; min-width: 0; border: 0; border-radius: 14px; background: {{a.bg}}; box-shadow: {{a.ring}}; padding: 5px 6px 5px 11px; display: flex; flex-direction: column; gap: 1px; color: {{a.text}}; font: inherit; font-size: 12px; text-align: left; box-sizing: border-box; cursor: pointer">
-                <span style="height: 18px; width: 100%; display: flex; align-items: center; gap: 8px">
-                  <sc-if value="{{a.isWorking}}" hint-placeholder-val="{{ true }}"><span class="pulse" style="flex: none; width: 6px; height: 6px; border-radius: 50%; background: #9ece6a"></span></sc-if>
-                  <sc-if value="{{a.isWaiting}}" hint-placeholder-val="{{ false }}"><span class="wait" style="flex: none; width: 7px; height: 7px; border-radius: 2px; background: #f7768e"></span></sc-if>
-                  <sc-if value="{{a.isDone}}" hint-placeholder-val="{{ false }}"><svg style="flex: none" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ece6a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></sc-if>
-                  <sc-if value="{{a.isIdle}}" hint-placeholder-val="{{ false }}"><span style="flex: none; width: 5px; height: 5px; border-radius: 50%; border: 1.5px solid #8a92c2"></span></sc-if>
-                  <sc-if value="{{a.isOffline}}" hint-placeholder-val="{{ false }}"><span style="flex: none; width: 7px; height: 2px; border-radius: 1px; background: #8a92c2"></span></sc-if>
-                  <span style="flex: 1 1 auto; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{a.title}}</span>
-                  <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8a92c2">{{a.elapsed}}</span>
-                  <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; border-radius: 999px; padding: 0 7px; line-height: 18px; background: {{a.tabBg}}; color: {{a.tabText}}">{{a.tab}}</span>
-                </span>
-                <sc-if value="{{a.showNow}}" hint-placeholder-val="{{ false }}">
-                  <span style="padding-left: 15px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 16px; color: {{a.nowColor}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%">{{a.now}}</span>
-                </sc-if>
-              </button>
-            </sc-for>
+        <div style="display: flex; flex-direction: column; gap: 1px; padding: 3px; border-radius: 9px; background: rgba(255,255,255,0.09)">
+          <div style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 5px">
+            <span aria-hidden="true" style="flex: none; width: 20px; height: 20px; border-radius: 6px; background: rgba(255,255,255,0.09); color: #c9ccd4; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">~</span>
+            <span style="font-weight: 600">~</span>
           </div>
-        </sc-for>
-        <button type="button" style="height: 34px; flex: none; border: 0; border-radius: 16px; background: transparent; box-shadow: inset 0 0 0 1px #3b4261; display: flex; align-items: center; gap: 8px; padding: 0 12px; color: #8a92c2; font: inherit; font-size: 12px; cursor: pointer">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
-          New space on {{open.name}}
-        </button>
-      </div>
-    </sc-if>
-
-    <!-- System stats for the tapped machine -->
-    <section aria-label="System stats for {{stats.name}}" style="margin-top: auto; flex: none; background: #1f2335; border-radius: 16px; padding: 10px 12px 11px; display: flex; flex-direction: column; gap: 7px; opacity: {{stats.opacity}}">
-      <div style="display: flex; align-items: center; gap: 7px">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#a9b1d6" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="7" rx="1.5"></rect><rect x="3" y="13" width="18" height="7" rx="1.5"></rect><path d="M7 7.5h.01M7 16.5h.01"></path></svg>
-        <span style="font-size: 12px; font-weight: 600; color: #c0caf5; flex: 1">{{stats.name}}</span>
-        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: {{stats.metaColor}}">{{stats.meta}}</span>
-      </div>
-      <sc-for list="{{stats.rows}}" as="r" hint-placeholder-count="3">
-        <div style="display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px">
-          <span style="width: 32px; color: #8a92c2">{{r.label}}</span>
-          <span style="flex: 1; height: 6px; border-radius: 3px; background: #292e42; overflow: hidden"><span style="display: block; height: 6px; border-radius: 3px; width: {{r.w}}; background: {{r.color}}"></span></span>
-          <span style="width: 82px; text-align: right; color: #a9b1d6; white-space: nowrap">{{r.value}}</span>
-        </div>
-      </sc-for>
-    </section>
-  </nav>
-  </sc-if>
-
-  <!-- ===== Collapsed sidebar: icon rail + hover panel ===== -->
-  <sc-if value="{{collapsed}}" hint-placeholder-val="{{ false }}">
-  <nav aria-label="Machines" style="width: 56px; flex: none; margin: 8px 0 8px 8px; background: #1a1b26; border-radius: 6px; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 0; box-sizing: border-box">
-    <div style="width: 28px; height: 28px; border-radius: 6px; background: {{accent}}; display: flex; align-items: center; justify-content: center; color: #16161e">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><path d="M14 17h6"></path></svg>
-    </div>
-    <button type="button" aria-label="New" style="width: 36px; height: 32px; border: 0; border-radius: 6px; background: color-mix(in srgb, {{accent}} 14%, transparent); color: {{accent}}; display: flex; align-items: center; justify-content: center">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
-    </button>
-    <div style="width: 24px; height: 1px; background: #292e42; margin: 2px 0"></div>
-    <sc-for list="{{machines}}" as="m" hint-placeholder-count="2">
-      <button type="button" aria-label="{{m.name}}, {{m.summary}}" aria-pressed="{{m.pressed}}" onMouseEnter="{{m.show}}" onClick="{{m.pick}}" style="width: 40px; height: 40px; border: 0; border-radius: 6px; background: {{m.bg}}; box-shadow: {{m.ring}}; color: {{m.iconColor}}; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer">
-        <sc-if value="{{m.local}}" hint-placeholder-val="{{ false }}">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"></rect><path d="M8 20h8M12 16v4"></path></svg>
-        </sc-if>
-        <sc-if value="{{m.remote}}" hint-placeholder-val="{{ true }}">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="7" rx="1.5"></rect><rect x="3" y="13" width="18" height="7" rx="1.5"></rect><path d="M7 7.5h.01M7 16.5h.01"></path></svg>
-        </sc-if>
-        <sc-if value="{{m.lWorking}}" hint-placeholder-val="{{ true }}"><span class="pulse" style="position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: #9ece6a"></span></sc-if>
-        <sc-if value="{{m.lWaiting}}" hint-placeholder-val="{{ false }}"><span class="wait" style="position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 2px; background: #f7768e"></span></sc-if>
-        <sc-if value="{{m.lIdle}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; top: 4px; right: 4px; width: 5px; height: 5px; border-radius: 50%; border: 1.5px solid #8a92c2"></span></sc-if>
-      </button>
-    </sc-for>
-    <div style="flex: 1 1 auto"></div>
-    <button type="button" aria-label="Expand sidebar" style="width: 36px; height: 32px; border: 0; border-radius: 6px; background: transparent; color: #8a92c2; display: flex; align-items: center; justify-content: center">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M9 4v16"></path></svg>
-    </button>
-  </nav>
-
-  <sc-if value="{{hasOpen}}" hint-placeholder-val="{{ true }}">
-    <div aria-label="Spaces on {{open.name}}" style="position: absolute; top: 96px; left: 72px; width: 268px; z-index: 5; background: #1a1b26; border-radius: 16px; box-shadow: 0 0 0 1px #292e42, 0 18px 44px rgba(0,0,0,.55); padding: 8px; display: flex; flex-direction: column; gap: 8px">
-      <div style="display: flex; align-items: center; gap: 8px; height: 22px; padding: 0 6px">
-        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #8a92c2; flex: 1">{{open.name}}</span>
-        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: {{open.summaryColor}}">{{open.summary}}</span>
-      </div>
-      <sc-for list="{{open.folders}}" as="f" hint-placeholder-count="2">
-        <div role="group" aria-label="{{f.name}}" style="background: #1f2335; border-radius: 16px; padding: 5px; display: flex; flex-direction: column; gap: 2px">
-          <div style="height: 28px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 4px">
-            <span style="width: 20px; height: 20px; flex: none; border-radius: 999px; background: {{f.soft}}; color: {{f.color}}; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{f.initial}}</span>
-            <span style="flex: 1 1 auto; min-width: 0; font-size: 12px; font-weight: 600; color: #c0caf5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{f.name}}</span>
-            <span style="flex: none; max-width: 96px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #bb9af7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{f.branch}}</span>
-          </div>
-          <sc-for list="{{f.agents}}" as="a" hint-placeholder-count="2">
-            <button type="button" style="height: 28px; width: 100%; min-width: 0; border: 0; border-radius: 14px; background: {{a.bg}}; box-shadow: {{a.ring}}; padding: 0 6px 0 11px; display: flex; align-items: center; gap: 8px; color: {{a.text}}; font: inherit; font-size: 12px; text-align: left; box-sizing: border-box">
-              <sc-if value="{{a.isWorking}}" hint-placeholder-val="{{ true }}"><span class="pulse" style="flex: none; width: 6px; height: 6px; border-radius: 50%; background: #9ece6a"></span></sc-if>
-              <sc-if value="{{a.isIdle}}" hint-placeholder-val="{{ false }}"><span style="flex: none; width: 5px; height: 5px; border-radius: 50%; border: 1.5px solid #8a92c2"></span></sc-if>
-              <span style="flex: 1 1 auto; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{a.title}}</span>
-              <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8a92c2">{{a.elapsed}}</span>
-              <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; border-radius: 999px; padding: 0 7px; line-height: 18px; background: {{a.tabBg}}; color: {{a.tabText}}">{{a.tab}}</span>
-            </button>
-          </sc-for>
-        </div>
-      </sc-for>
-    </div>
-  </sc-if>
-  </sc-if>
-
-  <!-- ===== Main column ===== -->
-  <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; padding-bottom: 8px; box-sizing: border-box">
-
-  <header style="min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 12px 0 12px; box-sizing: border-box">
-    <div style="flex: 1 1 24px"></div>
-    <button type="button" aria-label="Search agents, terminals and commands" style="flex: 0 1 440px; min-width: 200px; height: 30px; padding: 0 6px 0 10px; border: 0; border-radius: 999px; background: #1a1b26; box-shadow: inset 0 0 0 1px #292e42; color: #8a92c2; font: inherit; font-size: 12px; display: flex; align-items: center; gap: 8px; text-align: left; cursor: text">
-      <svg style="flex: none" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="m20 20-4.5-4.5"></path></svg>
-      <span style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Jump to an agent, <span style="font-family: 'JetBrains Mono', monospace; color: #a9b1d6">t14</span>, or a command</span>
-      <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #a9b1d6; background: #292e42; border-radius: 999px; padding: 1px 8px">⌃K</span>
-    </button>
-    <div style="flex: 1 1 24px"></div>
-    <!-- Claude usage: one ring per account (outer = week, inner = 5-hour) -->
-    <div style="position: relative">
-      <button type="button" aria-label="Claude usage for 5 accounts" aria-haspopup="dialog" aria-expanded="{{usageExpanded}}" onClick="{{toggleUsage}}" style="height: 30px; padding: 0 7px; border: 0; border-radius: 999px; background: {{usageBtnBg}}; box-shadow: inset 0 0 0 1px #292e42; display: flex; align-items: center; gap: 3px; cursor: pointer">
-        <sc-for list="{{usage}}" as="u" hint-placeholder-count="5">
-          <svg width="22" height="22" viewBox="0 0 28 28" aria-hidden="true">
-            <circle cx="14" cy="14" r="11" fill="none" stroke="#292e42" stroke-width="3.5"></circle>
-            <circle cx="14" cy="14" r="11" fill="none" stroke="{{u.wColor}}" stroke-width="3.5" stroke-linecap="round" pathLength="100" stroke-dasharray="{{u.wDash}}" transform="rotate(-90 14 14)"></circle>
-            <circle cx="14" cy="14" r="5" fill="none" stroke="#292e42" stroke-width="3"></circle>
-            <circle cx="14" cy="14" r="5" fill="none" stroke="{{u.hColor}}" stroke-width="3" pathLength="100" stroke-dasharray="{{u.hDash}}" transform="rotate(-90 14 14)"></circle>
-          </svg>
-        </sc-for>
-      </button>
-      <sc-if value="{{usageOpen}}" hint-placeholder-val="{{ false }}">
-        <div role="dialog" aria-label="Claude usage" style="position: absolute; top: 38px; right: 0; width: 392px; z-index: 6; background: #1f2335; border-radius: 16px; box-shadow: 0 0 0 1px #292e42, 0 18px 44px rgba(0,0,0,.55); padding: 12px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box">
-          <div style="display: flex; align-items: baseline; gap: 8px; padding: 0 4px">
-            <span style="font-size: 13px; font-weight: 600; color: #c0caf5">Claude usage</span>
-            <span style="font-size: 11px; color: #8a92c2; flex: 1">5 accounts · ai-usage-tui on amal-build</span>
-            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8a92c2">30s ago</span>
-          </div>
-          <div style="display: flex; gap: 14px; padding: 0 4px 2px; font-size: 11px; color: #8a92c2">
-            <span style="display: flex; align-items: center; gap: 5px"><span style="width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 0 0 0 2.5px #8a92c2"></span>Outer ring: this week</span>
-            <span style="display: flex; align-items: center; gap: 5px"><span style="width: 5px; height: 5px; border-radius: 50%; background: #8a92c2"></span>Inner ring: 5-hour window</span>
-          </div>
-          <sc-for list="{{usage}}" as="u" hint-placeholder-count="5">
-            <div style="display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 12px; background: {{u.rowBg}}; box-shadow: {{u.rowRing}}">
-              <svg style="flex: none" width="36" height="36" viewBox="0 0 28 28" role="img" aria-label="{{u.name}}: week {{u.w}} percent, 5-hour {{u.h}} percent">
-                <circle cx="14" cy="14" r="11" fill="none" stroke="#292e42" stroke-width="3"></circle>
-                <circle cx="14" cy="14" r="11" fill="none" stroke="{{u.wColor}}" stroke-width="3" stroke-linecap="round" pathLength="100" stroke-dasharray="{{u.wDash}}" transform="rotate(-90 14 14)"></circle>
-                <circle cx="14" cy="14" r="5.5" fill="none" stroke="#292e42" stroke-width="2.5"></circle>
-                <circle cx="14" cy="14" r="5.5" fill="none" stroke="{{u.hColor}}" stroke-width="2.5" pathLength="100" stroke-dasharray="{{u.hDash}}" transform="rotate(-90 14 14)"></circle>
-              </svg>
-              <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px">
-                <span style="font-size: 12px; font-weight: 600; color: #c0caf5">{{u.name}}</span>
-                <div style="display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px">
-                  <span style="width: 30px; color: #8a92c2">week</span>
-                  <span style="flex: 1; height: 4px; border-radius: 2px; background: #292e42; overflow: hidden"><span style="display: block; height: 4px; border-radius: 2px; width: {{u.wPct}}; background: {{u.wColor}}"></span></span>
-                  <span style="width: 30px; text-align: right; color: {{u.wText}}">{{u.wPct}}</span>
-                  <span style="width: 72px; color: #8a92c2; white-space: nowrap">{{u.wReset}}</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px">
-                  <span style="width: 30px; color: #8a92c2">5h</span>
-                  <span style="flex: 1; height: 4px; border-radius: 2px; background: #292e42; overflow: hidden"><span style="display: block; height: 4px; border-radius: 2px; width: {{u.hPct}}; background: {{u.hColor}}"></span></span>
-                  <span style="width: 30px; text-align: right; color: {{u.hText}}">{{u.hPct}}</span>
-                  <span style="width: 72px; color: #8a92c2; white-space: nowrap">{{u.hReset}}</span>
-                </div>
-              </div>
-            </div>
-          </sc-for>
-          <button type="button" style="height: 32px; border: 0; border-radius: 999px; background: #292e42; color: #c0caf5; font: inherit; font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; margin-top: 2px">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7dcfff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 4 4-4 4M12 16h7"></path></svg>
-            Open ai-usage-tui in a new tab
+          <button aria-current="true" class="shadow_md" style="display: flex; align-items: center; gap: 8px; width: 100%; height: 42px; padding: 0 7px 0 10px; box-sizing: border-box; border-radius: 6px; background: #4fd1b8">
+            <span role="img" aria-label="working" style="flex: none; width: 10px; display: flex; justify-content: center"><span style="width: 6px; height: 6px; border-radius: 3px; background: #04211c"></span></span>
+            <span style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 1px">
+              <span class="cut" style="font-weight: 600; color: #04211c">Herdr GUI over VNC from WSL</span>
+              <span class="cut mono" style="font-size: 10.5px; color: #0b4239">~</span>
+            </span>
+            <span style="font-size: 11px; color: #0b4239">&lt;1m</span>
+            <span class="mono" style="font-size: 10.5px; font-weight: 500; padding: 1px 6px; border-radius: 5px; background: #04211c; color: #7deedb">t3</span>
+          </button>
+          <button style="display: flex; align-items: center; gap: 8px; width: 100%; height: 30px; padding: 0 7px 0 10px; box-sizing: border-box; border-radius: 6px">
+            <span role="img" aria-label="idle" style="flex: none; width: 10px; display: flex; justify-content: center"><span style="width: 8px; height: 8px; box-sizing: border-box; border-radius: 4px; border: 1.5px solid #a8adba"></span></span>
+            <span class="cut" style="flex: 1 1 0">amalv@LTP-922:~</span>
+            <span style="font-size: 11px; color: #a8adba">&lt;1m</span>
+            <span class="mono" style="font-size: 10.5px; padding: 1px 6px; border-radius: 5px; background: rgba(255,255,255,0.09); color: #a8adba">t6</span>
           </button>
         </div>
-      </sc-if>
+        <button style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 9px; border-radius: 9px; color: #a8adba">
+          <svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+          New space
+        </button>
+      </section>
+
+      <!-- amal-build (rose) -->
+      <section style="display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 12px; background: rgba(240,112,138,0.09); border: 1px solid rgba(240,112,138,0.36)">
+        <div style="display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 6px">
+          <svg aria-hidden="true" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#f0708a" stroke-width="1.5" stroke-linecap="round" style="flex: none"><rect x="2" y="2.5" width="12" height="4.5" rx="1.5"/><rect x="2" y="9" width="12" height="4.5" rx="1.5"/></svg>
+          <span style="font-weight: 600">amal-build</span>
+          <span class="cut" style="flex: 1 1 0; text-align: right; font-size: 11px; color: #a8adba">1 working · 2 idle</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1px; padding: 3px; border-radius: 9px; background: rgba(255,255,255,0.09)">
+          <div style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 5px">
+            <span aria-hidden="true" style="flex: none; width: 20px; height: 20px; border-radius: 6px; background: rgba(255,255,255,0.09); color: #c9ccd4; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">H</span>
+            <span class="cut" style="flex: 1 1 0; font-weight: 600">hushtype-speech</span>
+            <span style="flex: none; max-width: 92px; display: flex; align-items: center; gap: 4px; color: #a8adba">
+              <svg aria-hidden="true" width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="flex: none"><circle cx="4.5" cy="3.5" r="1.5"/><circle cx="4.5" cy="12.5" r="1.5"/><circle cx="11.5" cy="5.5" r="1.5"/><path d="M4.5 5v6M11.5 7c0 2.5-7 1.5-7 4"/></svg>
+              <span class="cut mono" style="font-size: 10.5px">integration…</span>
+            </span>
+          </div>
+          <button style="display: flex; align-items: center; gap: 8px; width: 100%; height: 30px; padding: 0 7px 0 10px; box-sizing: border-box; border-radius: 6px">
+            <span role="img" aria-label="idle" style="flex: none; width: 10px; display: flex; justify-content: center"><span style="width: 8px; height: 8px; box-sizing: border-box; border-radius: 4px; border: 1.5px solid #a8adba"></span></span>
+            <span class="cut" style="flex: 1 1 0">Issue #35</span>
+            <span style="font-size: 11px; color: #a8adba">27m</span>
+            <span class="mono" style="font-size: 10.5px; padding: 1px 6px; border-radius: 5px; background: rgba(255,255,255,0.09); color: #a8adba">t14</span>
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1px; padding: 3px; border-radius: 9px; background: rgba(255,255,255,0.09)">
+          <div style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 5px">
+            <span aria-hidden="true" style="flex: none; width: 20px; height: 20px; border-radius: 6px; background: rgba(255,255,255,0.09); color: #c9ccd4; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">T</span>
+            <span class="cut" style="flex: 1 1 0; font-weight: 600">termux-launcher</span>
+            <span style="flex: none; display: flex; align-items: center; gap: 4px; color: #a8adba">
+              <svg aria-hidden="true" width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="4.5" cy="3.5" r="1.5"/><circle cx="4.5" cy="12.5" r="1.5"/><circle cx="11.5" cy="5.5" r="1.5"/><path d="M4.5 5v6M11.5 7c0 2.5-7 1.5-7 4"/></svg>
+              <span class="mono" style="font-size: 10.5px">v2-redesign</span>
+            </span>
+          </div>
+          <button style="display: flex; align-items: center; gap: 8px; width: 100%; height: 30px; padding: 0 7px 0 10px; box-sizing: border-box; border-radius: 6px">
+            <span role="img" aria-label="idle" style="flex: none; width: 10px; display: flex; justify-content: center"><span style="width: 8px; height: 8px; box-sizing: border-box; border-radius: 4px; border: 1.5px solid #a8adba"></span></span>
+            <span class="cut" style="flex: 1 1 0">Default CPU vs GPU model recommendation</span>
+            <span style="font-size: 11px; color: #a8adba">4m</span>
+            <span class="mono" style="font-size: 10.5px; padding: 1px 6px; border-radius: 5px; background: rgba(255,255,255,0.09); color: #a8adba">t1d</span>
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1px; padding: 3px; border-radius: 9px; background: rgba(255,255,255,0.09)">
+          <div style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 5px">
+            <span aria-hidden="true" style="flex: none; width: 20px; height: 20px; border-radius: 6px; background: rgba(255,255,255,0.09); color: #c9ccd4; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">T</span>
+            <span class="cut" style="flex: 1 1 0; font-weight: 600">tlstore</span>
+            <span style="flex: none; display: flex; align-items: center; gap: 4px; color: #a8adba">
+              <svg aria-hidden="true" width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="4.5" cy="3.5" r="1.5"/><circle cx="4.5" cy="12.5" r="1.5"/><circle cx="11.5" cy="5.5" r="1.5"/><path d="M4.5 5v6M11.5 7c0 2.5-7 1.5-7 4"/></svg>
+              <span class="mono" style="font-size: 10.5px">main</span>
+            </span>
+          </div>
+          <button style="display: flex; align-items: center; gap: 8px; width: 100%; height: 30px; padding: 0 7px 0 10px; box-sizing: border-box; border-radius: 6px">
+            <span role="img" aria-label="working" style="flex: none; width: 10px; display: flex; justify-content: center"><span style="width: 6px; height: 6px; border-radius: 3px; background: #5fd38d"></span></span>
+            <span class="cut" style="flex: 1 1 0">Herdr GUI touchs…</span>
+            <span style="font-size: 11px; color: #a8adba">56m</span>
+            <span class="mono" style="font-size: 10.5px; padding: 1px 6px; border-radius: 5px; background: rgba(255,255,255,0.09); color: #a8adba">t17</span>
+          </button>
+        </div>
+        <button style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 9px; border-radius: 9px; color: #a8adba">
+          <svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+          New space
+        </button>
+      </section>
+
+      <!-- termux (blue) -->
+      <section style="display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 12px; background: rgba(110,155,255,0.09); border: 1px solid rgba(110,155,255,0.36)">
+        <div style="display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 6px">
+          <svg aria-hidden="true" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#6e9bff" stroke-width="1.5" stroke-linecap="round" style="flex: none"><rect x="2" y="2.5" width="12" height="4.5" rx="1.5"/><rect x="2" y="9" width="12" height="4.5" rx="1.5"/></svg>
+          <span style="font-weight: 600">termux</span>
+          <span class="cut" style="flex: 1 1 0; text-align: right; font-size: 11px; color: #a8adba">no terminals</span>
+        </div>
+        <button style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 9px; border-radius: 9px; color: #a8adba">
+          <svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+          New space
+        </button>
+      </section>
     </div>
-    <button type="button" style="height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: #1f2335; color: #a9b1d6; font: inherit; font-size: 12px; display: flex; align-items: center; gap: 6px">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path></svg>
+  </div>
+
+  <!-- Widgets box -->
+  <div class="shadow_2xl" style="flex: none; display: flex; flex-direction: column; gap: 10px; padding: 10px; border-radius: 16px; background: rgba(12,13,18,0.72); border: 1px solid rgba(255,255,255,0.10)">
+
+    <!-- usage: one well per tool, sized by its ring count -->
+    <button aria-label="AI usage, 5 accounts" style="display: flex; gap: 6px; width: 100%">
+      <span style="flex: 4 1 0; display: flex; align-items: center; gap: 2px; height: 34px; padding: 0 6px 0 5px; border-radius: 10px; background: rgba(0,0,0,0.38)">
+        <span role="img" aria-label="Claude" style="flex: none; width: 22px; height: 22px; margin-right: 4px; border-radius: 7px; background: rgba(255,158,100,0.2); color: #ff9e64; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 2v12M2 8h12M3.8 3.8l8.4 8.4M12.2 3.8l-8.4 8.4"/></svg></span>
+        <span style="flex: 1 1 0; display: flex; justify-content: center"><svg role="img" aria-label="week 45%, 5-hour 30%" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="9" stroke="rgba(255,255,255,0.09)"/><circle cx="11" cy="11" r="4.8" stroke="rgba(255,255,255,0.09)"/><circle cx="11" cy="11" r="9" stroke="{{accent}}" stroke-dasharray="25.4 56.5" transform="rotate(-90 11 11)"/><circle cx="11" cy="11" r="4.8" stroke="#4fd1b8" stroke-dasharray="9 30.2" transform="rotate(-90 11 11)"/></svg></span>
+        <span style="flex: 1 1 0; display: flex; justify-content: center"><svg role="img" aria-label="week 50%, 5-hour 20%" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="9" stroke="rgba(255,255,255,0.09)"/><circle cx="11" cy="11" r="4.8" stroke="rgba(255,255,255,0.09)"/><circle cx="11" cy="11" r="9" stroke="{{accent}}" stroke-dasharray="28.3 56.5" transform="rotate(-90 11 11)"/><circle cx="11" cy="11" r="4.8" stroke="#4fd1b8" stroke-dasharray="6 30.2" transform="rotate(-90 11 11)"/></svg></span>
+        <span style="flex: 1 1 0; display: flex; justify-content: center"><svg role="img" aria-label="week 40%, 5-hour 10%" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="9" stroke="rgba(255,255,255,0.09)"/><circle cx="11" cy="11" r="4.8" stroke="rgba(255,255,255,0.09)"/><circle cx="11" cy="11" r="9" stroke="{{accent}}" stroke-dasharray="22.6 56.5" transform="rotate(-90 11 11)"/><circle cx="11" cy="11" r="4.8" stroke="#4fd1b8" stroke-dasharray="3 30.2" transform="rotate(-90 11 11)"/></svg></span>
+        <span style="flex: 1 1 0; display: flex; justify-content: center"><svg role="img" aria-label="week 90%, 5-hour 60%, near limit" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="9" stroke="rgba(255,255,255,0.09)"/><circle cx="11" cy="11" r="4.8" stroke="rgba(255,255,255,0.09)"/><circle cx="11" cy="11" r="9" stroke="#f0708a" stroke-dasharray="50.9 56.5" transform="rotate(-90 11 11)"/><circle cx="11" cy="11" r="4.8" stroke="#e0af68" stroke-dasharray="18.1 30.2" transform="rotate(-90 11 11)"/></svg></span>
+      </span>
+      <span style="flex: 1.6 1 0; display: flex; align-items: center; gap: 2px; height: 34px; padding: 0 6px 0 5px; border-radius: 10px; background: rgba(0,0,0,0.38)">
+        <span role="img" aria-label="Codex" style="flex: none; width: 22px; height: 22px; margin-right: 4px; border-radius: 7px; background: rgba(110,155,255,0.2); color: #6e9bff; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5L2.5 8l3 3M10.5 5l3 3-3 3"/></svg></span>
+        <span style="flex: 1 1 0; display: flex; justify-content: center"><svg role="img" aria-label="week 15%, 5-hour 0%" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="9" stroke="rgba(255,255,255,0.09)"/><circle cx="11" cy="11" r="4.8" stroke="rgba(255,255,255,0.09)"/><circle cx="11" cy="11" r="9" stroke="{{accent}}" stroke-dasharray="8.5 56.5" transform="rotate(-90 11 11)"/></svg></span>
+      </span>
+    </button>
+
+    <div aria-hidden="true" style="height: 1px; background: rgba(255,255,255,0.10)"></div>
+
+    <!-- stats -->
+    <div style="display: flex; flex-direction: column; gap: 7px">
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #a8adba">
+        <svg aria-hidden="true" width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5"/></svg>
+        <span style="flex: 1 1 0; font-weight: 500; color: #a8adba">This computer</span>
+        <span class="mono" style="font-size: 10.5px">up 1d</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; height: 16px">
+        <svg role="img" aria-label="CPU" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#a8adba" stroke-width="1.4" stroke-linecap="round" style="flex: none"><rect x="4" y="4" width="8" height="8" rx="1.5"/><path d="M6.5 1.5v2.5M9.5 1.5v2.5M6.5 12v2.5M9.5 12v2.5M1.5 6.5H4M1.5 9.5H4M12 6.5h2.5M12 9.5h2.5"/></svg>
+        <span style="flex: 1 1 0; height: 4px; border-radius: 2px; background: rgba(0,0,0,0.38); display: flex"><span style="width: 55%; border-radius: 2px; background: #eceef2"></span></span>
+        <span class="mono" style="flex: none; width: 76px; text-align: right; font-size: 10.5px; color: #a8adba">55% · 12c</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; height: 16px">
+        <svg role="img" aria-label="Memory" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#a8adba" stroke-width="1.4" stroke-linecap="round" style="flex: none"><rect x="1.5" y="4.5" width="13" height="6" rx="1.5"/><path d="M4.5 10.5v2M8 10.5v2M11.5 10.5v2"/></svg>
+        <span style="flex: 1 1 0; height: 4px; border-radius: 2px; background: rgba(0,0,0,0.38); display: flex"><span style="width: 26%; border-radius: 2px; background: #eceef2"></span></span>
+        <span class="mono" style="flex: none; width: 76px; text-align: right; font-size: 10.5px; color: #a8adba">2.1/8 GB</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; height: 16px">
+        <svg role="img" aria-label="Disk" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#a8adba" stroke-width="1.4" stroke-linecap="round" style="flex: none"><rect x="1.5" y="8.5" width="13" height="5" rx="1.5"/><path d="M3 8.5l1.5-5h7l1.5 5M11.5 11h.01"/></svg>
+        <span style="flex: 1 1 0; height: 4px; border-radius: 2px; background: rgba(0,0,0,0.38); display: flex"><span style="width: 12%; border-radius: 2px; background: #eceef2"></span></span>
+        <span class="mono" style="flex: none; width: 76px; text-align: right; font-size: 10.5px; color: #a8adba">881 GB free</span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ Right column ============ -->
+<div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column">
+
+  <!-- header: same order — search, Files, Changes, settings, window buttons -->
+  <header style="position: relative; flex: none; height: 44px; display: flex; align-items: center; gap: 6px; padding: 0 8px 0 12px">
+    <button aria-label="Jump to an agent, terminal or command" style="position: absolute; left: 446px; top: 7px; width: 440px; height: 30px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 5px 0 12px; border-radius: 15px; background: rgba(0,0,0,0.38); border: 1px solid rgba(255,255,255,0.10); color: #a8adba">
+      <svg aria-hidden="true" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="flex: none"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+      <span style="flex: 1 1 0">Jump to an agent, <span class="mono" style="font-size: 11px; color: #a8adba">t1d</span>, or a command</span>
+      <span class="mono" style="font-size: 10.5px; padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,0.09); color: #a8adba">Ctrl+Shift+P</span>
+    </button>
+    <span style="flex: 1 1 0"></span>
+    <button style="height: 28px; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px; color: #a8adba">
+      <svg aria-hidden="true" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M4 1.5h5l3.5 3.5v9.5h-8.5z"/><path d="M9 1.5V5h3.5"/></svg>
       Files
     </button>
-    <button type="button" style="height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: #1f2335; color: #a9b1d6; font: inherit; font-size: 12px; display: flex; align-items: center; gap: 6px">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v4a4 4 0 0 0 4 4h6"></path></svg>
+    <button style="height: 28px; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px; color: #a8adba">
+      <svg aria-hidden="true" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="4.5" cy="3.5" r="1.5"/><circle cx="4.5" cy="12.5" r="1.5"/><circle cx="11.5" cy="5.5" r="1.5"/><path d="M4.5 5v6M11.5 7c0 2.5-7 1.5-7 4"/></svg>
       Changes
-      <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #e0af68">+3</span>
     </button>
-    <button type="button" aria-label="Settings" style="width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: #8a92c2; display: flex; align-items: center; justify-content: center">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg>
+    <button aria-label="Settings" style="width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #a8adba">
+      <svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg>
     </button>
-    <div style="display: flex; gap: 2px; padding-left: 6px">
-      <button type="button" aria-label="Minimize" style="width: 30px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: #8a92c2; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
-      <button type="button" aria-label="Maximize" style="width: 30px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: #8a92c2; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"></rect></svg></button>
-      <button type="button" aria-label="Close" style="width: 30px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: #8a92c2; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
-    </div>
+    <span aria-hidden="true" style="width: 6px"></span>
+    <button aria-label="Minimize" style="width: 30px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #a8adba"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2.5 6h7"/></svg></button>
+    <button aria-label="Maximize" style="width: 30px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #a8adba"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2.5" y="2.5" width="7" height="7" rx="1"/></svg></button>
+    <button aria-label="Close" style="width: 30px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #a8adba"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg></button>
   </header>
 
-  <!-- ===== Attention strip (replaces the board) ===== -->
-  <sc-if value="{{stripQuiet}}" hint-placeholder-val="{{ true }}">
-    <section aria-label="Needs you" style="margin: 0 8px; height: 40px; flex: none; background: #1a1b26; border-radius: 6px; display: flex; align-items: center; gap: 10px; padding: 0 14px">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ece6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg>
-      <span style="font-weight: 500; color: #c0caf5">Nothing needs you</span>
-      <span style="color: #8a92c2">{{quietSummary}}</span>
-    </section>
-  </sc-if>
-
-  <sc-if value="{{stripOffline}}" hint-placeholder-val="{{ false }}">
-    <section aria-label="Connection" style="margin: 0 8px; height: 44px; flex: none; background: color-mix(in srgb, #e0af68 10%, #1a1b26); box-shadow: inset 0 0 0 1px color-mix(in srgb, #e0af68 35%, transparent); border-radius: 6px; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 14px">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e0af68" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M2 2l20 20"></path><path d="M8.5 16.5a5 5 0 0 1 7 0"></path><path d="M5 12.9a10 10 0 0 1 5.2-2.8"></path><path d="M19 12.9a10 10 0 0 0-2.3-1.6"></path><path d="M12 20h.01"></path></svg>
-      <span style="font-weight: 500; color: #c0caf5">amal-build is unreachable</span>
-      <span style="color: #a9b1d6">Last seen 2m ago · its 3 agents show their last known state · retrying in 10s</span>
-      <div style="flex: 1 1 auto"></div>
-      <button type="button" style="height: 28px; padding: 0 12px; border: 0; border-radius: 6px; background: #292e42; color: #c0caf5; font: inherit; font-size: 12px; font-weight: 500">Retry now</button>
-    </section>
-  </sc-if>
-
-  <sc-if value="{{stripAttention}}" hint-placeholder-val="{{ false }}">
-    <section aria-label="Needs you" style="margin: 0 8px; flex: none; background: #1a1b26; border-radius: 6px; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px">
-      <div style="display: flex; align-items: center; gap: 8px; padding: 0 2px">
-        <span style="font-size: 12px; font-weight: 600; color: #c0caf5">Needs you</span>
-        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #16161e; background: #f7768e; border-radius: 4px; padding: 0 5px; font-weight: 500">{{attentionCount}}</span>
-        <div style="flex: 1 1 auto"></div>
-        <span style="font-size: 12px; color: #8a92c2">{{quietSummary}}</span>
-      </div>
-      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
-        <sc-for list="{{attention}}" as="c" hint-placeholder-count="2">
-          <article style="min-width: 0; border-radius: 6px; background: {{c.bg}}; box-shadow: {{c.ring}}; padding: 10px 10px 10px 12px; display: flex; align-items: center; gap: 12px">
-            <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px">
-              <div style="display: flex; align-items: center; gap: 8px; min-width: 0">
-                <sc-if value="{{c.isWaiting}}" hint-placeholder-val="{{ true }}"><span class="wait" style="flex: none; width: 8px; height: 8px; border-radius: 2px; background: #f7768e"></span></sc-if>
-                <sc-if value="{{c.isDone}}" hint-placeholder-val="{{ false }}"><svg style="flex: none" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9ece6a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></sc-if>
-                <span style="font-weight: 600; color: #c0caf5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.title}}</span>
-                <span style="flex: none; font-size: 11px; font-weight: 600; color: {{c.labelColor}}">{{c.label}}</span>
-                <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8a92c2">{{c.elapsed}}</span>
-              </div>
-              <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #a9b1d6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.ask}}</span>
-              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8a92c2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.where}}</span>
-            </div>
-            <div style="flex: none; display: flex; flex-direction: column; gap: 6px; align-items: stretch">
-              <button type="button" style="height: 28px; padding: 0 12px; border: 0; border-radius: 6px; background: {{c.primaryBg}}; color: #16161e; font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap">Open <span style="font-family: 'JetBrains Mono', monospace">{{c.tab}}</span></button>
-              <sc-if value="{{c.isDone}}" hint-placeholder-val="{{ false }}">
-                <button type="button" style="height: 26px; padding: 0 12px; border: 0; border-radius: 6px; background: #292e42; color: #a9b1d6; font: inherit; font-size: 12px">Mark read</button>
-              </sc-if>
-            </div>
-          </article>
-        </sc-for>
-      </div>
-    </section>
-  </sc-if>
-
-  <!-- ===== Terminal pane ===== -->
-  <section aria-label="Terminal" style="margin: 0 8px; flex: 1 1 auto; min-height: 0; background: #1a1b26; border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; position: relative">
-    <div style="height: 38px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 12px; box-shadow: inset 0 -1px 0 #292e42">
-      <span style="width: 5px; height: 5px; border-radius: 50%; border: 1.5px solid #8a92c2"></span>
-      <span style="font-size: 13px; font-weight: 500; color: #c0caf5">Herdr Dynamic Board</span>
-      <button type="button" aria-label="Copy terminal number t1" title="Copy terminal number" style="height: 22px; padding: 0 6px 0 8px; border: 0; border-radius: 999px; background: color-mix(in srgb, {{accent}} 18%, transparent); color: {{accent}}; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 5px; cursor: pointer">
-        t1
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a1 1 0 0 1 1-1h10"></path></svg>
-      </button>
-      <div style="flex: 1 1 auto"></div>
-      <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #a9b1d6">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff9e64" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"></path></svg>
-        Claude Code
-      </span>
-      <button type="button" aria-label="Pane options" style="width: 26px; height: 26px; border: 0; border-radius: 6px; background: transparent; color: #8a92c2; display: flex; align-items: center; justify-content: center">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>
-      </button>
+  <!-- tab strip -->
+  <div style="flex: none; height: 36px; display: flex; align-items: center; gap: 4px; padding: 0 8px 0 10px">
+    <div role="tablist" aria-label="Tabs" style="display: flex; align-items: center; gap: 2px; padding: 2px; border-radius: 10px; background: rgba(0,0,0,0.38)">
+      <button role="tab" aria-selected="true" class="shadow_md" style="height: 26px; padding: 0 12px 0 10px; border-radius: 8px; background: rgba(255,255,255,0.09); display: flex; align-items: center; gap: 7px; font-weight: 500; color: #eceef2"><span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 3px; background: #5fd38d"></span>View Layout Code</button>
+      <button role="tab" aria-selected="false" style="height: 26px; padding: 0 12px 0 10px; border-radius: 8px; display: flex; align-items: center; gap: 7px; color: #a8adba"><span aria-hidden="true" style="width: 8px; height: 8px; box-sizing: border-box; border-radius: 4px; border: 1.5px solid #a8adba"></span>2</button>
+      <button aria-label="New tab" style="width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #a8adba"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg></button>
     </div>
-
-    <div style="flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 14px 22px 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 21px; color: #a9b1d6; display: flex; flex-direction: column; gap: 10px">
-      <div style="color: #8a92c2; padding-left: 16px">Ran 1 shell command</div>
-      <div style="display: flex; gap: 8px"><span style="color: #9ece6a">●</span><span>Background command <span style="color: #c0caf5">"Confirm service runs and tabs renamed"</span> completed <span style="color: #9ece6a">(exit code 0)</span></span></div>
-      <div style="color: #8a92c2; padding-left: 16px">Read 2 files</div>
-      <div style="display: flex; gap: 8px"><span style="color: #c0caf5">●</span><span style="color: #c0caf5">I fixed the board crash. Tab renaming is now working, but I haven't seen the strip cards actually draw yet.</span></div>
-      <div style="padding-left: 16px">Smart rename: the service also failed at first. It expected bun at <span style="color: #7dcfff">/usr/bin/bun</span>, but here bun is in <span style="color: #7dcfff">~/.bun/bin</span>. I fixed that in the service file (committed in the repo) and restarted it. It's running now and has renamed three of your four tabs:</div>
-      <div style="padding-left: 16px; display: flex; flex-direction: column">
-        <span><span style="color: #565f89">-</span> <span style="color: #7dcfff">~ / 1</span> <span style="color: #bb9af7">→</span> Restart Unit</span>
-        <span><span style="color: #565f89">-</span> <span style="color: #7dcfff">hushtype-speech / 1</span> <span style="color: #bb9af7">→</span> Issue #35</span>
-        <span><span style="color: #565f89">-</span> <span style="color: #7dcfff">hushtype-speech / 2</span> <span style="color: #bb9af7">→</span> Word Border</span>
-      </div>
-      <div style="padding-left: 16px">To watch what it does: <span style="color: #7aa2f7">journalctl --user -u herdr-app-rename -f</span></div>
-      <div style="color: #8a92c2"><span style="color: #e0af68">✻</span> Sautéed for 2m 2s · done 11:14 AM</div>
-      <div style="background: #292e42; border-radius: 4px; padding: 2px 8px; margin: 0 -8px; color: #c0caf5"><span style="color: {{accent}}">❯</span> yes fix it on amal-build too</div>
-      <div style="color: #8a92c2; padding-left: 16px">Ran 1 shell command</div>
-      <div style="display: flex; gap: 8px"><span style="color: #c0caf5">●</span><span><span style="color: #c0caf5">amal-build has the same fix now: committed as</span> <span style="color: #e0af68">5549f9d</span><span style="color: #c0caf5">, and its tests pass</span> <span style="color: #9ece6a">(39/39)</span><span style="color: #c0caf5">. The plugin's config check there now accepts your settings and shows</span> <span style="color: #7dcfff">nanogpt/nvidia/nemotron-3.5-super-vl</span> <span style="color: #c0caf5">as the model.</span></span></div>
-      <div style="padding-left: 16px">On amal-build this fix only matters if you use the classic <span style="color: #7aa2f7">herdr</span> there again. The tab names you see in the Herdr app come from the new service on this machine, which already has the fix.</div>
-      <div style="color: #8a92c2"><span style="color: #e0af68">✻</span> Churned for 15s · done 11:16 AM</div>
+    <span style="flex: 1 1 0"></span>
+    <div role="status" style="height: 26px; padding: 0 12px 0 9px; border-radius: 13px; background: rgba(12,13,18,0.72); border: 1px solid rgba(255,255,255,0.10); display: flex; align-items: center; gap: 7px">
+      <svg aria-hidden="true" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#5fd38d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M5.5 8.2l1.8 1.8 3.4-3.6"/></svg>
+      <span style="font-weight: 500">Nothing needs you</span>
+      <span style="font-size: 11px; color: #a8adba">2 working · 3 idle</span>
     </div>
+  </div>
 
-    <div style="flex: none; padding: 10px 22px 14px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 21px; display: flex; flex-direction: column; gap: 8px">
-      <div style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border-radius: 6px; background: #16161e; box-shadow: inset 0 0 0 1px color-mix(in srgb, {{accent}} 40%, #292e42); color: #c0caf5">
-        <span style="color: {{accent}}">❯</span><span>I want to</span><span class="caret" style="width: 8px; height: 17px; background: {{accent}}; margin-left: -4px"></span>
+  <!-- pane -->
+  <section aria-label="Terminal t3" class="shadow_2xl" style="flex: 1 1 0; min-height: 0; margin: 4px 8px 8px 8px; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; background: rgba(12,13,18,0.72); border: 1px solid rgba(255,255,255,0.10)">
+    <div style="flex: none; height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 12px; background: transparent">
+      <span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 3px; background: #5fd38d"></span>
+      <span style="font-weight: 600; color: #eceef2">Herdr GUI over VNC from WSL</span>
+      <span class="mono" style="font-size: 10.5px; font-weight: 500; padding: 1px 6px; border-radius: 5px; background: #4fd1b8; color: #0f1012">t3</span>
+      <span style="flex: 1 1 0"></span>
+      <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #4fd1b8"><svg aria-hidden="true" width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5"/></svg>This computer</span>
+      <span style="font-size: 11px; color: #a8adba">Claude Code</span>
+      <button aria-label="More" style="width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #a8adba"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button>
+    </div>
+    <div aria-hidden="true" style="flex: none; height: 1px; background: rgba(255,255,255,0.10)"></div>
+    <div class="mono" style="flex: 1 1 0; min-height: 0; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; font-size: 12px; line-height: 1.55; color: #eceef2">
+      <div style="color: #a8adba">Updated mods/tokyo-night/header.js (+7 -3)</div>
+      <div style="display: flex; flex-direction: column">
+        <span style="white-space: pre">196      const [wc, hc] = ringColors(r);</span>
+        <span style="white-space: pre; background: rgba(240,112,138,0.16)">197 -    return h_flex().w_full().flex_none().gap(10).px(6).py(6).items_center().rounded(12)</span>
+        <span style="white-space: pre; background: rgba(95,211,141,0.14)">198 +    return h_flex().w_full().h(UROW).flex_none().gap(10).px(6).items_center().rounded(12)</span>
+        <span style="white-space: pre">199        .bg(hot ? alpha(C.red, 0.1) : CLEAR).border(1).border_color(hot ? alpha(C.red, 0.4) : CLEAR)</span>
       </div>
-      <div style="display: flex; flex-direction: column; font-size: 12px; line-height: 19px">
-        <span style="color: #e0af68">▲ Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker <span style="color: #8a92c2">· restart with</span> CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 <span style="color: #8a92c2">to keep future transcripts</span></span>
-        <span style="color: #8a92c2">Opus 5.5 <span style="color: #a9b1d6">…/mods/dynamic-board</span></span>
-        <span><span style="color: #bb9af7">›› auto mode on</span> <span style="color: #8a92c2">(shift+tab to cycle)</span></span>
-      </div>
+      <div>● The sidebar is now two separate floating boxes, and they stay apart even with usage expanded.</div>
+      <div style="padding: 2px 8px; margin: 0 -8px; border-radius: 4px; background: rgba(224,175,104,0.1)">❯ also in the ai usage widget, the group that has more circles can take more of the length</div>
+      <div>● The rings row currently splits its width evenly between the two capsules. I'll size each capsule by its contents instead.</div>
+      <div style="color: #a8adba">● Running 1 shell command…</div>
+      <div style="color: #ff9e64">✳ Galloping… <span style="color: #a8adba">(14s · ↓ 957 tokens)</span></div>
+      <span style="flex: 1 1 0"></span>
+      <div style="display: flex; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1)">❯ <span aria-hidden="true" style="width: 7px; height: 15px; background: #eceef2"></span></div>
+      <div style="font-size: 11px; color: #a8adba">Opus 5.5 <span style="color: #6e9bff">herdr-tokyo-night/mods/tokyo-night</span> main · <span style="color: #e0af68">auto mode on</span></div>
     </div>
   </section>
-  </div>
+</div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#7aa2f7","options":["#7aa2f7","#bb9af7","#7dcfff","#ff9e64"]},"scenario":{"editor":"enum","default":"normal","options":["normal","waiting","collapsed","offline","usage"]},"$preview":{"width":1440,"height":1000}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#e6e7eb","options":["#e6e7eb","#6e9bff","#4fd1b8","#f0708a"]},"$preview":{"width":1600,"height":1000}}'>
 class Component extends DCLogic {
-  renderVals() {
-    const accent = this.props.accent ?? '#7aa2f7';
-    const sc = this.props.scenario ?? 'normal';
-    const st = this.state || {};
-    const openId = st.open !== undefined ? st.open : 'amal-build';
-    const hover = st.hover !== undefined ? st.hover : 'AI Architecture';
-    const off = sc === 'offline';
-    const waiting = sc === 'waiting';
-    const mix = (c, p, base) => 'color-mix(in srgb, ' + c + ' ' + p + '%, ' + base + ')';
-
-    const raw = [
-      { t: 'AI Architecture', tab: 't15', m: 'amal-build', f: 'termux-launcher', s: 'working', now: 'Editing docs/architecture.md', el: '12m' },
-      { t: 'Word Border', tab: 't16', m: 'amal-build', f: 'hushtype-speech', s: waiting ? 'waiting' : 'working',
-        now: waiting ? 'Asking to run git push origin integration/v1' : 'Running the test suite', el: waiting ? '1m' : '4m' },
-      { t: 'Issue #35', tab: 't14', m: 'amal-build', f: 'hushtype-speech', s: waiting ? 'done' : 'working',
-        now: waiting ? 'Finished · fix applied, tests pass' : 'Reading 4 files', el: waiting ? '3m' : '1m' },
-      { t: 'Herdr Dynamic Board', tab: 't1', m: 'local', f: 'amalv', s: 'idle', now: 'Waiting for your next prompt', el: '2m', current: true }
-    ].map((r) => (off && r.m === 'amal-build') ? Object.assign({}, r, { s: 'offline', el: '', now: 'Last known: ' + r.now.toLowerCase() }) : r);
-
-    const mkAgent = (r) => {
-      const s = r.s;
-      const cur = !!r.current;
-      const showNow = cur || hover === r.t || s === 'waiting';
-      const tint = s === 'waiting' ? '#f7768e' : (cur ? accent : null);
-      return {
-        title: r.t, tab: r.tab, elapsed: r.el, now: r.now, showNow: showNow,
-        nowColor: s === 'waiting' ? '#f7768e' : '#8a92c2',
-        isWorking: s === 'working', isWaiting: s === 'waiting', isDone: s === 'done', isIdle: s === 'idle', isOffline: s === 'offline',
-        current: cur ? 'true' : 'false',
-        bg: tint ? mix(tint, 14, '#1f2335') : (showNow ? '#292e42' : 'transparent'),
-        ring: tint ? 'inset 0 0 0 1px ' + mix(tint, 50, 'transparent') : 'none',
-        text: s === 'offline' ? '#8a92c2' : ((tint || showNow) ? '#c0caf5' : '#a9b1d6'),
-        tabBg: cur ? accent : '#292e42',
-        tabText: cur ? '#16161e' : '#a9b1d6',
-        hoverIn: () => this.setState({ hover: r.t })
-      };
-    };
-
-    const folderDefs = [
-      { m: 'amal-build', name: 'termux-launcher', i: 'T', c: '#7dcfff', br: 'v2-redesign' },
-      { m: 'amal-build', name: 'hushtype-speech', i: 'H', c: '#ff9e64', br: 'integration/v1' },
-      { m: 'local', name: 'amalv', i: 'A', c: '#73daca', br: 'main' }
-    ];
-    const folders = (mid) => folderDefs.filter((fd) => fd.m === mid).map((fd) => {
-      const dead = off && fd.m === 'amal-build';
-      return {
-        name: fd.name, initial: fd.i, color: fd.c, branch: fd.br,
-        soft: mix(fd.c, 20, 'transparent'),
-        showBranch: !dead, showMeta: dead, meta: 'last seen 2m',
-        agents: raw.filter((r) => r.m === fd.m && r.f === fd.name).map(mkAgent)
-      };
-    });
-
-    const words = { working: 'working', waiting: 'waiting', done: 'done', idle: 'idle' };
-    const machines = [
-      { id: 'amal-build', name: 'amal-build', local: false },
-      { id: 'local', name: 'This computer', local: true }
-    ].map((m) => {
-      const mine = raw.filter((r) => r.m === m.id);
-      const dead = mine.some((r) => r.s === 'offline');
-      const light = dead ? 'offline' : mine.some((r) => r.s === 'waiting') ? 'waiting' : mine.some((r) => r.s === 'working') ? 'working' : 'idle';
-      const counts = {};
-      mine.forEach((r) => { counts[r.s] = (counts[r.s] || 0) + 1; });
-      const summary = dead ? 'offline' : ['waiting', 'working', 'done', 'idle'].filter((k) => counts[k]).map((k) => counts[k] + ' ' + words[k]).join(' · ');
-      const on = m.id === openId;
-      return {
-        name: m.name, local: m.local, remote: !m.local, summary: summary,
-        summaryColor: dead ? '#e0af68' : (light === 'waiting' ? '#f7768e' : '#8a92c2'),
-        lWorking: light === 'working', lWaiting: light === 'waiting', lIdle: light === 'idle', lOffline: light === 'offline',
-        opacity: dead ? '0.62' : '1',
-        pressed: on ? 'true' : 'false',
-        bg: on ? mix(accent, 16, '#1a1b26') : '#1f2335',
-        ring: on ? 'inset 0 0 0 1px ' + mix(accent, 55, 'transparent') : 'none',
-        iconBg: on ? mix(accent, 24, 'transparent') : '#292e42',
-        iconColor: on ? accent : '#a9b1d6',
-        label: on ? '#c0caf5' : '#a9b1d6',
-        folders: folders(m.id),
-        pick: () => this.setState({ open: on ? null : m.id }),
-        show: () => this.setState({ open: m.id })
-      };
-    });
-    const openIdx = openId === 'amal-build' ? 0 : (openId === 'local' ? 1 : -1);
-    const openM = openIdx >= 0 ? machines[openIdx] : null;
-
-    const attention = raw.filter((r) => r.s === 'waiting' || r.s === 'done').map((r) => {
-      const w = r.s === 'waiting';
-      const tint = w ? '#f7768e' : '#9ece6a';
-      return {
-        title: r.t, tab: r.tab, elapsed: r.el,
-        isWaiting: w, isDone: !w,
-        label: w ? 'Waiting on you' : 'Finished',
-        labelColor: tint,
-        ask: w ? 'Wants to run: git push origin integration/v1' : 'Fix applied · tests pass (39/39) · unread',
-        where: (r.m === 'local' ? 'This computer' : r.m) + ' › ' + r.f,
-        bg: mix(tint, w ? 12 : 7, '#1f2335'),
-        ring: 'inset 0 0 0 1px ' + mix(tint, w ? 55 : 30, 'transparent'),
-        primaryBg: w ? '#f7768e' : accent
-      };
-    });
-    const nWorking = raw.filter((r) => r.s === 'working').length;
-    const nIdle = raw.filter((r) => r.s === 'idle').length;
-    const menuOpen = !!st.menu;
-
-    // Claude accounts from ai-usage-tui (sample figures)
-    const lvl = (p, base) => p >= 85 ? '#f7768e' : (p >= 60 ? '#e0af68' : base);
-    const accts = [
-      { name: 'Account 1', w: 62, h: 41, wr: 'Mon 09:00', hr: '2h 10m' },
-      { name: 'Account 2', w: 34, h: 0, wr: 'Tue 14:00', hr: '—' },
-      { name: 'Account 3', w: 91, h: 78, wr: 'Thu 08:00', hr: '48m' },
-      { name: 'Account 4', w: 15, h: 5, wr: 'Sat 11:00', hr: '4h 32m' },
-      { name: 'Account 5', w: 48, h: 22, wr: 'Sun 19:00', hr: '3h 05m' }
-    ];
-    const usage = accts.map((a) => {
-      const wc = lvl(a.w, accent), hc = lvl(a.h, '#73daca');
-      const hot = a.w >= 85 || a.h >= 85;
-      return {
-        name: a.name, w: String(a.w), h: String(a.h),
-        wPct: a.w + '%', hPct: a.h + '%',
-        wDash: a.w + ' 100', hDash: a.h + ' 100',
-        wColor: wc, hColor: hc,
-        wText: a.w >= 60 ? wc : '#a9b1d6', hText: a.h >= 60 ? hc : '#a9b1d6',
-        wReset: a.wr, hReset: a.hr === '—' ? 'idle' : 'in ' + a.hr,
-        rowBg: hot ? mix('#f7768e', 8, '#1a1b26') : '#1a1b26',
-        rowRing: hot ? 'inset 0 0 0 1px ' + mix('#f7768e', 35, 'transparent') : 'none'
-      };
-    });
-    const usageOpen = st.usage !== undefined ? st.usage : sc === 'usage';
-
-    // System stats for the tapped machine (sample figures)
-    const bar = (label, pct, value) => ({ label: label, w: pct + '%', value: value, color: lvl(pct, '#7dcfff') });
-    const statsFor = {
-      'amal-build': { name: 'amal-build', meta: 'ssh · up 12d', rows: [bar('cpu', 38, '38% · 8 cores'), bar('ram', 70, '11.2 / 16 GB'), bar('disk', 71, '182 / 256 GB')] },
-      'local': { name: 'This computer', meta: 'up 3d', rows: [bar('cpu', 12, '12% · 12 cores'), bar('ram', 31, '9.8 / 32 GB'), bar('disk', 41, '410 / 1000 GB')] }
-    };
-    const sKey = openId === 'local' ? 'local' : 'amal-build';
-    const stats = Object.assign({}, statsFor[sKey]);
-    const statsDead = off && sKey === 'amal-build';
-    stats.opacity = statsDead ? '0.6' : '1';
-    stats.meta = statsDead ? 'stale · 2m' : stats.meta;
-    stats.metaColor = statsDead ? '#e0af68' : '#8a92c2';
-
-    return {
-      accent: accent,
-      expanded: sc !== 'collapsed',
-      collapsed: sc === 'collapsed',
-      menuOpen: menuOpen,
-      menuExpanded: menuOpen ? 'true' : 'false',
-      plusBg: mix(accent, menuOpen ? 26 : 14, 'transparent'),
-      toggleMenu: () => this.setState({ menu: !menuOpen }),
-      machines: machines,
-      hasOpen: !!openM,
-      open: openM || { name: 'a machine', summary: '', summaryColor: '#8a92c2', folders: [] },
-      attention: attention,
-      attentionCount: String(attention.length),
-      stripAttention: attention.length > 0,
-      stripOffline: off,
-      stripQuiet: attention.length === 0 && !off,
-      quietSummary: nWorking + ' working · ' + nIdle + ' idle',
-      usage: usage,
-      usageOpen: usageOpen,
-      usageExpanded: usageOpen ? 'true' : 'false',
-      usageBtnBg: usageOpen ? '#292e42' : '#1a1b26',
-      toggleUsage: () => this.setState({ usage: !usageOpen }),
-      stats: stats
-    };
-  }
+renderVals() {
+return { accent: this.props.accent ?? '#e6e7eb' };
+}
 }
 </script>
 </body>

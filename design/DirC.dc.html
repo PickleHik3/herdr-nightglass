@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Direction C Daylight</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}
+:root{--win:#eceef2;--box:#ffffff;--box-bd:rgba(15,20,35,.07);--box-sh:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);--card:rgba(10,125,109,.07);--card-bd:rgba(10,125,109,.3);--cap:#ffffff;--mc:#0a7d6d;--sel:#0a7d6d;--sel-fg:#ffffff;--sel-sub:#d9f2ee;--sel-dot:#ffffff;--seltag:#ffffff;--seltag-fg:#0a7d6d;--fg:#22252c;--hi:#0c0d10;--mut:#4e525c;--dim:#656975;--well:#e9ebf0;--track:#dcdfe6;--tag:rgba(15,20,35,.07);--tabon:#ffffff;--ok:#178a4a;--bar:#4e525c}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.cut{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.root{width:420px;height:500px;box-sizing:border-box;padding:20px;display:flex;flex-direction:column;gap:12px;background:var(--win);color:var(--fg);font-family:Inter,system-ui,sans-serif;font-size:12px;line-height:1.3}
+.box{display:flex;flex-direction:column;gap:10px;padding:10px;border-radius:16px;background:var(--box);border:1px solid var(--box-bd);box-shadow:var(--box-sh)}
+.row{display:flex;align-items:center;gap:8px}
+.track{padding:2px;border-radius:10px;background:var(--well);gap:2px}
+.tab{height:26px;padding:0 12px 0 10px;border-radius:8px;display:flex;align-items:center;gap:7px;color:var(--mut)}
+.tab.on{background:var(--tabon);color:var(--hi);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1)}
+.pill{height:26px;padding:0 12px 0 9px;border-radius:13px;background:var(--box);border:1px solid var(--box-bd);gap:7px}
+.card{display:flex;flex-direction:column;gap:4px;padding:4px;border-radius:12px;background:var(--card);border:1px solid var(--card-bd)}
+.cap{display:flex;flex-direction:column;gap:1px;padding:3px;border-radius:9px;background:var(--cap)}
+.term{width:100%;height:30px;padding:0 7px 0 10px;box-sizing:border-box;border-radius:6px;display:flex;align-items:center;gap:8px}
+.term.sel{height:42px;background:var(--sel);color:var(--sel-fg)}
+.tag{font-size:10.5px;padding:1px 6px;border-radius:5px;background:var(--tag);color:var(--mut)}
+.sel .tag{background:var(--seltag);color:var(--seltag-fg);font-weight:500}
+.sel .t{color:var(--sel-sub)}
+.t{font-size:11px;color:var(--dim)}
+.dot{width:6px;height:6px;border-radius:3px;background:var(--ok)}
+.sel .dot{background:var(--sel-dot)}
+.idle{width:8px;height:8px;box-sizing:border-box;border-radius:4px;border:1.5px solid var(--dim)}
+.slot{flex:none;width:10px;display:flex;justify-content:center}
+.ini{flex:none;width:20px;height:20px;border-radius:6px;background:var(--tag);color:var(--mut);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.well{height:34px;padding:0 6px 0 5px;border-radius:10px;background:var(--well);display:flex;align-items:center;gap:2px}
+.tool{flex:none;width:22px;height:22px;margin-right:4px;border-radius:7px;background:var(--tag);color:var(--mut);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.ring{flex:1 1 0;display:flex;justify-content:center}
+.ring svg{fill:none;stroke-width:2.4;stroke-linecap:round}
+.trk{stroke:var(--track)}.wk{stroke:var(--mc)}.hr{stroke:var(--ok)}
+.bar{flex:1 1 0;height:4px;border-radius:2px;background:var(--well);display:flex}
+.bar span{border-radius:2px;background:var(--bar)}
+.hair{height:1px;background:var(--box-bd)}
+</style>
+</helmet>
+<div class="root">
+  <div class="row">
+    <div class="row track" role="tablist" aria-label="Tabs">
+      <button role="tab" aria-selected="true" class="tab on"><span class="dot" aria-hidden="true"></span>View Layout Code</button>
+      <button role="tab" aria-selected="false" class="tab"><span class="idle" aria-hidden="true"></span>2</button>
+    </div>
+    <span style="flex: 1 1 0"></span>
+    <div class="row pill" role="status"><span class="dot" aria-hidden="true"></span><span style="font-weight: 500; color: var(--hi)">Nothing needs you</span></div>
+  </div>
+
+  <div class="box">
+    <div class="card">
+      <div class="row" style="height: 26px; padding: 0 6px; gap: 7px">
+        <svg aria-hidden="true" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke-width="1.5" stroke-linecap="round" style="flex: none; stroke: var(--mc)"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5"/></svg>
+        <span style="font-weight: 600; color: var(--hi)">This computer</span>
+        <span class="t" style="flex: 1 1 0; text-align: right">1 working · 1 idle</span>
+      </div>
+      <div class="cap">
+        <div class="row" style="height: 28px; padding: 0 5px"><span class="ini" aria-hidden="true">~</span><span style="font-weight: 600">~</span></div>
+        <button class="term sel" aria-current="true">
+          <span class="slot"><span class="dot" role="img" aria-label="working"></span></span>
+          <span style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 1px"><span class="cut" style="font-weight: 500">Herdr GUI over VNC from WSL</span><span class="mono t" style="font-size: 10.5px">~</span></span>
+          <span class="t">&lt;1m</span><span class="mono tag">t3</span>
+        </button>
+        <button class="term">
+          <span class="slot"><span class="idle" role="img" aria-label="idle"></span></span>
+          <span class="cut" style="flex: 1 1 0">amalv@LTP-922:~</span>
+          <span class="t">&lt;1m</span><span class="mono tag">t6</span>
+        </button>
+      </div>
+      <button class="row" style="height: 28px; padding: 0 9px; color: var(--dim)">
+        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>New space
+      </button>
+    </div>
+  </div>
+
+  <div class="box">
+    <button class="row" style="gap: 6px; width: 100%" aria-label="AI usage">
+      <span class="well" style="flex: 3 1 0">
+        <span class="tool" role="img" aria-label="Claude">C</span>
+        <span class="ring"><svg role="img" aria-label="week 45%, 5-hour 30%" width="22" height="22" viewBox="0 0 22 22"><circle class="trk" cx="11" cy="11" r="9"/><circle class="trk" cx="11" cy="11" r="4.8"/><circle class="wk" cx="11" cy="11" r="9" stroke-dasharray="25.4 56.5" transform="rotate(-90 11 11)"/><circle class="hr" cx="11" cy="11" r="4.8" stroke-dasharray="9 30.2" transform="rotate(-90 11 11)"/></svg></span>
+        <span class="ring"><svg role="img" aria-label="week 50%, 5-hour 20%" width="22" height="22" viewBox="0 0 22 22"><circle class="trk" cx="11" cy="11" r="9"/><circle class="trk" cx="11" cy="11" r="4.8"/><circle class="wk" cx="11" cy="11" r="9" stroke-dasharray="28.3 56.5" transform="rotate(-90 11 11)"/><circle class="hr" cx="11" cy="11" r="4.8" stroke-dasharray="6 30.2" transform="rotate(-90 11 11)"/></svg></span>
+        <span class="ring"><svg role="img" aria-label="week 40%, 5-hour 10%" width="22" height="22" viewBox="0 0 22 22"><circle class="trk" cx="11" cy="11" r="9"/><circle class="trk" cx="11" cy="11" r="4.8"/><circle class="wk" cx="11" cy="11" r="9" stroke-dasharray="22.6 56.5" transform="rotate(-90 11 11)"/><circle class="hr" cx="11" cy="11" r="4.8" stroke-dasharray="3 30.2" transform="rotate(-90 11 11)"/></svg></span>
+      </span>
+      <span class="well" style="flex: 1.4 1 0">
+        <span class="tool" role="img" aria-label="Codex">X</span>
+        <span class="ring"><svg role="img" aria-label="week 15%" width="22" height="22" viewBox="0 0 22 22"><circle class="trk" cx="11" cy="11" r="9"/><circle class="trk" cx="11" cy="11" r="4.8"/><circle class="wk" cx="11" cy="11" r="9" stroke-dasharray="8.5 56.5" transform="rotate(-90 11 11)"/></svg></span>
+      </span>
+    </button>
+    <div class="hair" aria-hidden="true"></div>
+    <div class="row t"><span style="flex: 1 1 0; font-weight: 500; color: var(--mut)">This computer</span><span class="mono" style="font-size: 10.5px">up 1d</span></div>
+    <div class="row" style="height: 16px"><span class="t" style="width: 28px">CPU</span><span class="bar"><span style="width: 55%"></span></span><span class="mono" style="width: 76px; text-align: right; font-size: 10.5px; color: var(--mut)">55% · 12c</span></div>
+    <div class="row" style="height: 16px"><span class="t" style="width: 28px">RAM</span><span class="bar"><span style="width: 26%"></span></span><span class="mono" style="width: 76px; text-align: right; font-size: 10.5px; color: var(--mut)">2.1/8 GB</span></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":420,"height":500}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
