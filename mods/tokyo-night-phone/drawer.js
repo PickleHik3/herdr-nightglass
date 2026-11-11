@@ -9,7 +9,7 @@ import { h_flex, v_flex } from "gpui-base";
 import { openOverlay, closeOverlay, props, shared, setShared, run, layout } from "herdr";
 import { C, M, MONO, CLEAR, SCHEMES, COLORS_KEY, alpha, dur, ico, mark, machineColor, nearBlack, darkOf, lightOf, anchorBelow, nodePx, findNode } from "./lib.js";
 import { snapshot, LOCAL, ALL, mArg, lastSeen, statsMachine } from "./data.js";
-import { MOD, WIN, DESIGN_W, zoom, dsg, popupIsOpen, popupJustClosed, swipeArea, swipeBody, watchScroll, tap, setPanel } from "./phone.js";
+import { MOD, WIN, DESIGN_W, zoom, dsg, popupIsOpen, popupJustClosed, swipeArea, swipeBody, watchScroll, tap, setPanel, setPanelFull, panelFull, panelOpen } from "./phone.js";
 import { focusRow } from "./strip.js";
 import { actionRows, actionsHeight } from "./newmenu.js";
 import { composerOpen } from "./composer.js";
@@ -150,17 +150,27 @@ const listHeight = (snap, open, m) => {
   return m ? capsules(m) + (m.spaces.length ? 0 : 24) : 0;
 };
 // Resize the block to its content (called by a timer of the drawer role: the block may be hidden and not render).
+// Normal: the content, up to 45% of the window (more if that would show fewer than 3 agent rows), never past what
+// leaves the terminal TERM_MIN. Full: everything below the top bar (the rows below are hidden then). The window height
+// is the watch's (smaller with the soft keyboard up); 800 until it is measured, so the block is never left at its
+// layout default with only a slice of list.
+const HANDLE = 20, ROW = 45;
 export function panelSync(view) {
-  if (!(WIN.h > 0)) return;
+  const Hd = WIN.h > 0 ? dsg(WIN.h) : 800;
   const snap = snapshot();
   const open = view.openKey(snap);
   const m = open && open !== ALL ? snap.mBy.get(open) : null;
-  const strip = findNodeHidden("strip") ? 0 : (nodePx("strip") ?? 0) + 6;
-  const cap = Math.max(160, dsg(WIN.h) - TOP - TABS - strip - (composerOpen() ? 50 : 0) - TERM_MIN - GAPS);
   const agentsOpen = !!m && view.agentOpen === m.key;
-  const chrome = 8 + 2 + 6 + 8 + 48 + 8 + actionsHeight(agentsOpen) + 8;
-  const px = Math.round(Math.min(cap, chrome + listHeight(snap, open, m)));
-  const want = Math.max(px, chrome + 40);
+  // outer pb 8, box border 2, pt 6, machine row 48, actions, list, handle, pb 8, and four 8 px gaps in the box
+  const chrome = 8 + 2 + 6 + 48 + actionsHeight(agentsOpen) + HANDLE + 8 + 4 * 8;
+  let want;
+  if (panelFull()) want = Math.round(Hd - TOP - 6 - 4);
+  else {
+    const strip = findNodeHidden("strip") ? 0 : (nodePx("strip") ?? 0) + 6;
+    const termCap = Hd - TOP - TABS - strip - (composerOpen() ? 50 : 0) - TERM_MIN - GAPS;
+    const limit = Math.min(termCap, Math.max(0.45 * Hd, chrome + 3 * ROW));
+    want = Math.round(Math.max(chrome + 40, Math.min(chrome + listHeight(snap, open, m), limit)));
+  }
   if (nodePx("drawer") !== want) {
     const now = Date.now();
     if (view.panelReq !== want || now - (view.panelAt ?? 0) > 2000) {
@@ -197,7 +207,11 @@ export function renderDrawer(view) {
         .child(swipeBody(v_flex().w_full().flex_none().gap(6))
           .when(all, el => el.children(allGroups(view, snap)))
           .when(!!m, el => el.children(m.spaces.map(sp => capsule(view, sp, m))))
-          .when(!!m && m.spaces.length === 0, el => el.child(div().px(4).text_color(C.muted).child(`No spaces on ${m.name}`))))));
+          .when(!!m && m.spaces.length === 0, el => el.child(div().px(4).text_color(C.muted).child(`No spaces on ${m.name}`)))))
+      // the handle: last row of the panel; a tap toggles normal / full (no drag: see README), grip accent while full
+      .when(panelOpen(), el => el.child(h_flex().id("tnp-handle").w_full().h(HANDLE).flex_none().justify_center().items_center().cursor_pointer()
+        .on_click((_e, cx) => { setPanelFull(!panelFull()); cx.notify(); })
+        .child(div().w(36).h(4).rounded(2).bg(panelFull() ? C.accent : C.rim)))));
 }
 
 // ---- popup: theme (whole-window scheme) of a machine ----

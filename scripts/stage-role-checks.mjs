@@ -41,6 +41,8 @@ const CASES = {
   "drawer-closed": { role: "drawer", scen: "panel-closed" },      // the block is hidden; the role still renders (timers)
   drawer: { role: "drawer", scen: "panel-open" },                  // panel open
   "drawer-kbd-open": { role: "drawer", scen: "kbd-open" },         // keyboard up (540 px window) + panel open
+  "drawer-full": { role: "drawer", scen: "full" },                 // handle tapped: panel full (grip accent)
+  "drawer-full-kbd": { role: "drawer", scen: "full-kbd" },         // full with the keyboard up (window 540 px)
   "drawer-agents": { role: "drawer", scen: "agents" },             // actions row with the Agent list open
   "drawer-all": { role: "drawer", scen: "all" },
   "drawer-offline": { role: "drawer", scen: "offline" },
@@ -82,8 +84,9 @@ const AG = (key, name) => ({ key, name, icon: null, tint: false, tile: null, col
 const STATS = { key: "@local", name: "amalv", at: Date.now() - 4000, fail: false, data: { cpu: 37, memPct: 62, memText: "9.9/16 GB", diskFree: 120.5, diskTotal: 512 } };
 const store = new Map([["tokyo-night.usage", SCEN === "nousage" ? undefined : USAGE], ["tokyo-night-phone.usage-open", false],
   ["tokyo-night-phone.stats", SCEN === "nostats" ? undefined : STATS], ["tokyo-night-phone.stats-open", false],
-  ["tokyo-night-phone.panel", SCEN === "panel-open" || SCEN === "kbd-open" || SCEN === "agents" || SCEN === "all"],
+  ["tokyo-night-phone.panel", SCEN === "panel-open" || SCEN === "kbd-open" || SCEN === "full" || SCEN === "full-kbd" || SCEN === "agents" || SCEN === "all"],
   ["tokyo-night-phone.changes", 3],
+  ["tokyo-night-phone.panel-full", SCEN === "full" || SCEN === "full-kbd"],
   ["new-menu.agents", { "": [AG("claude", "Claude Code"), AG("codex", "Codex")], "amal-build": [AG("claude", "Claude Code")] }]]);
 const done = Promise.resolve({ code: 0, stdout: "", stderr: "" });
 if (SCEN === "all") { try { localStorage.setItem("open", JSON.stringify({ set: true, key: "@all" })); } catch {} }

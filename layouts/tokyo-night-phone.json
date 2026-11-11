@@ -32,7 +32,7 @@
               "id": "drawer",
               "type": "block",
               "hidden": true,
-              "size": { "px": 200 },
+              "size": { "px": 360 },
               "content": { "mod": "tokyo-night-phone", "props": { "role": "drawer" } }
             },
             {

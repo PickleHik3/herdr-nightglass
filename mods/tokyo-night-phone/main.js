@@ -28,7 +28,7 @@ export default class TokyoNightPhone extends View {
     this.statsBusy = {};
     this.changes = 0;
     if (role === "topbar") {
-      setPanel(false); // the panel is closed whatever the last run or the saved layout said
+      setPanel(false, true); // the panel is closed whatever the last run or the saved layout said
       // The layout is drawn for 412 designed px: when props.fit_zoom is on, step the app zoom to window / 412.
       if (props()?.fit_zoom) cx.timer.every(400, () => this.fitZoom());
       pollChanges(this, cx);

@@ -78,7 +78,27 @@ export const tap = (view, fn) => (e, cx) => { if (swiped(view)) return; fn(e, cx
 // Hidden by default (the top bar's init closes it), toggled by the top bar's last button; picking something in it closes it.
 // The flag is shared so the button can show its active look; the layout's hidden state is what actually shows the block.
 export const panelOpen = () => shared("tokyo-night-phone.panel") === true;
-export function setPanel(open) {
+// Opening or closing always returns to normal size; `init` (the load) also re-shows rows a crashed run left hidden.
+export function setPanel(open, init) {
+  const wasFull = panelFull();
+  setShared(FULL_KEY, false);
+  if (wasFull || init) restoreRows();
   setShared("tokyo-night-phone.panel", open);
   run(open ? "layout.show" : "layout.hide", { id: "drawer" });
+}
+// "Full": the handle at the bottom of the panel expands it over everything below the top bar. The strip, the pill row,
+// the terminal and the composer are hidden with layout.hide while it is full and shown again on return to normal (the
+// strip comes back through stripSync's timer, the composer only if it was open). Opening always starts at normal size.
+const FULL_KEY = "tokyo-night-phone.panel-full";
+export const panelFull = () => shared(FULL_KEY) === true;
+function restoreRows() {
+  run("layout.show", { id: "tabs" });
+  run("layout.show", { id: "term" });
+  if (shared("tokyo-night-phone.composer")?.open === true) run("layout.show", { id: "composer" });
+}
+export function setPanelFull(full) {
+  if (panelFull() === full) return;
+  setShared(FULL_KEY, full);
+  if (full) for (const id of ["strip", "tabs", "term", "composer"]) run("layout.hide", { id });
+  else restoreRows();
 }

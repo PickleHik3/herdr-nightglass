@@ -12,7 +12,7 @@ import { h_flex, v_flex } from "gpui-base";
 import { run, layout, setAgentOrder } from "herdr";
 import { C, MONO, CLEAR, alpha, dur, ico, mark, nodePx, findNode, machineColor } from "./lib.js";
 import { snapshot, lastSeen } from "./data.js";
-import { pico, swipeArea, swipeBody, watchScroll, tap } from "./phone.js";
+import { pico, swipeArea, swipeBody, watchScroll, tap, panelFull } from "./phone.js";
 import { toggleComposer, composerOpen } from "./composer.js";
 
 const BANNER = 56, CHIP = 28, CHIP_MAX_W = 230, GAP = 6, MAX_CARDS = 8;
@@ -40,6 +40,7 @@ function plan(snap) {
 // Show / hide and size the strip block from what is on screen. Called by a timer (main.js, tabs role); a resize is
 // retried at most every 2 s. Writes nodes.strip.{hidden,size} to layouts/.state/tokyo-night-phone.json.
 export function stripSync(view) {
+  if (panelFull()) return; // the panel covers the strip place: it stays hidden until the panel is normal again
   const { px } = plan(snapshot());
   const hidden = !!findNode(layout(), "strip")?.hidden;
   if (px === 0) { if (!hidden) run("layout.hide", { id: "strip" }); return; }

@@ -175,10 +175,22 @@ console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desk
   console.log("no popup menu: ok");
   // panel: hidden by default, closed at load, never hidden for the keyboard
   if (node("drawer")?.hidden !== true) bad("layout: the panel (drawer) must be hidden by default");
-  if (!/setPanel\(false\)/.test(mods["main.js"])) bad("main.js: the top bar must close the panel at load");
+  if (!/setPanel\(false, true\)/.test(mods["main.js"])) bad("main.js: the top bar must close the panel at load");
   for (const [f, src] of all) if (/HIDE_BELOW|SHOW_AT|evalDrawer|WIN\.dropped/.test(src)) bad(`${f}: keyboard-up hiding of the panel is still there`);
   for (const [f, src] of all) if (f !== "phone.js" && /layout\.(hide|show)["'`]?\s*:|"layout\.(hide|show)"|\? "layout\.show" : "layout\.hide"/.test(src.replace(/\/\/.*$/gm, "")) && /id:\s*"drawer"/.test(src)) bad(`${f}: shows / hides the panel outside setPanel`);
   console.log("panel hidden by default, present with the keyboard up (no window-height hiding): ok");
+  // handle (round 10): last row of the panel, only while it is open; a tap toggles normal / full; closing / opening resets to normal
+  {
+    const d = mods["drawer.js"], ph = mods["phone.js"];
+    if (!/\.when\(panelOpen\(\), el => el\.child\(h_flex\(\)\.id\("tnp-handle"\)/.test(d)) bad("drawer.js: the handle must be drawn only while the panel is open");
+    if (d.indexOf("tnp-handle") < d.indexOf("tnp-spaces")) bad("drawer.js: the handle must come after the list (last row)");
+    if (!/setPanelFull\(!panelFull\(\)\)/.test(d)) bad("drawer.js: a tap on the handle must toggle full");
+    if (!/for \(const id of \["strip", "tabs", "term", "composer"\]\) run\("layout\.hide"/.test(ph)) bad("phone.js: full must hide strip, tabs, term and composer");
+    if (!/setShared\(FULL_KEY, false\);\s*\n\s*if \(wasFull \|\| init\) restoreRows/.test(ph)) bad("phone.js: setPanel must return to normal size and restore the rows");
+    if (!/panelFull\(\)\) return;/.test(mods["strip.js"])) bad("strip.js: stripSync must not re-show the strip while the panel is full");
+    if (/on_mouse_up|on_drag/.test(d)) bad("drawer.js: drag is not used (tap only)");
+    console.log("panel handle: present only while open, tap toggles full, closing restores rows: ok");
+  }
   // strip: hidden by default and hidden whenever there is nothing to show; no quiet capsule row
   if (node("strip")?.hidden !== true) bad("layout: the strip must be hidden by default");
   if (!/px === 0\) \{ if \(!hidden\) run\("layout\.hide", \{ id: "strip" \}\)/.test(mods["strip.js"])) bad("strip.js: stripSync must hide the block when there is nothing to show");
