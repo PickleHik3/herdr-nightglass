@@ -113,7 +113,7 @@ function statsCard(view, m) {
   const meta = m.offline ? `stale · ${dur(Date.now() - (st?.at ?? lastSeen(m.key) ?? Date.now()))}`
     : [m.key === LOCAL ? "" : "ssh", upText(data?.up)].filter(Boolean).join(" · ");
   const bar = (label, pct, text) => h_flex().w_full().gap(8).items_center().font_family(MONO).text_size(11)
-    .child(div().w(32).flex_none().text_color(C.dim).child(label))
+    .child(h_flex().w(14).flex_none().items_center().tooltip(label).child(ico(label, 13, C.dim)))
     .child(div().flex_1().min_w(0).h(6).rounded(3).bg(C.raised).overflow_hidden()
       .child(div().h(6).rounded(3).w(`${Math.max(2, Math.min(100, pct))}%`).bg(level(pct, C.cyan))))
     .child(div().min_w(82).flex_none().text_right().whitespace_nowrap().text_color(C.muted).child(text));
@@ -126,9 +126,20 @@ function statsCard(view, m) {
     .when(!!data, el => el
       .child(bar("cpu", data.cpu, `${data.cpu}% · ${data.cores} cores`))
       .child(bar("ram", data.memPct, data.memText))
-      .child(bar("disk", data.diskPct, data.diskText)))
+      .child(diskRow(data)))
     .when(!data, el => el.child(div().font_family(MONO).text_size(11).text_color(C.dim)
       .child(st?.fail ? "stats unavailable" : "reading…")));
+}
+
+// Disk as text: what's free matters more than a bar. Amber under 15% free, red under 5%.
+function diskRow(data) {
+  const size = (g) => g >= 100 ? `${Math.round(g)} GB` : `${g.toFixed(1)} GB`;
+  const freePct = data.diskTotal > 0 ? data.diskFree / data.diskTotal * 100 : 100;
+  const tint = freePct < 5 ? C.red : freePct < 15 ? C.amber : C.fg;
+  return h_flex().w_full().gap(8).items_center().font_family(MONO).text_size(11)
+    .child(h_flex().w(14).flex_none().items_center().tooltip("disk").child(ico("disk", 13, C.dim)))
+    .child(div().flex_1().min_w(0).whitespace_nowrap().text_color(tint).child(`${size(data.diskFree)} free`))
+    .child(div().flex_none().whitespace_nowrap().text_color(C.dim).child(`of ${size(data.diskTotal)}`));
 }
 
 // ---- tiles ----
@@ -138,7 +149,7 @@ function tile(view, m, open, w) {
     .bg(sel ? alpha(C.accent, 0.16) : C.surface).border(1).border_color(sel ? alpha(C.accent, 0.55) : CLEAR)
     .opacity(m.offline ? 0.62 : 1).cursor_pointer().tooltip(`${m.name} · ${m.summary}`)
     .hover(s => s.bg(sel ? alpha(C.accent, 0.2) : C.raised))
-    .on_click((_e, cx) => { view.setOpen(sel ? null : m.key); view.pollStats(cx, true); cx.notify(); })
+    .on_click((_e, cx) => { view.goMachine(m.key); view.pollStats(cx, true); cx.notify(); })
     .child(h_flex().size(24).rounded(6).justify_center().items_center().bg(sel ? alpha(C.accent, 0.24) : C.raised)
       .child(machineIcon(m, 14, sel ? C.accent : C.muted)))
     .child(div().max_w(Math.max(20, w - 14)).truncate().text_size(11).font_medium().text_color(sel ? C.fg : C.muted).child(m.name))

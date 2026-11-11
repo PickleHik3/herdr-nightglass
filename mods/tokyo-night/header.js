@@ -3,12 +3,13 @@ import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, props, spaces, panes, machines, focused, layout, window, shared, setShared, exec } from "herdr";
 import { C, MONO, CLEAR, alpha, dur, ico, ring, level, stop, findNode, anchorBelowRight, setPressed, getPressed, bindingOf } from "./lib.js";
-import { snapshot, USAGE_MACHINE, parseUsage } from "./data.js";
+import { snapshot, USAGE_MACHINE, parseUsageJson } from "./data.js";
 
 const MOD = "tokyo-night";
 const USAGE_KEY = "tokyo-night.usage";
 const USAGE_W = 392;
 const ROW_H = 54;
+const RIGHT_RESERVE = 500; // usage rings (≤6) + Files + Changes +N + Settings + window buttons
 const usageHeight = (n) => Math.min(720, 24 + 18 + 16 + n * ROW_H + 34 + (n + 2) * 8);
 
 // ---- pollers (called from timers, each with its own cx) ----
@@ -34,7 +35,7 @@ export function pollChanges(view, cx) {
     if (n !== view.changes) { view.changes = n; cx.notify(); }
   });
 }
-// ai-usage (by path: ~/.local/bin isn't on sh's PATH there) on USAGE_MACHINE every 120 s (it calls the Anthropic usage endpoints), shared as parsed data.
+// ai-usage-tui --json (by path: ~/.local/bin isn't on sh's PATH there) on USAGE_MACHINE every 120 s (it calls the Anthropic usage endpoints), shared as parsed data.
 export function pollUsage(view, cx) {
   if (view.usageBusy) return;
   const m = machines().find(x => x.name === USAGE_MACHINE);
@@ -46,8 +47,8 @@ export function pollUsage(view, cx) {
   cx.spawn(async (cx) => {
     let rows = null;
     try {
-      const r = await exec("sh", ["-c", '"$HOME/.local/bin/ai-usage"'], { on: USAGE_MACHINE, timeout: 60000 });
-      if (r.code === 0) rows = parseUsage(r.stdout);
+      const r = await exec("sh", ["-c", '"$HOME/.local/bin/ai-usage-tui" --json'], { on: USAGE_MACHINE, timeout: 60000 });
+      if (r.code === 0) rows = parseUsageJson(r.stdout);
     } catch { rows = null; }
     view.usageBusy = false;
     if (rows && rows.length) setShared(USAGE_KEY, { at: Date.now(), rows, stale: false });
@@ -116,6 +117,7 @@ function windowButtons() {
 }
 
 // ---- usage ----
+const resetIn = (at) => at ? dur(at * 1000 - Date.now()) : null;
 const ringColors = (u) => [level(u.week ?? 0, C.accent), level(u.five ?? 0, C.teal)];
 function usageButton(u) {
   const rows = u.rows;
@@ -133,12 +135,20 @@ export function renderHeader(view) {
   const snap = snapshot();
   const u = shared(USAGE_KEY);
   const showUsage = !!u?.rows?.length && machines().some(m => m.name === USAGE_MACHINE);
-  const sample = (snap.rows.find(r => r.agent && !r.focused) ?? snap.rows[0])?.short ?? "t1";
+  // Stable sample: the lowest terminal address, so the pill's text doesn't change with focus.
+  const sample = snap.rows.map(r => r.short).filter(Boolean)
+    .sort((a, b) => (parseInt(a.slice(1)) || 0) - (parseInt(b.slice(1)) || 0))[0] ?? "t1";
   const key = bindingOf("app.palette");
   const win = !!window()?.buttons;
-  return h_flex().id("tn-header").size_full().px(12).gap(8).items_center().overflow_hidden()
-    .child(div().flex_1().min_w(24).h(1))
-    .child(h_flex().id("tn-search").w(440).min_w(200).max_w(440).flex_shrink(1).h(30).pl(10).pr(6).gap(8).items_center().rounded(15)
+  // The pill is placed absolutely from the header's own width, centered in the space left of a
+  // fixed reserve for the right-hand buttons: nothing on the right (usage rings loading, the
+  // Changes count) can resize or move it.
+  const W = view.headerW ?? 0;
+  const pillW = Math.max(200, Math.min(440, W - RIGHT_RESERVE - 48));
+  const pillX = Math.max(12, Math.round((W - RIGHT_RESERVE - pillW) / 2));
+  return h_flex().id("tn-header").relative().size_full().px(12).gap(8).items_center().overflow_hidden()
+    .on_size_change((size, cx) => { if (Math.abs((view.headerW ?? 0) - size.width) >= 1) { view.headerW = size.width; cx.notify(); } })
+    .when(W > 0, el => el.child(h_flex().id("tn-search").absolute().left(pillX).top(4).w(pillW).h(30).pl(10).pr(6).gap(8).items_center().rounded(15)
       .bg(C.chrome).border(1).border_color(C.raised).text_size(12).text_color(C.dim).cursor_pointer()
       .on_mouse_down("left", stop).on_click(() => run("app.palette"))
       .child(ico("search", 13, C.dim))
@@ -147,8 +157,8 @@ export function renderHeader(view) {
         .child(div().flex_none().font_family(MONO).text_color(C.muted).child(sample))
         .child(div().flex_none().child(", or a command")))
       .when(!!key, el => el.child(div().flex_none().px(8).py(1).rounded(10).bg(C.raised).font_family(MONO).text_size(11)
-        .text_color(C.muted).child(key))))
-    .child(div().flex_1().min_w(24).h(1))
+        .text_color(C.muted).child(key)))))
+    .child(div().flex_1().h(1))
     .when(showUsage, el => el.child(usageButton(u)))
     .children(panelButtons(view))
     .child(h_flex().id("tn-settings").size(28).flex_none().justify_center().items_center().rounded(6).cursor_pointer()
@@ -185,16 +195,17 @@ export function renderUsagePopup() {
       .child(ring(36, r.week, r.five, wc, hc))
       .child(v_flex().flex_1().min_w(0).gap(4)
         .child(h_flex().gap(8).items_baseline().child(div().text_size(12).font_semibold().text_color(C.fg).child(r.name))
-          .child(div().font_family(MONO).text_size(11).text_color(C.dim).child(r.plan)))
+          .child(div().font_family(MONO).text_size(11).text_color(C.dim).child(r.plan))
+          .when(!!r.saved, el => el.child(div().font_family(MONO).text_size(11).text_color(C.amber).child(`saved ${dur(Date.now() - r.saved * 1000)} ago`))))
         .when(!!r.note, el => el.child(div().text_size(11).text_color(C.amber).truncate().child(r.note)))
-        .when(!r.note, el => el.child(bar("week", r.week, r.weekReset)).child(bar("5h", r.five, r.fiveReset))));
+        .when(!r.note, el => el.child(bar("week", r.week, resetIn(r.weekAt))).child(bar("5h", r.five, resetIn(r.fiveAt)))));
   };
   return v_flex().id("tn-usage-pop").w_full().h(p.h ?? usageHeight(rows.length)).bg(C.surface).rounded(16)
     .border(1).border_color(C.raised).overflow_hidden().p(12).gap(8)
     .child(h_flex().w_full().h(18).flex_none().gap(8).px(4).items_baseline()
       .child(div().text_size(13).font_semibold().text_color(C.fg).child("Claude usage"))
       .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(C.dim)
-        .child(`${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage on ${USAGE_MACHINE}${u.stale ? " · stale" : ""}`))
+        .child(`${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage-tui on ${USAGE_MACHINE}${u.stale ? " · stale" : ""}`))
       .child(div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(age)))
     .child(h_flex().w_full().h(16).flex_none().gap(14).px(4).text_size(11).text_color(C.dim)
       .child(legend(div().size(9).rounded(5).border(2.5).border_color(C.dim), "Outer ring: this week"))

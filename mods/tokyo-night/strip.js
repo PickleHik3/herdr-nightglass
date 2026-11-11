@@ -1,10 +1,12 @@
-// tokyo-night: the attention strip (quiet / offline banner / "Needs you" cards) and the pane header.
+// tokyo-night: the attention strip (quiet / offline banner / "Needs you" cards), the pane header
+// and the empty view (a machine with no spaces).
 import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { run, openOverlay, panes, props, exec } from "herdr";
+import { run, openOverlay, panes, props, exec, shared, setShared } from "herdr";
 import { C, MONO, alpha, mix, dur, ico, prog, mark, stop, nodePx, anchorBelowRight, setPressed, getPressed } from "./lib.js";
-import { snapshot, short } from "./data.js";
+import { snapshot, short, LOCAL, mArg } from "./data.js";
 
+export const EMPTY_KEY = "tokyo-night.empty"; // machine key shown in the empty view, or null
 const BANNER = 44, QUIET = 40, GAP = 8, CARD = 76, HEAD = 18, PAD = 22, MAX_CARDS = 6;
 
 function plan(snap) {
@@ -126,4 +128,22 @@ export function renderPane() {
       .on_click(() => openOverlay({ mod: "menu", kind: "popup", width: 220, height: 300, at: getPressed(),
         props: { tab: "pane", target: { pane: p.pane, terminal: p.terminal } } }))
       .child(ico("dots", 14, C.dim)));
+}
+
+// ---- empty view: a machine with no spaces, shown in the main stack instead of the terminals ----
+export function renderEmpty() {
+  const snap = snapshot();
+  const key = shared(EMPTY_KEY);
+  const m = key && snap.mBy.get(key);
+  const name = m?.name ?? "this machine";
+  const back = () => { setShared(EMPTY_KEY, null); run("layout.select", { stack: "main-stack", child: "main" }); };
+  return v_flex().id("tn-empty").size_full().bg(C.chrome).rounded(6).items_center().justify_center().gap(14)
+    .child(h_flex().size(56).rounded(14).justify_center().items_center().bg(alpha(C.accent, 0.14))
+      .child(ico(m?.offline ? "wifi-off" : key === LOCAL ? "monitor" : "server", 26, m?.offline ? C.amber : C.accent)))
+    .child(div().text_size(15).font_semibold().text_color(C.fg).child(m?.offline ? `${name} is unreachable` : `No spaces on ${name}`))
+    .child(div().text_color(C.dim).child(m?.offline ? "Its spaces come back when it reconnects." : "Start a terminal or an agent there."))
+    .when(!m?.offline, el => el.child(h_flex().id("tn-empty-new").mt(4).h(34).px(14).gap(8).items_center().rounded(17)
+      .bg(alpha(C.accent, 0.18)).text_color(C.accent).font_medium().cursor_pointer().hover(s => s.bg(alpha(C.accent, 0.26)))
+      .on_click(() => { run("space.new", { machine: mArg(key) }); back(); })
+      .child(ico("folder", 14, C.accent)).child(div().child(`New space on ${name}`))));
 }

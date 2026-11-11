@@ -111,7 +111,7 @@ a=$(s); sleep 0.5; b=$(s)
 echo "cpu $a $b"
 echo "cores $(nproc 2>/dev/null || echo 1)"
 echo "mem $(awk '/^MemTotal/{t=$2} /^MemAvailable/{a=$2} END{print t, a}' /proc/meminfo)"
-df -kP / | awk 'NR==2{print "disk", $2, $3}'
+df -kP / | awk 'NR==2{print "disk", $2, $3, $4}'
 awk '{print "up", int($1)}' /proc/uptime
 `;
 export function parseStats(out) {
@@ -131,6 +131,9 @@ export function parseStats(out) {
     memText: `${gb(mem[0] - mem[1]).toFixed(1)} / ${Math.round(gb(mem[0]))} GB`,
     diskPct: disk[0] > 0 ? Math.round(disk[1] / disk[0] * 100) : 0,
     diskText: `${Math.round(gb(disk[1]))} / ${Math.round(gb(disk[0]))} GB`,
+    // df's Available column (excludes reserved blocks); older 2-column output falls back to size − used.
+    diskFree: gb(disk.length > 2 && !Number.isNaN(disk[2]) ? disk[2] : disk[0] - disk[1]),
+    diskTotal: gb(disk[0]),
     up: Number.isFinite(up) ? up : null,
   };
 }
@@ -144,35 +147,22 @@ export function upText(sec) {
 
 // ---- ai-usage ----
 export const USAGE_MACHINE = "amal-build";
-const ANSI = /\x1b\[[0-9;?]*[ -\/]*[@-~]|\x1b\][^\x07]*\x07/g;
-const CELL = /^(?:-|(\d+(?:\.\d+)?)%)(?:\s*↻\s*(\S+))?\s*/;
-// Rows: TOOL DIR ACCOUNT PLAN 5-HOUR WEEKLY OTHER. The account (an email) is dropped on purpose.
-export function parseUsage(text) {
-  const rows = [];
-  let seenHeader = false;
-  for (const raw of String(text).replace(ANSI, "").split("\n")) {
-    const line = raw.trim();
-    if (!line) continue;
-    if (/^TOOL\s+DIR\b/i.test(line)) { seenHeader = true; continue; }
-    if (!seenHeader) continue;
-    const tok = line.split(/\s+/);
-    if (tok.length < 4) continue;
-    const [tool, dir, , plan] = tok;
-    let rest = tok.slice(4).join(" ");
-    const cell = () => {
-      const m = CELL.exec(rest);
-      if (!m) return null;
-      rest = rest.slice(m[0].length);
-      return { pct: m[1] == null ? null : parseFloat(m[1]), reset: m[2] && m[2] !== "-" ? m[2] : null };
+// `ai-usage-tui --json`: { fetched_at, accounts: [{ tool, label, plan, error, saved_at,
+// limits: [{ name: "5-hour" | "Weekly" | ..., percent, resets_at }] }] }. Emails are dropped here.
+export function parseUsageJson(text) {
+  let d;
+  try { d = JSON.parse(text); } catch { return []; }
+  return (d?.accounts ?? []).map((a) => {
+    const lim = (n) => (a.limits ?? []).find(l => l.name === n) ?? null;
+    const five = lim("5-hour"), week = lim("Weekly");
+    const label = a.label ?? a.tool ?? "?";
+    return {
+      tool: a.tool, plan: a.plan ?? "",
+      name: a.tool === "claude" || a.tool === label ? label : `${a.tool} ${label}`,
+      five: five?.percent ?? null, fiveAt: five?.resets_at ?? null,
+      week: week?.percent ?? null, weekAt: week?.resets_at ?? null,
+      saved: a.saved_at ?? null,                       // set when the numbers are a saved snapshot
+      note: !five && !week ? (a.error ?? "no data") : "",
     };
-    const five = cell(), week = five ? cell() : null;
-    rows.push({
-      tool, dir, plan: plan === "-" ? "" : plan,
-      name: tool === "claude" || tool === dir ? dir : `${tool} ${dir}`,
-      five: five?.pct ?? null, fiveReset: five?.reset ?? null,
-      week: week?.pct ?? null, weekReset: week?.reset ?? null,
-      note: !five ? rest.trim() : "",
-    });
-  }
-  return rows;
+  });
 }

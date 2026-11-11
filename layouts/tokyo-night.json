@@ -2,12 +2,18 @@
   "id": "root",
   "type": "row",
   "titlebar": "none",
-  "traffic_lights": [20, 22],
+  "traffic_lights": [
+    20,
+    22
+  ],
   "theme": "tokyo-night",
   "background": "canvas",
   "padding": 8,
   "gap": 8,
-  "terminal_padding": [14, 22],
+  "terminal_padding": [
+    14,
+    22
+  ],
   "terminal_opacity": 0,
   "preview": "layouts/tokyo-night.svg",
   "ui_font": "Inter",
@@ -17,12 +23,19 @@
     {
       "id": "sidebar",
       "type": "block",
-      "size": { "px": 268 },
+      "size": {
+        "px": 268
+      },
       "min": 56,
       "max": 480,
       "background": "chrome",
       "radius": 6,
-      "content": { "mod": "tokyo-night", "props": { "role": "sidebar" } }
+      "content": {
+        "mod": "tokyo-night",
+        "props": {
+          "role": "sidebar"
+        }
+      }
     },
     {
       "id": "work",
@@ -33,15 +46,29 @@
         {
           "id": "header",
           "type": "block",
-          "size": { "px": 38 },
+          "size": {
+            "px": 38
+          },
           "window_drag": true,
-          "content": { "mod": "tokyo-night", "props": { "role": "header" } }
+          "content": {
+            "mod": "tokyo-night",
+            "props": {
+              "role": "header"
+            }
+          }
         },
         {
           "id": "strip",
           "type": "block",
-          "size": { "px": 40 },
-          "content": { "mod": "tokyo-night", "props": { "role": "strip" } }
+          "size": {
+            "px": 40
+          },
+          "content": {
+            "mod": "tokyo-night",
+            "props": {
+              "role": "strip"
+            }
+          }
         },
         {
           "id": "work-body",
@@ -49,30 +76,60 @@
           "gap": 8,
           "children": [
             {
-              "id": "main",
-              "type": "block",
-              "content": {
-                "tab": "active",
-                "pane": {
-                  "gap": 8,
-                  "radius": 6,
-                  "background": "chrome",
-                  "lone": true,
-                  "border": { "width": 0, "color": "chrome" },
-                  "focus": { "width": 1, "color": "#7aa2f766" },
-                  "header": {
-                    "content": { "mod": "tokyo-night", "props": { "role": "pane" } },
-                    "height": 38,
-                    "position": "top",
-                    "reveal": "always"
+              "id": "main-stack",
+              "type": "stack",
+              "active": "main",
+              "children": [
+                {
+                  "id": "main",
+                  "type": "block",
+                  "content": {
+                    "tab": "active",
+                    "pane": {
+                      "gap": 8,
+                      "radius": 6,
+                      "background": "chrome",
+                      "lone": true,
+                      "border": {
+                        "width": 0,
+                        "color": "chrome"
+                      },
+                      "focus": {
+                        "width": 1,
+                        "color": "#7aa2f766"
+                      },
+                      "header": {
+                        "content": {
+                          "mod": "tokyo-night",
+                          "props": {
+                            "role": "pane"
+                          }
+                        },
+                        "height": 38,
+                        "position": "top",
+                        "reveal": "always"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "empty",
+                  "type": "block",
+                  "content": {
+                    "mod": "tokyo-night",
+                    "props": {
+                      "role": "empty"
+                    }
                   }
                 }
-              }
+              ]
             },
             {
               "id": "panel",
               "type": "column",
-              "size": { "px": 368 },
+              "size": {
+                "px": 368
+              },
               "min": 280,
               "max": 900,
               "hidden": true,
@@ -82,8 +139,20 @@
                   "type": "stack",
                   "active": "files",
                   "children": [
-                    { "id": "files", "type": "block", "content": { "mod": "files" } },
-                    { "id": "changes", "type": "block", "content": { "mod": "changes" } }
+                    {
+                      "id": "files",
+                      "type": "block",
+                      "content": {
+                        "mod": "files"
+                      }
+                    },
+                    {
+                      "id": "changes",
+                      "type": "block",
+                      "content": {
+                        "mod": "changes"
+                      }
+                    }
                   ]
                 }
               ]

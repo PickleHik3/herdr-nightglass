@@ -6,10 +6,10 @@
 //   newmenu, spaces, usage   popups opened by the roles above
 // Data comes from Herdr's live state; see data.js. Colors and icons: lib.js.
 import { View, div } from "gpui-kit";
-import { props, exec } from "herdr";
+import { props, exec, run, shared, setShared } from "herdr";
 import { renderSidebar, renderNewMenu, renderSpacesPopup, loadAgents } from "./sidebar.js";
 import { renderHeader, renderUsagePopup, pollChanges, pollUsage } from "./header.js";
-import { renderStrip, renderPane } from "./strip.js";
+import { renderStrip, renderPane, renderEmpty, EMPTY_KEY } from "./strip.js";
 import { snapshot, STATS_SCRIPT, parseStats, onArg } from "./data.js";
 import { nodePx } from "./lib.js";
 
@@ -24,6 +24,7 @@ export default class TokyoNight extends View {
       this.pollStats(cx, true);
       cx.timer.every(3000, (cx) => this.pollStats(cx));
       cx.timer.every(30000, (cx) => cx.notify()); // elapsed times
+      cx.timer.every(500, () => this.watchFocus());
     }
     if (role === "header") {
       pollChanges(this, cx);
@@ -49,6 +50,41 @@ export default class TokyoNight extends View {
     const f = snap.foc && snap.spaces.find(s => s.id === snap.foc.space);
     return f?.machine ?? snap.machines[0]?.key ?? null;
   }
+  // Show a machine: its capsules in the sidebar, and on screen the space last visited there
+  // (else its first). A machine with no spaces shows the empty view in the main stack.
+  goMachine(key) {
+    this.setOpen(key);
+    const snap = snapshot();
+    const mine = snap.spaces.filter(s => s.machine === key);
+    if (!mine.length) {
+      setShared(EMPTY_KEY, key);
+      run("layout.select", { stack: "main-stack", child: "empty" });
+      return;
+    }
+    const last = this.lastSpaces()[key];
+    const target = mine.find(s => s.id === last) ?? mine[0];
+    setShared(EMPTY_KEY, null);
+    run("layout.select", { stack: "main-stack", child: "main" });
+    if (target.id !== snap.foc?.space) run("space.select", { id: target.id });
+  }
+  lastSpaces() {
+    if (!this.visited) { try { this.visited = JSON.parse(localStorage.getItem("visited") ?? "{}"); } catch { this.visited = {}; } }
+    return this.visited;
+  }
+  // Remember the focused space per machine; any focus change puts the terminals back on screen.
+  watchFocus() {
+    const snap = snapshot();
+    const id = snap.foc?.space ?? null;
+    if (id === this.lastFocus) return;
+    this.lastFocus = id;
+    const sp = id && snap.spaces.find(s => s.id === id);
+    if (sp) {
+      const v = this.lastSpaces();
+      if (v[sp.machine] !== id) { v[sp.machine] = id; try { localStorage.setItem("visited", JSON.stringify(v)); } catch { /* storage unavailable */ } }
+    }
+    if (this.emptyShown()) { setShared(EMPTY_KEY, null); run("layout.select", { stack: "main-stack", child: "main" }); }
+  }
+  emptyShown() { return shared(EMPTY_KEY) != null; }
   setOpen(key) {
     this.openState = { set: true, key };
     try { localStorage.setItem("open", JSON.stringify(this.openState)); } catch { /* storage unavailable */ }
@@ -80,12 +116,19 @@ export default class TokyoNight extends View {
     });
   }
 
+  // Every role gets the design's 13 px body size as its base, so text without its own size
+  // never falls back to Herdr's larger UI default.
   render() {
+    return this.renderRole().text_size(13);
+  }
+
+  renderRole() {
     switch (props()?.role) {
       case "sidebar": return renderSidebar(this);
       case "header": return renderHeader(this);
       case "strip": return renderStrip(this);
       case "pane": return renderPane();
+      case "empty": return renderEmpty();
       case "newmenu": return renderNewMenu(this);
       case "spaces": return renderSpacesPopup(this);
       case "usage": return renderUsagePopup();
