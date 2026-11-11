@@ -42,9 +42,10 @@ function targetSpace(snap, key) {
   return (mine.find(s => s.id === snap.foc?.space) ?? mine.find(s => s.active) ?? mine[0])?.id ?? null;
 }
 
-const chip = (view, id, lead, label, trail, onPick, on) => h_flex().id(id).h(ACT_H).flex_none().px(10).gap(6).items_center().rounded(16)
+// label null: an icon-only 32 px chip (Files / Changes / Settings), so six chips fit in the 376 px of the row.
+const chip = (view, id, lead, label, trail, onPick, on) => h_flex().id(id).h(ACT_H).min_w(ACT_H).flex_none().px(label ? 10 : 6).gap(6).justify_center().items_center().rounded(16)
   .bg(on ? C.raisedHi : C.raised).text_size(12).text_color(C.fg).whitespace_nowrap().cursor_pointer()
-  .on_click(tap(view, onPick)).child(lead).child(div().child(label)).when(!!trail, el => el.child(trail));
+  .on_click(tap(view, onPick)).child(lead).when(!!label, el => el.child(div().child(label))).when(!!trail, el => el.child(trail));
 
 // The actions for machine `m` (null: the app rows only). `done` closes the panel; `changes` is the focused space's change count.
 // view.agentOpen (the machine whose agent list is shown) lives on the drawer's view.
@@ -63,16 +64,16 @@ export function actionRows(view, snap, m, done, changes) {
     .child(swipeBody(h_flex().h_full().flex_none().gap(ACT_GAP).items_center()).children(kids));
   const main = [];
   if (m && !m.offline) {
-    main.push(div().flex_none().max_w(90).truncate().text_size(11).font_semibold().text_color(machineColor(m.key)).child(m.name));
-    main.push(chip(view, "tnp-act-space", ico("folder", 13, C.muted), "New space", null, pick(() => run("space.new", { machine: mArg(m.key) }))));
+    main.push(div().flex_none().size(8).rounded(4).bg(machineColor(m.key))); // the machine the actions go to
+    main.push(chip(view, "tnp-act-space", ico("folder", 13, C.muted), "Space", null, pick(() => run("space.new", { machine: mArg(m.key) }))));
     if (target) main.push(chip(view, "tnp-act-term", ico("terminal", 13, C.muted), "Terminal", null, pick(() => run("tab.new", { space: target }))));
     main.push(chip(view, "tnp-act-agent", ico("cpu", 13, C.muted), "Agent", div().text_size(13).text_color(C.muted).child(open ? "⌄" : "›"), toggleAgents, open));
   }
-  main.push(chip(view, "tnp-act-files", ico("file", 13, C.muted), "Files", null, pick(() => run("tab.new", modTab("files")))));
-  main.push(chip(view, "tnp-act-changes", ico("changes", 13, C.muted), "Changes",
+  main.push(chip(view, "tnp-act-files", ico("file", 13, C.muted), null, null, pick(() => run("tab.new", modTab("files")))));
+  main.push(chip(view, "tnp-act-changes", ico("changes", 13, C.muted), null,
     changes > 0 ? div().font_family(MONO).text_size(10.5).text_color(C.amber).child(`+${changes}`) : null,
     pick(() => run("tab.new", modTab("changes")))));
-  main.push(chip(view, "tnp-act-settings", ico("settings", 13, C.muted), "Settings", null, pick(() => run("app.settings", {}))));
+  main.push(chip(view, "tnp-act-settings", ico("settings", 13, C.muted), null, null, pick(() => run("app.settings", {}))));
   const rows = [row("tnp-act-row", main)];
   if (open) {
     const agents = list.map(a => chip(view, `tnp-act-a-${a.key}`, prog(a, 14, C.fg), a.name, null,

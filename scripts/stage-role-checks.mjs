@@ -111,7 +111,7 @@ if (SCEN === "composer-open") store.set("tokyo-night-phone.composer", { open: tr
 if (SCEN === "composer-moved") store.set("tokyo-night-phone.composer", { open: true, target: "t1", ctx: "s1|tb1|t1", moved: "t9" });
 export const setShared = (k, v) => { if (!(SCEN.startsWith("composer-") && k === "tokyo-night-phone.composer")) store.set(k, v); return null; };
 export const spaces = () => SPACES;
-export const machines = () => [{ name: null, layout: "ready" }, { name: "amal-build", layout: SCEN === "offline" ? "unavailable" : "ready" }];
+export const machines = () => [{ name: null, layout: "ready" }, { name: "amal-build", layout: SCEN === "offline" ? "unavailable" : "ready" }, ...(SCEN === "all" ? [{ name: "pong", layout: "ready" }] : [])];
 export const panes = () => PANES;
 export const agents = () => PANES.filter((p) => p.status).map((p) => ({ address: p.terminal, pane: p.pane, space: "s1", space_name: "x", tab: p.tab, tab_index: 1, tab_name: "1", status: p.status, app: p.app, program: p.program, title: p.title, seq: 1, pinned: false, focused: p.focused }));
 export const terminals = () => PANES.map((p) => ({ address: p.terminal, status: p.status, report: p.status === "blocked" ? "Wants to run: git push origin integration/v1" : null }));

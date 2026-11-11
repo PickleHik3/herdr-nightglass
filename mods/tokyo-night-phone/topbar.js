@@ -127,8 +127,8 @@ export function renderTopbar(view) {
     if (popupIsOpen("stats") && view.statsId) { closeOverlay(view.statsId); return; }
     view.statsId = openOverlay({ mod: MOD, kind: "popup", frame: "none", width: (Wd - 16) / Wd, height: STATS_H, at: { x: Math.round(8 * z), y: Math.round(58 * z) }, props: { role: "stats", h: STATS_H } });
   };
-  // Spacing rule: every item (search, finished count when shown, stats, usage wells, panel toggle) is followed by
-  // an equal flexible gap (equal flex_1 spacers), with equal 12 px side padding, so the gaps are the same at any window
+  // Spacing rule: the items (search, finished count when shown, stats, the usage wells as ONE item, panel toggle) sit in a
+  // justify_between row with equal 12 px side padding, so the gaps between neighbours are equal (spacer divs gave uneven gaps on device), so the gaps are the same at any window
   // width. Items first (designed px): search 40, count 40, stats pill 2 x PAD + 3 x 24 + 2 x 2, usage wells
   // (4 apart, each 2 x PAD + rings), toggle 40; the usage wells drop their tool icons, then shrink their rings 16 -> 12,
   // while the gaps would be under 6. When the gap would exceed MAX_GAP (24) the stats pill and each usage well grow:
@@ -140,7 +140,7 @@ export function renderTopbar(view) {
   const items = 3 + (finished > 0 ? 1 : 0) + (n > 0 ? 1 : 0);      // search, stats, toggle (+ count, + usage)
   const gaps = items - 1;
   const statsW = 2 * 8 + 3 * RS + 2 * 2;
-  const fixed = 40 + (finished > 0 ? 40 : 0) + statsW + 40;
+  const fixed = 40 + (finished > 0 ? 30 : 0) + statsW + 40;
   const room = Wd - 24 - fixed - gaps * 6;
   const showIcons = n > 0 && wellsW(RING, true, 8) <= room;
   if (n > 0 && !showIcons && wellsW(RING, false, 8) > room) RING = 12;
@@ -149,27 +149,24 @@ export function renderTopbar(view) {
   const pills = 1 + G;
   const grow = Math.min(24, surplus / pills / 2);                   // extra padding per side, per pill
   const padS = 8 + grow;
-  const gap = () => div().flex_1().min_w(0);
   const ringIcon = (name, pct, color) => h_flex().relative().size(RS).flex_none()
     .child(ringS(RS, pct, 0, color, C.teal))
     .child(div().absolute().top((RS - 12) / 2).left((RS - 12) / 2).child(ico(name, 12, C.muted)));
   const open = panelOpen();
   const hasChanges = (view.changes ?? 0) > 0;
-  const BTN = 40;
-  return h_flex().id("tnp-top").size_full().px(12).pt(4).items_center()
+  const BTN = 40, DONE_H = 30;
+  return h_flex().id("tnp-top").size_full().px(12).pt(4).items_center().justify_between()
     .on_size_change((size, cx) => { WIN.w = size.width; if (Math.abs((view.topW ?? 0) - size.width) >= 1) { view.topW = size.width; cx.notify(); } })
     // search: a round button that opens the app's command palette (as the pill did; a text field cannot be hosted here)
     .child(h_flex().id("tnp-search").size(BTN).flex_none().justify_center().items_center().rounded(20)
       .bg(C.well).border(1).border_color(C.rim).cursor_pointer()
       .on_click(() => run("app.palette"))
       .child(ico("search", 16, C.muted)))
-    .child(gap())
     // finished count: filled green, only while something finished and was not dismissed; toggles the chip row of finished agents
-    .when(finished > 0, el => el.child(h_flex().id("tnp-done").size(BTN).flex_none().justify_center().items_center().rounded(20)
+    .when(finished > 0, el => el.child(h_flex().id("tnp-done").h(DONE_H).min_w(DONE_H).px(9).flex_none().justify_center().items_center().rounded(DONE_H / 2)
         .bg(C.green).border(2).border_color(finishedOpen() ? C.fg : C.green).cursor_pointer()
         .on_click((_e, cx) => { setFinishedOpen(!finishedOpen()); cx.notify(); })
-        .child(div().font_family(MONO).text_size(15).font_semibold().text_color(C.ink).child(String(finished))))
-      .child(gap()))
+        .child(div().font_family(MONO).text_size(13).font_semibold().text_color(C.ink).child(String(finished)))))
     // stats rings, each with its icon (cpu chip, ram module, disk): one well, opens the popover
     .child(h_flex().id("tnp-stats").h(BTN).flex_none().px(padS).gap(2).items_center().rounded(20).cursor_pointer()
       .bg(statsOpen ? C.raised : C.well).border(1).border_color(C.rim).opacity(sdata && !sm?.offline ? 1 : 0.55)
@@ -177,7 +174,6 @@ export function renderTopbar(view) {
       .child(ringIcon("cpu", sdata?.cpu, level(sdata?.cpu ?? 0, C.accent)))
       .child(ringIcon("ram", sdata?.memPct, level(sdata?.memPct ?? 0, C.teal)))
       .child(ringIcon("disk", sdata ? diskUsed(sdata) : 0, level(sdata ? diskUsed(sdata) : 0, C.fg))))
-    .child(gap())
     // usage rings: one well per tool; all of them open the popover
     .when(n > 0, el => el.child(h_flex().id("tnp-rings").flex_none().gap(4).items_center().cursor_pointer()
       .opacity(u?.stale ? 0.6 : 1)
@@ -185,8 +181,7 @@ export function renderTopbar(view) {
       .children(groups.map(g => h_flex().h(40).flex_none().px(padS).gap(2).items_center().rounded(20)
         .bg(usageOpen ? C.raised : C.well).border(1).border_color(C.rim)
         .when(showIcons, e => e.child(h_flex().w(18).flex_none().items_center().child(toolIcon(g.tool, 14))))
-        .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return ringS(RING, r.week, r.five, wc, hc); })))))
-      .child(gap()))
+        .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return ringS(RING, r.week, r.five, wc, hc); }))))))
     // panel toggle (machines, actions, agents under the bar), with the amber dot while the focused space has uncommitted
     // changes; active look (raised fill, accent rim, bright icon) while the panel is open
     .child(h_flex().id("tnp-menu").size(BTN).flex_none().relative().justify_center().items_center().rounded(20)

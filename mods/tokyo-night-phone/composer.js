@@ -76,7 +76,12 @@ export function initComposer(view, cx) {
         cx.notify();
       }
       if (view.focusAt && Date.now() >= view.focusAt) { view.focusAt = 0; try { view.input.focus(); } catch { /* not shown yet */ } }
-      if (!st.moved && ctxKey() !== st.ctx) closeComposer(); // the tab / space / terminal in front changed
+      // The terminal in front changed: close, but only when it is a terminal that differs for two ticks in a row. focused() can be
+      // null or still moving for a moment after the panel or a tap shifted focus, and the old one-tick check on space|tab|terminal
+      // closed a just-opened composer at once (the first tap seemed to do nothing).
+      const now = targetTerminal();
+      if (!st.moved && now && now !== st.target) { view.drift = (view.drift ?? 0) + 1; if (view.drift >= 2) { view.drift = 0; closeComposer(); } }
+      else view.drift = 0;
     } else if (view.bound) {                                // closed
       view.bound = null;
       try { view.input.set_value(""); } catch { /* ignore */ }

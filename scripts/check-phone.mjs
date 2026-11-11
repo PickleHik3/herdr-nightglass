@@ -29,7 +29,7 @@ const PROVEN = new Set(["mb", "max_h", "settings", "Input", "InputState", "new",
 // Phone-only, but only reached inside event handlers / timers, which `check` does not run. Taken from the
 // 0.1.13 typings instead (gpui-kit.d.ts InputState: set_value, value, release; herdr.d.ts: hc).
 // Round 8 (no phone available): on_scroll_wheel (rendered, but not yet run through `check`), focus (timer only).
-const TYPED_ONLY = new Set(["set_value", "value", "release", "hc", "on_scroll_wheel", "focus"]);
+const TYPED_ONLY = new Set(["justify_between", "set_value", "value", "release", "hc", "on_scroll_wheel", "focus"]);
 const herdr = process.env.HERDR_DTS ? readFileSync(process.env.HERDR_DTS, "utf8") : null;
 let fails = 0;
 const bad = (m) => { fails++; console.log("FAIL", m); };
@@ -210,14 +210,15 @@ console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desk
   const top = mods["topbar.js"];
   const pos = ["id(\"tnp-search\")", "id(\"tnp-done\")", "id(\"tnp-stats\")", "id(\"tnp-rings\")", "id(\"tnp-menu\")"].map((s) => top.indexOf(s));
   if (pos.some((p) => p < 0) || pos.some((p, i) => i && p <= pos[i - 1])) bad("topbar.js: order must be search, finished count, stats, usage, panel toggle");
-  if (!/id\("tnp-top"\)\.size_full\(\)\.px\(12\)\.pt\(4\)\.items_center\(\)/.test(top)) bad("topbar.js: the bar must have equal side padding and no fixed gap");
-  if ((top.match(/\.child\(gap\(\)\)/g) ?? []).length < 4 || /\.gap\(4\)\.items_center\(\)\s*\n\s*\.on_size_change/.test(top)) bad("topbar.js: items must be separated by equal flexible gaps");
+  if (!/id\("tnp-top"\)\.size_full\(\)\.px\(12\)\.pt\(4\)\.items_center\(\)\.justify_between\(\)/.test(top)) bad("topbar.js: the bar must be a justify_between row with equal side padding and no fixed gap");
+  if (/\.child\(gap\(\)\)/.test(top)) bad("topbar.js: spacer divs are gone, the row uses justify_between (the usage wells are one item)");
+  if (!/id\("tnp-done"\)\.h\(DONE_H\)/.test(top) || !/DONE_H = 30/.test(top)) bad("topbar.js: the finished count is a 30 px pill");
   if (/ringIcon\("cpu"/.test(top) === false || !/ringIcon\("ram"/.test(top) || !/ringIcon\("disk"/.test(top)) bad("topbar.js: the stats rings carry cpu / ram / disk icons");
   if (!/ico\(name, 12,/.test(top)) bad("topbar.js: ring icon must be >= 10 px");
   // the same arithmetic as topbar.js: gap per neighbour at several window widths (all items shown, 5 usage rings in 2 groups)
   const gapAt = (W, done) => {
     const n = 5, G = 2, items = 4 + (done ? 1 : 0), gaps = items - 1;
-    const fixed = 40 + (done ? 40 : 0) + 92 + 40, wells = (r, ic) => G * 16 + n * r + (n - G) * 2 + (ic ? G * 18 : 0) + (G - 1) * 4;
+    const fixed = 40 + (done ? 30 : 0) + 92 + 40, wells = (r, ic) => G * 16 + n * r + (n - G) * 2 + (ic ? G * 18 : 0) + (G - 1) * 4;
     const room = W - 24 - fixed - gaps * 6;
     const ic = wells(16, true) <= room, ring = !ic && wells(16, false) > room ? 12 : 16;
     return { gap: (W - 24 - fixed - wells(ring, ic)) / gaps, ring, ic };
@@ -242,6 +243,15 @@ console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desk
   if (readFileSync(join(T, "lib.js"), "utf8") !== readFileSync(join(DESK, "lib.js"), "utf8")) bad("mods/toast/lib.js differs from the desktop copy");
   if (!/findNode\(layout\(\), "drawer"\)/.test(src) || !/glassSolid/.test(src) || !/\.h\(32\)/.test(src) || !/closeOverlay\(p\.overlay\)/.test(src)) bad("toast/main.js: phone capsule (32 px, glassSolid, tap closes) or the phone-layout switch is missing");
   console.log("toast mod: syntax ok, lib.js identical, phone capsule only when the layout has the drawer node");
+}
+
+// --- device round (round 14): compact empty machines, list to the grip, icon-only chips, teal wide grip ---
+{
+  const d = mods["drawer.js"], nm = mods["newmenu.js"];
+  if (!/COMPACT_H = 36/.test(d) || !/m\.spaces\.length === 0\) \{\s*\n\s*return h_flex\(\)\.id\(`tnp-all-\$\{m\.key\}`\)/.test(d) || !/filter\(m => m\.spaces\.length === 0\)\]/.test(d)) bad("drawer.js: machines without terminals must be one compact line, sorted last");
+  if (!/C\.teal/.test(d) || !/w\(72\)/.test(d)) bad("drawer.js: the full grip must be wide and teal");
+  if ((nm.match(/ico\("(file|changes|settings)", 13, C\.muted\), null/g) ?? []).length !== 3) bad("newmenu.js: Files / Changes / Settings are icon-only chips");
+  console.log("compact empty machines, wide teal grip, icon-only chips: ok");
 }
 
 console.log(fails ? `${fails} FAILURE(S)` : "ALL STATIC CHECKS PASSED");

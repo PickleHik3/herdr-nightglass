@@ -123,10 +123,24 @@ const newSpaceRow = (view, id, m, label) => h_flex().id(id).w_full().h(40).flex_
   .on_click(tap(view, () => { closePanel(); run("space.new", { machine: mArg(m.key) }); }))
   .child(ico("folder", 13, C.muted)).child(div().truncate().child(label));
 
+const COMPACT_H = 36;
 // The All view: one card per machine, tinted in its color (9% fill, 36% border), with its capsules inside.
 function allGroups(view, snap) {
-  return snap.machines.map(m => {
+  // Machines without spaces (no terminals) are one compact line each and come after the ones that have some.
+  const ordered = [...snap.machines.filter(m => m.spaces.length > 0), ...snap.machines.filter(m => m.spaces.length === 0)];
+  return ordered.map(m => {
     const color = machineColor(m.key);
+    if (m.spaces.length === 0) {
+      return h_flex().id(`tnp-all-${m.key}`).w_full().h(COMPACT_H).flex_none().pl(10).pr(4).gap(8).items_center().rounded(10)
+        .bg(alpha(color, 0.09)).border(1).border_color(alpha(color, 0.36)).opacity(m.offline ? 0.62 : 1)
+        .child(machineIcon(m, 13, color))
+        .child(div().flex_none().max_w(120).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name))
+        .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(m.offline ? C.amber : C.muted).child(m.offline ? m.summary : "no terminals"))
+        .when(!m.offline, el => el.child(h_flex().id(`tnp-all-new-${m.key}`).h(28).flex_none().px(10).gap(5).items_center().rounded(14)
+          .bg(C.raised).text_size(11).text_color(C.fg).cursor_pointer()
+          .on_click(tap(view, () => { closePanel(); run("space.new", { machine: mArg(m.key) }); }))
+          .child(ico("folder", 12, C.muted)).child(div().child("New space"))));
+    }
     return v_flex().id(`tnp-all-${m.key}`).w_full().flex_none().rounded(12).p(4).gap(4)
       .bg(alpha(color, 0.09)).border(1).border_color(alpha(color, 0.36)).opacity(m.offline ? 0.62 : 1)
       .child(h_flex().id(`tnp-all-h-${m.key}`).w_full().h(40).flex_none().gap(8).px(6).items_center().rounded(8).cursor_pointer()
@@ -146,7 +160,7 @@ function allGroups(view, snap) {
 const TOP = 52, TABS = 40, TERM_MIN = 120, GAPS = 30;
 const listHeight = (snap, open, m) => {
   const capsules = (mm) => mm.spaces.reduce((n, sp) => n + 6 + 28 + sp.rows.length * 45 + 6, 0);
-  if (open === ALL) return snap.machines.reduce((n, mm) => n + 8 + 40 + 4 + capsules(mm) + (mm.offline ? 0 : 44) + 6, 0);
+  if (open === ALL) return snap.machines.reduce((n, mm) => n + (mm.spaces.length === 0 ? COMPACT_H + 6 : 8 + 40 + 4 + capsules(mm) + (mm.offline ? 0 : 44) + 6), 0);
   return m ? capsules(m) + (m.spaces.length ? 0 : 24) : 0;
 };
 // Resize the block to its content (called by a timer of the drawer role: the block may be hidden and not render).
@@ -154,21 +168,23 @@ const listHeight = (snap, open, m) => {
 // leaves the terminal TERM_MIN. Full: everything below the top bar (the rows below are hidden then). The window height
 // is the watch's (smaller with the soft keyboard up); 800 until it is measured, so the block is never left at its
 // layout default with only a slice of list.
-const HANDLE = 20, ROW = 45;
+const HANDLE = 18, ROW = 45;
 export function panelSync(view) {
   const Hd = WIN.h > 0 ? dsg(WIN.h) : 800;
   const snap = snapshot();
   const open = view.openKey(snap);
   const m = open && open !== ALL ? snap.mBy.get(open) : null;
   const agentsOpen = !!m && view.agentOpen === m.key;
-  // outer pb 8, box border 2, pt 6, machine row 48, actions, list, handle, pb 8, and four 8 px gaps in the box
-  const chrome = 8 + 2 + 6 + 48 + actionsHeight(agentsOpen) + HANDLE + 8 + 4 * 8;
+  // outer pb 8, box border 2, pt 6, machine row 48, actions, list + handle (no gap between those two), pb 8, two 8 px gaps
+  const chrome = 8 + 2 + 6 + 48 + actionsHeight(agentsOpen) + HANDLE + 8 + 2 * 8;
+  // what the list spends on headers before its agent rows: group header + capsule header (All) or the capsule header
+  const overhead = open === ALL ? 100 : 40;
   let want;
   if (panelFull()) want = Math.round(Hd - TOP - 6 - 4);
   else {
     const strip = findNodeHidden("strip") ? 0 : (nodePx("strip") ?? 0) + 6;
     const termCap = Hd - TOP - TABS - strip - (composerOpen() ? 50 : 0) - TERM_MIN - GAPS;
-    const limit = Math.min(termCap, Math.max(0.45 * Hd, chrome + 3 * ROW));
+    const limit = Math.min(termCap, Math.max(0.45 * Hd, chrome + overhead + 3 * ROW));
     want = Math.round(Math.max(chrome + 40, Math.min(chrome + listHeight(snap, open, m), limit)));
   }
   if (nodePx("drawer") !== want) {
@@ -203,15 +219,18 @@ export function renderDrawer(view) {
           .child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW)))))
       .child(v_flex().id("tnp-actions").w_full().flex_none().gap(6)
         .children(actionRows(view, snap, sm, closePanel, shared("tokyo-night-phone.changes") ?? 0)))
-      .child(swipeArea(watchScroll(v_flex().id("tnp-spaces").w_full().flex_1().min_h(0).overflow_y_scroll(), view))
-        .child(swipeBody(v_flex().w_full().flex_none().gap(6))
-          .when(all, el => el.children(allGroups(view, snap)))
-          .when(!!m, el => el.children(m.spaces.map(sp => capsule(view, sp, m))))
-          .when(!!m && m.spaces.length === 0, el => el.child(div().px(4).text_color(C.muted).child(`No spaces on ${m.name}`)))))
-      // the handle: last row of the panel; a tap toggles normal / full (no drag: see README), grip accent while full
-      .when(panelOpen(), el => el.child(h_flex().id("tnp-handle").w_full().h(HANDLE).flex_none().justify_center().items_center().cursor_pointer()
-        .on_click((_e, cx) => { setPanelFull(!panelFull()); cx.notify(); })
-        .child(div().w(36).h(4).rounded(2).bg(panelFull() ? C.accent : C.rim)))));
+      // the list and the handle: no gap between them, the list runs to the grip
+      .child(v_flex().w_full().flex_1().min_h(0)
+        .child(swipeArea(watchScroll(v_flex().id("tnp-spaces").w_full().flex_1().min_h(0).overflow_y_scroll(), view))
+          .child(swipeBody(v_flex().w_full().flex_none().gap(6))
+            .when(all, el => el.children(allGroups(view, snap)))
+            .when(!!m, el => el.children(m.spaces.map(sp => capsule(view, sp, m))))
+            .when(!!m && m.spaces.length === 0, el => el.child(div().px(4).text_color(C.muted).child(`No spaces on ${m.name}`)))))
+        // the handle: last row of the panel; a tap toggles normal / full (no drag: see README). Full = a wide teal grip
+        // (the neutral accent of some schemes is near white, so it showed no change)
+        .when(panelOpen(), el => el.child(h_flex().id("tnp-handle").w_full().h(HANDLE).flex_none().justify_center().items_center().cursor_pointer()
+          .on_click((_e, cx) => { setPanelFull(!panelFull()); cx.notify(); })
+          .child(panelFull() ? div().w(72).h(5).rounded(3).bg(C.teal) : div().w(36).h(4).rounded(2).bg(C.rim))))));
 }
 
 // ---- popup: theme (whole-window scheme) of a machine ----
