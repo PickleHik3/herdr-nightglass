@@ -1,0 +1,93 @@
+{
+  "id": "root",
+  "type": "row",
+  "titlebar": "none",
+  "theme": "tokyo-night",
+  "background": "canvas",
+  "resizable": false,
+  "terminal_padding": [10, 12],
+  "terminal_opacity": 0,
+  "preview": "layouts/tokyo-night-phone.svg",
+  "ui_font": "Inter",
+  "font": "JetBrains Mono",
+  "font_size": 12,
+  "children": [
+    {
+      "id": "phone",
+      "type": "column",
+      "gap": 8,
+      "children": [
+        {
+          "id": "core",
+          "type": "column",
+          "gap": 6,
+          "resizable": false,
+          "children": [
+            {
+              "id": "topbar",
+              "type": "block",
+              "size": { "px": 52 },
+              "content": { "mod": "tokyo-night-phone", "props": { "role": "topbar" } }
+            },
+            {
+              "id": "strip",
+              "type": "block",
+              "size": { "px": 36 },
+              "content": { "mod": "tokyo-night-phone", "props": { "role": "strip" } }
+            },
+            {
+              "id": "tabs",
+              "type": "block",
+              "size": { "px": 40 },
+              "content": { "mod": "tokyo-night-phone", "props": { "role": "tabs" } }
+            },
+            {
+              "id": "term",
+              "type": "column",
+              "padding": [0, 8],
+              "children": [
+                {
+                  "id": "main",
+                  "radius": 6,
+                  "shadow": "lg",
+                  "type": "block",
+                  "content": {
+                    "tab": "active",
+                    "pane": {
+                      "gap": 6,
+                      "radius": 6,
+                      "background": "chrome",
+                      "lone": true,
+                      "border": { "width": 0, "color": "chrome" },
+                      "focus": { "width": 0, "color": "chrome" }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "id": "composer",
+              "type": "block",
+              "size": { "px": 44 },
+              "content": { "mod": "tokyo-night-phone", "props": { "role": "composer" } }
+            }
+          ]
+        },
+        {
+          "id": "drawer",
+          "type": "block",
+          "size": { "px": 320 },
+          "min": 120,
+          "max": 640,
+          "content": { "mod": "tokyo-night-phone", "props": { "role": "drawer" } }
+        }
+      ]
+    },
+    {
+      "id": "watch",
+      "type": "block",
+      "size": { "px": 1 },
+      "content": { "mod": "tokyo-night-phone", "props": { "role": "watch" } }
+    }
+  ]
+}

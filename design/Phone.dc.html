@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Herdr — phone</title>
+<script src="fb81b6c8-4042-4009-a0d6-b4b04bd660b3"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("72200385-646c-4ce4-9071-3e3aa8d6bcd9") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("72200385-646c-4ce4-9071-3e3aa8d6bcd9") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("72200385-646c-4ce4-9071-3e3aa8d6bcd9") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("cd105ec9-a4da-4991-ab95-c1ab0da0e7bf") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("95082653-83ea-448b-9932-bd458ebf3bf2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("5ee1e268-2825-4423-827e-057d685951b0") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("79db0124-a954-402a-869e-e8e8153db4b1") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("3cd68152-8a6b-4e55-b5a1-f087c363a729") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("b975b9a8-14f1-4365-b3b8-b50196b1a668") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("cd105ec9-a4da-4991-ab95-c1ab0da0e7bf") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("95082653-83ea-448b-9932-bd458ebf3bf2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("5ee1e268-2825-4423-827e-057d685951b0") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("79db0124-a954-402a-869e-e8e8153db4b1") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("3cd68152-8a6b-4e55-b5a1-f087c363a729") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("b975b9a8-14f1-4365-b3b8-b50196b1a668") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>
+body{margin:0;background:#16161e}
+a{color:#7dcfff}a:hover{color:#b4f9f8}
+@keyframes hpulse{0%{box-shadow:0 0 0 0 rgba(158,206,106,.55)}70%{box-shadow:0 0 0 5px rgba(158,206,106,0)}100%{box-shadow:0 0 0 0 rgba(158,206,106,0)}}
+.pulse{animation:hpulse 2s ease-out infinite}
+@keyframes hwait{0%,55%{opacity:1}56%,100%{opacity:.3}}
+.wait{animation:hwait 1s step-end infinite}
+@keyframes hblink{0%,49%{opacity:1}50%,100%{opacity:0}}
+.caret{animation:hblink 1.1s step-end infinite}
+.hscroll{scrollbar-width:none}
+.hscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 412px; height: 915px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: #16161e; color: #c0caf5; font-family: 'Inter', system-ui, sans-serif; font-size: 13px">
+
+  <!-- ===== CORE: everything above the keyboard line (0–595px) ===== -->
+  <div style="height: 595px; flex: none; display: flex; flex-direction: column; gap: 6px; padding-bottom: 8px; box-sizing: border-box">
+
+    <!-- Top bar -->
+    <header style="height: 52px; flex: none; display: flex; align-items: center; gap: 6px; padding: 4px 8px 0 14px; box-sizing: border-box">
+      <div style="width: 28px; height: 28px; flex: none; border-radius: 6px; background: {{accent}}; display: flex; align-items: center; justify-content: center; color: #16161e">
+        <svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><path d="M14 17h6"></path></svg>
+      </div>
+      <button type="button" aria-label="Search agents, terminals and commands" style="flex: 1 1 auto; min-width: 0; height: 40px; margin-left: 4px; padding: 0 12px; border: 0; border-radius: 999px; background: #1a1b26; box-shadow: inset 0 0 0 1px #292e42; color: #8a92c2; font: inherit; font-size: 13px; display: flex; align-items: center; gap: 8px; text-align: left">
+        <svg style="flex: none" width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="m20 20-4.5-4.5"></path></svg>
+        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Search</span>
+      </button>
+      <button type="button" aria-label="Claude usage for 5 accounts" aria-haspopup="dialog" aria-expanded="{{usageExpanded}}" sc-camel-on-click="{{toggleUsage}}" style="height: 40px; flex: none; padding: 0 8px; border: 0; border-radius: 999px; background: {{usageBtnBg}}; box-shadow: inset 0 0 0 1px #292e42; display: flex; align-items: center; gap: 2px; cursor: pointer">
+        <sc-for list="{{usage}}" as="u" hint-placeholder-count="5">
+          <svg width="16" height="16" sc-camel-view-box="0 0 28 28" aria-hidden="true">
+            <circle cx="14" cy="14" r="11" fill="none" stroke="#292e42" stroke-width="4"></circle>
+            <circle cx="14" cy="14" r="11" fill="none" stroke="{{u.wColor}}" stroke-width="4" stroke-linecap="round" sc-camel-path-length="100" stroke-dasharray="{{u.wDash}}" transform="rotate(-90 14 14)"></circle>
+            <circle cx="14" cy="14" r="4.5" fill="none" stroke="#292e42" stroke-width="3.5"></circle>
+            <circle cx="14" cy="14" r="4.5" fill="none" stroke="{{u.hColor}}" stroke-width="3.5" sc-camel-path-length="100" stroke-dasharray="{{u.hDash}}" transform="rotate(-90 14 14)"></circle>
+          </svg>
+        </sc-for>
+      </button>
+      <button type="button" aria-label="Menu: new space, new tab, files, changes, settings" style="width: 44px; height: 44px; flex: none; border: 0; border-radius: 8px; background: transparent; color: #a9b1d6; display: flex; align-items: center; justify-content: center; position: relative">
+        <svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+        <span style="position: absolute; top: 9px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: #e0af68; box-shadow: 0 0 0 2px #16161e"></span>
+      </button>
+    </header>
+
+    <!-- Attention: quiet -->
+    <sc-if value="{{stripQuiet}}" hint-placeholder-val="{{ true }}">
+      <section aria-label="Needs you" style="margin: 0 8px; height: 36px; flex: none; background: #1a1b26; border-radius: 6px; display: flex; align-items: center; gap: 8px; padding: 0 12px">
+        <svg width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="#9ece6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg>
+        <span style="font-weight: 500; color: #c0caf5">Nothing needs you</span>
+        <span style="color: #8a92c2; flex: 1; text-align: right">{{quietSummary}}</span>
+      </section>
+    </sc-if>
+
+    <!-- Attention: offline -->
+    <sc-if value="{{stripOffline}}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Connection" style="margin: 0 8px; height: 56px; flex: none; background: color-mix(in srgb, #e0af68 10%, #1a1b26); box-shadow: inset 0 0 0 1px color-mix(in srgb, #e0af68 35%, transparent); border-radius: 6px; display: flex; align-items: center; gap: 10px; padding: 0 6px 0 12px">
+        <svg style="flex: none" width="15" height="15" sc-camel-view-box="0 0 24 24" fill="none" stroke="#e0af68" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M2 2l20 20"></path><path d="M8.5 16.5a5 5 0 0 1 7 0"></path><path d="M5 12.9a10 10 0 0 1 5.2-2.8"></path><path d="M19 12.9a10 10 0 0 0-2.3-1.6"></path><path d="M12 20h.01"></path></svg>
+        <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-weight: 500; color: #c0caf5">amal-build is unreachable</span>
+          <span style="font-size: 12px; color: #a9b1d6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Last seen 2m ago · retrying in 10s</span>
+        </div>
+        <button type="button" style="height: 44px; flex: none; padding: 0 14px; border: 0; border-radius: 6px; background: #292e42; color: #c0caf5; font: inherit; font-size: 13px; font-weight: 500">Retry</button>
+      </section>
+    </sc-if>
+
+    <!-- Attention: cards, swipe sideways -->
+    <sc-if value="{{stripAttention}}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Needs you, {{attentionCount}} items" class="hscroll" style="flex: none; display: flex; gap: 8px; overflow-x: auto; padding: 0 8px; scroll-snap-type: x mandatory; scroll-padding: 0 8px">
+        <sc-for list="{{attention}}" as="c" hint-placeholder-count="2">
+          <article style="width: 328px; flex: none; box-sizing: border-box; scroll-snap-align: start; border-radius: 8px; background: {{c.bg}}; box-shadow: {{c.ring}}; padding: 10px 8px 10px 12px; display: flex; align-items: center; gap: 10px">
+            <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+              <div style="display: flex; align-items: center; gap: 7px; min-width: 0">
+                <sc-if value="{{c.isWaiting}}" hint-placeholder-val="{{ true }}"><span class="wait" style="flex: none; width: 8px; height: 8px; border-radius: 2px; background: #f7768e"></span></sc-if>
+                <sc-if value="{{c.isDone}}" hint-placeholder-val="{{ false }}"><svg style="flex: none" width="11" height="11" sc-camel-view-box="0 0 24 24" fill="none" stroke="#9ece6a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></sc-if>
+                <span style="font-weight: 600; color: #c0caf5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.title}}</span>
+                <span style="flex: none; font-size: 11px; font-weight: 600; color: {{c.labelColor}}">{{c.label}}</span>
+                <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8a92c2">{{c.elapsed}}</span>
+              </div>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #a9b1d6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.ask}}</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8a92c2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.where}} · {{c.pos}}</span>
+            </div>
+            <button type="button" sc-camel-on-click="{{c.open}}" style="height: 44px; flex: none; padding: 0 12px; border: 0; border-radius: 6px; background: {{c.primaryBg}}; color: #16161e; font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap">Open <span style="font-family: 'JetBrains Mono', monospace">{{c.tab}}</span></button>
+          </article>
+        </sc-for>
+      </section>
+    </sc-if>
+
+    <!-- Tab strip: every agent across machines -->
+    <nav aria-label="Open tabs" class="hscroll" style="flex: none; display: flex; gap: 6px; overflow-x: auto; padding: 0 8px">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+        <button type="button" aria-pressed="{{t.pressed}}" aria-label="{{t.tab}} {{t.title}}, {{t.state}}" sc-camel-on-click="{{t.pick}}" style="height: 40px; flex: none; max-width: 190px; border: 0; border-radius: 999px; background: {{t.bg}}; box-shadow: {{t.ring}}; padding: 0 12px 0 10px; display: flex; align-items: center; gap: 7px; color: {{t.text}}; font: inherit; font-size: 12px; cursor: pointer">
+          <sc-if value="{{t.isWorking}}" hint-placeholder-val="{{ true }}"><span class="pulse" style="flex: none; width: 6px; height: 6px; border-radius: 50%; background: #9ece6a"></span></sc-if>
+          <sc-if value="{{t.isWaiting}}" hint-placeholder-val="{{ false }}"><span class="wait" style="flex: none; width: 7px; height: 7px; border-radius: 2px; background: #f7768e"></span></sc-if>
+          <sc-if value="{{t.isDone}}" hint-placeholder-val="{{ false }}"><svg style="flex: none" width="10" height="10" sc-camel-view-box="0 0 24 24" fill="none" stroke="#9ece6a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></sc-if>
+          <sc-if value="{{t.isIdle}}" hint-placeholder-val="{{ false }}"><span style="flex: none; width: 5px; height: 5px; border-radius: 50%; border: 1.5px solid #8a92c2"></span></sc-if>
+          <sc-if value="{{t.isOffline}}" hint-placeholder-val="{{ false }}"><span style="flex: none; width: 7px; height: 2px; border-radius: 1px; background: #8a92c2"></span></sc-if>
+          <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: {{t.tabColor}}">{{t.tab}}</span>
+          <span style="min-width: 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.title}}</span>
+        </button>
+      </sc-for>
+      <button type="button" aria-label="New terminal tab" style="width: 40px; height: 40px; flex: none; border: 0; border-radius: 999px; background: color-mix(in srgb, {{accent}} 14%, transparent); color: {{accent}}; display: flex; align-items: center; justify-content: center">
+        <svg width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+      </button>
+    </nav>
+
+    <!-- Terminal: bottom-anchored so the newest lines sit right above the prompt -->
+    <section aria-label="Terminal {{cur.tab}}" style="margin: 0 8px; flex: 1 1 auto; min-height: 0; background: #1a1b26; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 7px; padding: 10px 12px 8px; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 18px; color: #a9b1d6">
+
+      <sc-if value="{{termT1}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 7px">
+          <div style="display: flex; gap: 7px"><span style="color: #c0caf5">●</span><span style="color: #c0caf5">I fixed the board crash. Tab renaming works now; the strip cards haven't drawn yet.</span></div>
+          <div style="color: #8a92c2"><span style="color: #e0af68">✻</span> Sautéed for 2m 2s · done 11:14 AM</div>
+          <div style="background: #292e42; border-radius: 4px; padding: 2px 8px; margin: 0 -6px; color: #c0caf5"><span style="color: {{accent}}">❯</span> yes fix it on amal-build too</div>
+          <div style="color: #8a92c2; padding-left: 14px">Ran 1 shell command</div>
+          <div style="display: flex; gap: 7px"><span style="color: #c0caf5">●</span><span style="color: #c0caf5">amal-build has the same fix now: committed as <span style="color: #e0af68">5549f9d</span>, tests pass <span style="color: #9ece6a">(39/39)</span>. The config check now shows <span style="color: #7dcfff">nanogpt/nvidia/nemotron-3.5-super-vl</span> as the model.</span></div>
+          <div style="color: #8a92c2"><span style="color: #e0af68">✻</span> Churned for 15s · done 11:16 AM</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{termPerm}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 7px">
+          <div style="display: flex; gap: 7px"><span style="color: #c0caf5">●</span><span style="color: #c0caf5">Tests pass. Pushing the integration branch so CI picks it up.</span></div>
+          <div style="border-radius: 6px; box-shadow: inset 0 0 0 1px color-mix(in srgb, #f7768e 55%, transparent); background: color-mix(in srgb, #f7768e 7%, #1a1b26); padding: 8px 10px; display: flex; flex-direction: column; gap: 2px">
+            <span style="color: #c0caf5; font-weight: 500">Bash command</span>
+            <span style="color: #7dcfff; padding-left: 12px">git push origin integration/v1</span>
+            <span style="color: #8a92c2; padding-left: 12px; margin-bottom: 6px">Push integration/v1 to origin</span>
+            <span style="color: #c0caf5">Do you want to proceed?</span>
+            <span style="color: {{accent}}">❯ 1. Yes</span>
+            <span style="padding-left: 15px">2. Yes, and don't ask again for git push</span>
+            <span style="padding-left: 15px">3. No</span>
+            <span style="padding-left: 15px">4. No, and add a note for Claude</span>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{termGeneric}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 7px">
+          <div style="color: #8a92c2; padding-left: 14px">Read 4 files</div>
+          <div style="display: flex; gap: 7px"><span style="color: {{cur.dotColor}}">●</span><span style="color: #c0caf5">{{cur.now}}</span></div>
+          <div style="color: #8a92c2"><span style="color: #e0af68">✻</span> {{cur.footer}}</div>
+        </div>
+      </sc-if>
+
+      <div style="flex: none; display: flex; gap: 8px; font-size: 11px; line-height: 16px; color: #8a92c2; white-space: nowrap; overflow: hidden; padding-top: 2px">
+        <span>{{cur.where}}</span>
+        <span style="color: #bb9af7">›› auto mode on</span>
+      </div>
+    </section>
+
+    <!-- Prompt -->
+    <div style="margin: 0 8px; flex: none; display: flex; gap: 6px">
+      <sc-if value="{{typing}}" hint-placeholder-val="{{ false }}">
+        <div style="flex: 1 1 auto; min-width: 0; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 8px; background: #1a1b26; box-shadow: inset 0 0 0 1.5px {{accent}}; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #c0caf5; box-sizing: border-box">
+          <span style="color: {{accent}}">❯</span><span style="white-space: nowrap; overflow: hidden">does it draw on the phone layout?</span><span class="caret" style="flex: none; width: 8px; height: 17px; background: {{accent}}; margin-left: -6px"></span>
+        </div>
+      </sc-if>
+      <sc-if value="{{notTyping}}" hint-placeholder-val="{{ true }}">
+        <label style="flex: 1 1 auto; min-width: 0; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 8px; background: #1a1b26; box-shadow: inset 0 0 0 1px color-mix(in srgb, {{accent}} 40%, #292e42); font-family: 'JetBrains Mono', monospace; font-size: 13px; box-sizing: border-box">
+          <span style="color: {{accent}}">❯</span>
+          <input type="text" aria-label="Message {{cur.tab}}" placeholder="Message {{cur.tab}}" style="flex: 1; min-width: 0; height: 40px; border: 0; outline: 0; background: transparent; color: #c0caf5; font: inherit">
+        </label>
+      </sc-if>
+      <button type="button" aria-label="Send" style="width: 44px; height: 44px; flex: none; border: 0; border-radius: 8px; background: {{accent}}; color: #16161e; display: flex; align-items: center; justify-content: center">
+        <svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+      </button>
+    </div>
+
+    <!-- Permission choices: only while the current tab is asking -->
+    <sc-if value="{{termPerm}}" hint-placeholder-val="{{ false }}">
+    <div role="group" aria-label="Permission choices" style="margin: 0 8px; flex: none; display: flex; gap: 4px">
+      <sc-for list="{{keys}}" as="k" hint-placeholder-count="8">
+        <button type="button" aria-label="{{k.aria}}" style="flex: {{k.flex}}; min-width: 0; height: 44px; border: 0; border-radius: 6px; background: {{k.bg}}; color: {{k.color}}; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; white-space: nowrap; padding: 0 2px">{{k.label}}</button>
+      </sc-for>
+    </div>
+    </sc-if>
+  </div>
+
+  <!-- ===== DRAWER: below the keyboard line. Hidden under an overlay keyboard; dropped when the display resizes ===== -->
+  <section aria-label="Machines and spaces" style="flex: 1 1 auto; min-height: 0; background: #1a1b26; border-radius: 14px 14px 0 0; display: flex; flex-direction: column; gap: 8px; padding: 6px 10px 12px; box-sizing: border-box">
+    <div style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: #3b4261; flex: none"></div>
+
+    <div role="group" aria-label="Machines" style="flex: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+      <sc-for list="{{machines}}" as="m" hint-placeholder-count="2">
+        <button type="button" aria-pressed="{{m.pressed}}" aria-label="{{m.name}}, {{m.summary}}" sc-camel-on-click="{{m.pick}}" style="height: 48px; min-width: 0; border: 0; border-radius: 8px; background: {{m.bg}}; box-shadow: {{m.ring}}; opacity: {{m.opacity}}; display: flex; align-items: center; gap: 9px; padding: 0 10px; font: inherit; text-align: left; box-sizing: border-box; cursor: pointer">
+          <span style="width: 28px; height: 28px; flex: none; border-radius: 6px; background: {{m.iconBg}}; color: {{m.iconColor}}; display: flex; align-items: center; justify-content: center">
+            <sc-if value="{{m.local}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"></rect><path d="M8 20h8M12 16v4"></path></svg></sc-if>
+            <sc-if value="{{m.remote}}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="7" rx="1.5"></rect><rect x="3" y="13" width="18" height="7" rx="1.5"></rect><path d="M7 7.5h.01M7 16.5h.01"></path></svg></sc-if>
+          </span>
+          <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px">
+            <span style="font-size: 12px; font-weight: 600; color: {{m.label}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{m.name}}</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: {{m.summaryColor}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{m.summary}}</span>
+          </span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 6px">
+      <sc-for list="{{open.folders}}" as="f" hint-placeholder-count="2">
+        <div role="group" aria-label="{{f.name}}" style="display: flex; flex-direction: column; gap: 2px">
+          <div style="height: 24px; display: flex; align-items: center; gap: 8px; padding: 0 4px">
+            <span style="width: 18px; height: 18px; flex: none; border-radius: 999px; background: {{f.soft}}; color: {{f.color}}; font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{f.initial}}</span>
+            <span style="flex: 1 1 auto; min-width: 0; font-size: 12px; font-weight: 600; color: #c0caf5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{f.name}}</span>
+            <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: {{f.metaColor}}">{{f.meta}}</span>
+          </div>
+          <sc-for list="{{f.agents}}" as="a" hint-placeholder-count="2">
+            <button type="button" aria-current="{{a.current}}" sc-camel-on-click="{{a.pick}}" style="height: 44px; width: 100%; border: 0; border-radius: 10px; background: {{a.bg}}; box-shadow: {{a.ring}}; padding: 0 8px 0 12px; display: flex; align-items: center; gap: 9px; color: {{a.text}}; font: inherit; font-size: 13px; text-align: left; box-sizing: border-box; cursor: pointer">
+              <sc-if value="{{a.isWorking}}" hint-placeholder-val="{{ true }}"><span class="pulse" style="flex: none; width: 6px; height: 6px; border-radius: 50%; background: #9ece6a"></span></sc-if>
+              <sc-if value="{{a.isWaiting}}" hint-placeholder-val="{{ false }}"><span class="wait" style="flex: none; width: 7px; height: 7px; border-radius: 2px; background: #f7768e"></span></sc-if>
+              <sc-if value="{{a.isDone}}" hint-placeholder-val="{{ false }}"><svg style="flex: none" width="10" height="10" sc-camel-view-box="0 0 24 24" fill="none" stroke="#9ece6a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></sc-if>
+              <sc-if value="{{a.isIdle}}" hint-placeholder-val="{{ false }}"><span style="flex: none; width: 5px; height: 5px; border-radius: 50%; border: 1.5px solid #8a92c2"></span></sc-if>
+              <sc-if value="{{a.isOffline}}" hint-placeholder-val="{{ false }}"><span style="flex: none; width: 7px; height: 2px; border-radius: 1px; background: #8a92c2"></span></sc-if>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column">
+                <span style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{a.title}}</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 15px; color: {{a.nowColor}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{a.now}}</span>
+              </span>
+              <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8a92c2">{{a.elapsed}}</span>
+              <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; border-radius: 999px; padding: 0 7px; line-height: 18px; background: {{a.tabBg}}; color: {{a.tabText}}">{{a.tab}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+
+    <div aria-label="System stats for {{stats.name}}" style="flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 8px 4px 0; box-shadow: inset 0 1px 0 #292e42; opacity: {{stats.opacity}}; font-family: 'JetBrains Mono', monospace; font-size: 11px">
+      <sc-for list="{{stats.rows}}" as="r" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+          <div style="display: flex; gap: 6px; white-space: nowrap"><span style="color: #8a92c2">{{r.label}}</span><span style="color: #a9b1d6; overflow: hidden; text-overflow: ellipsis">{{r.value}}</span></div>
+          <span style="height: 5px; border-radius: 3px; background: #292e42; overflow: hidden"><span style="display: block; height: 5px; border-radius: 3px; width: {{r.w}}; background: {{r.color}}"></span></span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- ===== Usage sheet (drops from the top bar) ===== -->
+  <sc-if value="{{usageOpen}}" hint-placeholder-val="{{ false }}">
+    <button type="button" aria-label="Close Claude usage" sc-camel-on-click="{{toggleUsage}}" style="position: absolute; left: 0; top: 52px; width: 412px; height: 863px; border: 0; padding: 0; background: rgba(10,10,16,.55); z-index: 5"></button>
+    <div role="dialog" aria-label="Claude usage" style="position: absolute; top: 58px; left: 8px; width: 396px; z-index: 6; background: #1f2335; border-radius: 14px; box-shadow: 0 0 0 1px #292e42, 0 18px 44px rgba(0,0,0,.55); padding: 10px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box">
+      <div style="display: flex; align-items: baseline; gap: 8px; padding: 2px 4px 4px">
+        <span style="font-size: 13px; font-weight: 600; color: #c0caf5">Claude usage</span>
+        <span style="font-size: 11px; color: #8a92c2; flex: 1">outer week · inner 5h</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8a92c2">30s ago</span>
+      </div>
+      <sc-for list="{{usage}}" as="u" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; background: {{u.rowBg}}; box-shadow: {{u.rowRing}}">
+          <svg style="flex: none" width="34" height="34" sc-camel-view-box="0 0 28 28" role="img" aria-label="{{u.name}}: week {{u.w}} percent, 5-hour {{u.h}} percent">
+            <circle cx="14" cy="14" r="11" fill="none" stroke="#292e42" stroke-width="3"></circle>
+            <circle cx="14" cy="14" r="11" fill="none" stroke="{{u.wColor}}" stroke-width="3" stroke-linecap="round" sc-camel-path-length="100" stroke-dasharray="{{u.wDash}}" transform="rotate(-90 14 14)"></circle>
+            <circle cx="14" cy="14" r="5.5" fill="none" stroke="#292e42" stroke-width="2.5"></circle>
+            <circle cx="14" cy="14" r="5.5" fill="none" stroke="{{u.hColor}}" stroke-width="2.5" sc-camel-path-length="100" stroke-dasharray="{{u.hDash}}" transform="rotate(-90 14 14)"></circle>
+          </svg>
+          <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px">
+            <span style="font-family: 'Inter', system-ui, sans-serif; font-size: 12px; font-weight: 600; color: #c0caf5">{{u.name}}</span>
+            <div style="display: flex; gap: 6px; white-space: nowrap"><span style="width: 34px; color: #8a92c2">week</span><span style="width: 32px; color: {{u.wText}}">{{u.wPct}}</span><span style="color: #8a92c2">resets {{u.wReset}}</span></div>
+            <div style="display: flex; gap: 6px; white-space: nowrap"><span style="width: 34px; color: #8a92c2">5h</span><span style="width: 32px; color: {{u.hText}}">{{u.hPct}}</span><span style="color: #8a92c2">{{u.hReset}}</span></div>
+          </div>
+        </div>
+      </sc-for>
+      <button type="button" style="height: 44px; border: 0; border-radius: 999px; background: #292e42; color: #c0caf5; font: inherit; font-size: 13px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px">
+        <svg width="13" height="13" sc-camel-view-box="0 0 24 24" fill="none" stroke="#7dcfff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 4 4-4 4M12 16h7"></path></svg>
+        Open ai-usage-tui in a new tab
+      </button>
+    </div>
+  </sc-if>
+
+  <!-- ===== Soft keyboard stand-in (shown when keyboard = up) ===== -->
+  <sc-if value="{{kbUp}}" hint-placeholder-val="{{ false }}">
+    <div aria-hidden="true" style="position: absolute; left: 0; top: 595px; width: 412px; height: 320px; z-index: 8; background: #202124; display: flex; flex-direction: column; gap: 8px; padding: 4px 4px 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif">
+      <div style="height: 36px; flex: none; display: flex; align-items: center; justify-content: space-around; color: #e8eaed; font-size: 15px">
+        <span>phone</span><span style="width: 1px; height: 18px; background: #3c4043"></span><span style="font-weight: 600">layout</span><span style="width: 1px; height: 18px; background: #3c4043"></span><span>page</span>
+      </div>
+      <sc-for list="{{kbRows}}" as="row" hint-placeholder-count="4">
+        <div style="height: 52px; flex: none; display: flex; gap: 6px; padding: 0 {{row.pad}}">
+          <sc-for list="{{row.keys}}" as="k" hint-placeholder-count="10">
+            <span style="flex: {{k.flex}}; min-width: 0; border-radius: 6px; background: {{k.bg}}; color: #e8eaed; font-size: {{k.size}}; display: flex; align-items: center; justify-content: center">{{k.label}}</span>
+          </sc-for>
+        </div>
+      </sc-for>
+      <div style="flex: 1 1 auto; display: flex; align-items: center; justify-content: center"><span style="width: 108px; height: 4px; border-radius: 2px; background: #9aa0a6"></span></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#7aa2f7&quot;,&quot;options&quot;:[&quot;#7aa2f7&quot;,&quot;#bb9af7&quot;,&quot;#7dcfff&quot;,&quot;#ff9e64&quot;]},&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;normal&quot;,&quot;options&quot;:[&quot;normal&quot;,&quot;waiting&quot;,&quot;offline&quot;,&quot;usage&quot;,&quot;typing&quot;]},&quot;keyboard&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;down&quot;,&quot;options&quot;:[&quot;down&quot;,&quot;up&quot;]},&quot;$preview&quot;:{&quot;width&quot;:412,&quot;height&quot;:915}}">
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#7aa2f7';
+    const sc = this.props.scenario ?? 'normal';
+    const kb = this.props.keyboard ?? (sc === 'typing' ? 'up' : 'down');
+    const st = this.state || {};
+    const off = sc === 'offline';
+    const waiting = sc === 'waiting' || sc === 'typing';
+    const mix = (c, p, base) => 'color-mix(in srgb, ' + c + ' ' + p + '%, ' + base + ')';
+    const curTab = st.cur !== undefined ? st.cur : 't1';
+    const openId = st.open !== undefined ? st.open : 'amal-build';
+
+    const raw = [
+      { t: 'Herdr Dynamic Board', tab: 't1', m: 'local', f: 'amalv', s: 'idle', now: 'Waiting for your next prompt', el: '2m' },
+      { t: 'Word Border', tab: 't16', m: 'amal-build', f: 'hushtype-speech', s: waiting ? 'waiting' : 'working',
+        now: waiting ? 'Asking to run git push origin integration/v1' : 'Running the test suite', el: waiting ? '1m' : '4m' },
+      { t: 'AI Architecture', tab: 't15', m: 'amal-build', f: 'termux-launcher', s: 'working', now: 'Editing docs/architecture.md', el: '12m' },
+      { t: 'Issue #35', tab: 't14', m: 'amal-build', f: 'hushtype-speech', s: waiting ? 'done' : 'working',
+        now: waiting ? 'Finished · fix applied, tests pass' : 'Reading 4 files', el: waiting ? '3m' : '1m' }
+    ].map((r) => (off && r.m === 'amal-build') ? Object.assign({}, r, { s: 'offline', el: '', now: 'Last known: ' + r.now.toLowerCase() }) : r);
+
+    const flags = (s) => ({ isWorking: s === 'working', isWaiting: s === 'waiting', isDone: s === 'done', isIdle: s === 'idle', isOffline: s === 'offline' });
+    const pickTab = (tab) => () => this.setState({ cur: tab });
+    const curRow = raw.find((r) => r.tab === curTab) || raw[0];
+
+    const tabs = raw.map((r) => {
+      const on = r.tab === curTab;
+      const tint = r.s === 'waiting' ? '#f7768e' : null;
+      return Object.assign({
+        tab: r.tab, title: r.t, state: r.s, pressed: on ? 'true' : 'false',
+        bg: on ? mix(accent, 18, '#1a1b26') : (tint ? mix(tint, 10, '#1a1b26') : '#1a1b26'),
+        ring: on ? 'inset 0 0 0 1.5px ' + accent : (tint ? 'inset 0 0 0 1px ' + mix(tint, 50, 'transparent') : 'inset 0 0 0 1px #292e42'),
+        text: r.s === 'offline' ? '#8a92c2' : (on ? '#c0caf5' : '#a9b1d6'),
+        tabColor: on ? accent : '#8a92c2',
+        pick: pickTab(r.tab)
+      }, flags(r.s));
+    });
+
+    const folderDefs = [
+      { m: 'amal-build', name: 'termux-launcher', i: 'T', c: '#7dcfff', br: 'v2-redesign' },
+      { m: 'amal-build', name: 'hushtype-speech', i: 'H', c: '#ff9e64', br: 'integration/v1' },
+      { m: 'local', name: 'amalv', i: 'A', c: '#73daca', br: 'main' }
+    ];
+    const folders = (mid) => folderDefs.filter((fd) => fd.m === mid).map((fd) => {
+      const dead = off && fd.m === 'amal-build';
+      return {
+        name: fd.name, initial: fd.i, color: fd.c, soft: mix(fd.c, 20, 'transparent'),
+        meta: dead ? 'last seen 2m' : fd.br, metaColor: dead ? '#e0af68' : '#bb9af7',
+        agents: raw.filter((r) => r.m === fd.m && r.f === fd.name).map((r) => {
+          const on = r.tab === curTab;
+          const tint = r.s === 'waiting' ? '#f7768e' : (on ? accent : null);
+          return Object.assign({
+            title: r.t, tab: r.tab, elapsed: r.el, now: r.now, current: on ? 'true' : 'false',
+            nowColor: r.s === 'waiting' ? '#f7768e' : '#8a92c2',
+            bg: tint ? mix(tint, 12, '#1f2335') : '#1f2335',
+            ring: tint ? 'inset 0 0 0 1px ' + mix(tint, 50, 'transparent') : 'none',
+            text: r.s === 'offline' ? '#8a92c2' : '#c0caf5',
+            tabBg: on ? accent : '#292e42', tabText: on ? '#16161e' : '#a9b1d6',
+            pick: pickTab(r.tab)
+          }, flags(r.s));
+        })
+      };
+    });
+
+    const words = { working: 'working', waiting: 'waiting', done: 'done', idle: 'idle' };
+    const machines = [
+      { id: 'amal-build', name: 'amal-build', local: false },
+      { id: 'local', name: 'This computer', local: true }
+    ].map((m) => {
+      const mine = raw.filter((r) => r.m === m.id);
+      const dead = mine.some((r) => r.s === 'offline');
+      const hasWait = mine.some((r) => r.s === 'waiting');
+      const counts = {};
+      mine.forEach((r) => { counts[r.s] = (counts[r.s] || 0) + 1; });
+      const summary = dead ? 'offline' : ['waiting', 'working', 'done', 'idle'].filter((k) => counts[k]).map((k) => counts[k] + ' ' + words[k]).join(' · ');
+      const on = m.id === openId;
+      return {
+        name: m.name, local: m.local, remote: !m.local, summary: summary,
+        summaryColor: dead ? '#e0af68' : (hasWait ? '#f7768e' : '#8a92c2'),
+        opacity: dead ? '0.7' : '1', pressed: on ? 'true' : 'false',
+        bg: on ? mix(accent, 16, '#1f2335') : '#1f2335',
+        ring: on ? 'inset 0 0 0 1px ' + mix(accent, 55, 'transparent') : 'none',
+        iconBg: on ? mix(accent, 24, 'transparent') : '#292e42',
+        iconColor: on ? accent : '#a9b1d6', label: on ? '#c0caf5' : '#a9b1d6',
+        folders: folders(m.id),
+        pick: () => this.setState({ open: m.id })
+      };
+    });
+    const open = machines[openId === 'local' ? 1 : 0];
+
+    const att = raw.filter((r) => r.s === 'waiting' || r.s === 'done');
+    const attention = att.map((r, i) => {
+      const w = r.s === 'waiting';
+      const tint = w ? '#f7768e' : '#9ece6a';
+      return Object.assign({
+        title: r.t, tab: r.tab, elapsed: r.el,
+        label: w ? 'Waiting' : 'Finished', labelColor: tint,
+        ask: w ? 'Wants to run: git push origin integration/v1' : 'Fix applied · tests pass (39/39)',
+        where: (r.m === 'local' ? 'This computer' : r.m) + ' › ' + r.f,
+        pos: (i + 1) + '/' + att.length,
+        bg: mix(tint, w ? 12 : 7, '#1f2335'),
+        ring: 'inset 0 0 0 1px ' + mix(tint, w ? 55 : 30, 'transparent'),
+        primaryBg: w ? '#f7768e' : accent,
+        open: pickTab(r.tab)
+      }, flags(r.s));
+    });
+    const nWorking = raw.filter((r) => r.s === 'working').length;
+    const nIdle = raw.filter((r) => r.s === 'idle').length;
+
+    const perm = curRow.s === 'waiting';
+    const k = (label, aria, o) => Object.assign({ label: label, aria: aria, flex: '1', bg: '#1f2335', color: '#c0caf5' }, o || {});
+    const keys = [
+      k('1 Yes', 'Choose 1, yes', { bg: mix('#9ece6a', 22, '#1f2335') }),
+      k('2 Always', 'Choose 2, yes and don’t ask again', { flex: '1.25' }),
+      k('3 No', 'Choose 3, no', { bg: mix('#f7768e', 18, '#1f2335') }),
+      k('4 Note', 'Choose 4, no and add a note', { bg: mix('#e0af68', 16, '#1f2335') })
+    ];
+
+    const lvl = (p, base) => p >= 85 ? '#f7768e' : (p >= 60 ? '#e0af68' : base);
+    const accts = [
+      { name: 'Account 1', w: 62, h: 41, wr: 'Mon 09:00', hr: '2h 10m' },
+      { name: 'Account 2', w: 34, h: 0, wr: 'Tue 14:00', hr: '—' },
+      { name: 'Account 3', w: 91, h: 78, wr: 'Thu 08:00', hr: '48m' },
+      { name: 'Account 4', w: 15, h: 5, wr: 'Sat 11:00', hr: '4h 32m' },
+      { name: 'Account 5', w: 48, h: 22, wr: 'Sun 19:00', hr: '3h 05m' }
+    ];
+    const usage = accts.map((a) => {
+      const wc = lvl(a.w, accent), hc = lvl(a.h, '#73daca');
+      const hot = a.w >= 85 || a.h >= 85;
+      return {
+        name: a.name, w: String(a.w), h: String(a.h), wPct: a.w + '%', hPct: a.h + '%',
+        wDash: a.w + ' 100', hDash: a.h + ' 100', wColor: wc, hColor: hc,
+        wText: a.w >= 60 ? wc : '#a9b1d6', hText: a.h >= 60 ? hc : '#a9b1d6',
+        wReset: a.wr, hReset: a.hr === '—' ? 'idle' : 'resets in ' + a.hr,
+        rowBg: hot ? mix('#f7768e', 8, '#1a1b26') : '#1a1b26',
+        rowRing: hot ? 'inset 0 0 0 1px ' + mix('#f7768e', 35, 'transparent') : 'none'
+      };
+    });
+    const usageOpen = st.usage !== undefined ? st.usage : sc === 'usage';
+
+    const bar = (label, pct, value) => ({ label: label, w: pct + '%', value: value, color: lvl(pct, '#7dcfff') });
+    const statsFor = {
+      'amal-build': { name: 'amal-build', rows: [bar('cpu', 38, '38%'), bar('ram', 70, '11.2/16G'), bar('disk', 71, '182/256G')] },
+      'local': { name: 'This computer', rows: [bar('cpu', 12, '12%'), bar('ram', 31, '9.8/32G'), bar('disk', 41, '410/1000G')] }
+    };
+    const sKey = openId === 'local' ? 'local' : 'amal-build';
+    const stats = Object.assign({}, statsFor[sKey], { opacity: (off && sKey === 'amal-build') ? '0.55' : '1' });
+
+    const L = (label, o) => Object.assign({ label: label, flex: '1', bg: '#3c4043', size: '18px' }, o || {});
+    const kbRows = [
+      { pad: '0px', keys: 'qwertyuiop'.split('').map((c) => L(c)) },
+      { pad: '18px', keys: 'asdfghjkl'.split('').map((c) => L(c)) },
+      { pad: '0px', keys: [L('⇧', { flex: '1.5', bg: '#5f6368' })].concat('zxcvbnm'.split('').map((c) => L(c)), [L('⌫', { flex: '1.5', bg: '#5f6368' })]) },
+      { pad: '0px', keys: [L('?123', { flex: '1.5', bg: '#5f6368', size: '13px' }), L(','), L('', { flex: '5' }), L('.'), L('⏎', { flex: '1.5', bg: '#8ab4f8' })] }
+    ];
+
+    return {
+      accent: accent,
+      usage: usage, usageOpen: usageOpen, usageExpanded: usageOpen ? 'true' : 'false',
+      usageBtnBg: usageOpen ? '#292e42' : '#1a1b26',
+      toggleUsage: () => this.setState({ usage: !usageOpen }),
+      stripQuiet: attention.length === 0 && !off,
+      stripOffline: off,
+      stripAttention: attention.length > 0,
+      attention: attention, attentionCount: String(attention.length),
+      quietSummary: nWorking + ' working · ' + nIdle + ' idle',
+      tabs: tabs,
+      cur: {
+        tab: curRow.tab, now: curRow.now,
+        dotColor: curRow.s === 'done' ? '#9ece6a' : '#c0caf5',
+        footer: curRow.s === 'done' ? 'Done ' + curRow.el + ' ago' : (curRow.s === 'offline' ? 'Connection lost · showing last output' : 'Working… ' + curRow.el),
+        where: (curRow.m === 'local' ? 'This computer' : curRow.m) + ' › ' + curRow.f
+      },
+      termT1: curRow.tab === 't1',
+      termPerm: perm,
+      termGeneric: curRow.tab !== 't1' && !perm,
+      typing: sc === 'typing', notTyping: sc !== 'typing',
+      keys: keys,
+      machines: machines, open: open, stats: stats,
+      kbUp: kb === 'up', kbRows: kbRows
+    };
+  }
+}
+</script>
+
+
+</body></html>
