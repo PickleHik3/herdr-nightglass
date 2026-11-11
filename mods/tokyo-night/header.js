@@ -176,14 +176,19 @@ export function usageParts(view) {
     const g = groups.find(x => x.tool === tool) ?? (groups.push({ tool, rows: [] }), groups[groups.length - 1]);
     g.rows.push(r);
   }
-  // Each pill is flex_1 (so the row fills the dock) and its rings share the pill equally.
-  const RING = 20;
-  const head = h_flex().id("tn-usage-head").w_full().h(28).flex_none().gap(6).items_center().cursor_pointer().on_click(toggle)
+  // Each pill is as wide as its icon plus its rings: every ring gets the same slot across both
+  // pills, so a group with more accounts takes more of the row. The last pill takes the rounding.
+  const RING = 20, PILL_PAD = 8, ICON_W = RING + 4, GAP = 6;
+  const inner = (view.width ?? 268) - 16 - 2;
+  const slot = Math.max(RING + 2, Math.floor((inner - (groups.length - 1) * GAP - groups.length * (PILL_PAD + ICON_W)) / rows.length));
+  const head = h_flex().id("tn-usage-head").w_full().h(28).flex_none().gap(GAP).items_center().cursor_pointer().on_click(toggle)
     .opacity(u.stale ? 0.6 : 1)
     .tooltip(openState ? "" : `Claude usage · ${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage-tui on ${USAGE_MACHINE}`)
-    .children(groups.map(g => raised(h_flex().h(28).min_w(0).flex_1().px(4).items_center().rounded(14), C.chrome)
+    .children(groups.map((g, i) => raised(h_flex().h(28).min_w(0).px(4).items_center().rounded(14), C.chrome)
+      .when(i < groups.length - 1, el => el.w(PILL_PAD + ICON_W + g.rows.length * slot).flex_none())
+      .when(i === groups.length - 1, el => el.flex_1())
       .hover(s => s.bg(raisedFill(C.surface)).shadow_md())
-      .child(h_flex().w(RING + 4).flex_none().items_center().child(toolIcon(g.tool, RING)))
+      .child(h_flex().w(ICON_W).flex_none().items_center().child(toolIcon(g.tool, RING)))
       .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return h_flex().flex_1().min_w(RING).justify_center().child(ring(RING, r.week, r.five, wc, hc)); }))));
   if (!openState) return { head, panel: null };
   const bar = (label, pct, reset) => h_flex().w_full().gap(6).items_center().font_family(MONO).text_size(11)
