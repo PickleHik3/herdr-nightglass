@@ -10,7 +10,7 @@
   "preview": "layouts/nightglass-phone.svg",
   "ui_font": "Inter",
   "font": "JetBrains Mono",
-  "font_size": 12,
+  "font_size": 8,
   "toasts": { "over": "term", "anchor": "top-center", "offset": 8, "width": 380, "height": 32, "gap": 6, "max": 2 },
   "children": [
     {
