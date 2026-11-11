@@ -17,28 +17,54 @@ export function focusRow(r) {
   run("pane.focus", { terminal: r.address });
 }
 
-// ---- agents a machine can start (cached per machine, shared by the popup copies) ----
+// ---- agents a machine can start (cached per machine; popups are separate copies, so also via shared) ----
 const agentCache = new Map();
 const cachedAgents = (key) => agentCache.get(key) ?? shared("new-menu.agents")?.[mArg(key)] ?? [];
+const storeAgents = (key, list) => {
+  agentCache.set(key, list);
+  setShared("new-menu.agents", { ...(shared("new-menu.agents") ?? {}), [mArg(key)]: list });
+};
 export function loadAgents(view, key, cx) {
   view.agents = cachedAgents(key);
+  view.agentsFailed = false;
   cx.spawn(async (cx) => {
     try {
       const list = await knownAgents({ on: onArg(key) });
-      agentCache.set(key, list); view.agents = list; view.agentsFailed = false;
+      storeAgents(key, list); view.agents = list; view.agentsFailed = false;
     } catch { view.agentsFailed = true; }
     cx.notify();
   });
 }
-const NEW_FIXED = 141;
-const newMenuHeight = (n) => NEW_FIXED + Math.min(8, Math.max(1, n)) * 32;
+// Warm every connected machine's list so the Agent flyout is usually instant.
+export function prefetchAgents(cx) {
+  for (const m of snapshot().machines) {
+    if (m.offline) continue;
+    cx.spawn(async () => {
+      try { storeAgents(m.key, await knownAgents({ on: onArg(m.key) })); } catch { /* the flyout reports it */ }
+    });
+  }
+}
 
-export function openNewMenu(snap, openKey) {
-  const f = snap.foc && snap.spaces.find(s => s.id === snap.foc.space);
-  const key = openKey ?? f?.machine ?? LOCAL;
-  const n = cachedAgents(key).filter(a => a.installed).length || 4;
-  const h = newMenuHeight(n);
-  openOverlay({ mod: MOD, kind: "popup", frame: "none", width: 228, height: h, at: getPressed(), props: { role: "newmenu", machine: key, h } });
+// ---- popup sizes: New (every connected machine, each with its create options) and its Agent flyout ----
+const NM_W = 260, NM_HEAD = 26, NM_ROW = 30, NM_SEP = 9, NM_PAD = 12;
+const FLY_W = 220, FLY_MAX = 8;
+const flyHeight = (n) => NM_PAD + Math.min(FLY_MAX, Math.max(1, n)) * NM_ROW;
+// Where "New terminal tab" goes on a machine: the focused space if it is there, else the last visited, else the first.
+function targetSpace(snap, key, last) {
+  const mine = snap.spaces.filter(s => s.machine === key);
+  const f = snap.foc?.space;
+  return (mine.find(s => s.id === f) ?? mine.find(s => s.id === last?.[key]) ?? mine[0])?.id ?? null;
+}
+const menuMachines = (snap) => snap.machines.filter(m => !m.offline);
+function newMenuHeight(snap, last) {
+  const ms = menuMachines(snap);
+  const rows = ms.reduce((n, m) => n + 2 + (targetSpace(snap, m.key, last) ? 1 : 0), 0);
+  return NM_PAD + ms.length * NM_HEAD + rows * NM_ROW + Math.max(0, ms.length - 1) * NM_SEP;
+}
+
+export function openNewMenu(snap, last) {
+  const h = Math.min(640, Math.max(NM_PAD + NM_ROW, newMenuHeight(snap, last)));
+  openOverlay({ mod: MOD, kind: "popup", frame: "none", width: NM_W, height: h, at: getPressed(), props: { role: "newmenu", h, last } });
 }
 
 // ---- shared pieces ----
@@ -252,11 +278,11 @@ function allTile(view, snap, open, w) {
 }
 
 // ---- expanded ----
-function brand(snap, open) {
+function brand(view, snap) {
   return h_flex().w_full().h(28).flex_none().gap(4).items_center()
     .child(h_flex().size(22).flex_none().ml(2).rounded(6).bg(C.accent).justify_center().items_center().child(ico("logo", 14, C.onAccent)))
     .child(div().flex_1().min_w(0).pl(6).text_size(14).font_semibold().text_color(C.fg).child("herdr"))
-    .child(iconBtn("tn-new", "plus", 14, C.accent, alpha(C.accent, 0.14), "New", 28, 28, () => openNewMenu(snap, open)))
+    .child(iconBtn("tn-new", "plus", 14, C.accent, alpha(C.accent, 0.14), "New", 28, 28, () => openNewMenu(snap, view.lastSpaces())))
     .child(iconBtn("tn-collapse", "panel", 14, C.dim, CLEAR, "Collapse sidebar", 28, 28, () => run("layout.resize", { id: "sidebar", px: 56 })));
 }
 
@@ -270,7 +296,7 @@ function full(base, view, snap, open, w) {
   const spacer = div().w_full().h(4).flex_none();
   return base.relative()
     .child(v_flex().w_full().flex_1().min_h(0).px(10).pt(10).gap(14)
-      .child(brand(snap, open))
+      .child(brand(view, snap))
       .child(h_flex().w_full().flex_none().flex_wrap().gap(6).child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW))))
       .when(all, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
         .children(allGroups(view, snap, false, (mm, cx) => { view.goMachine(mm.key); view.pollStats(cx, true); cx.notify(); }))
@@ -289,7 +315,7 @@ function full(base, view, snap, open, w) {
 function rail(base, view, snap) {
   return base.items_center().py(10).gap(8)
     .child(h_flex().size(28).flex_none().rounded(6).bg(C.accent).justify_center().items_center().child(ico("logo", 16, C.onAccent)))
-    .child(iconBtn("tn-new", "plus", 14, C.accent, alpha(C.accent, 0.14), "New", 36, 32, () => openNewMenu(snap, null)))
+    .child(iconBtn("tn-new", "plus", 14, C.accent, alpha(C.accent, 0.14), "New", 36, 32, () => openNewMenu(snap, view.lastSpaces())))
     .child(div().w(24).h(1).flex_none().my(2).bg(C.raised))
     .child(h_flex().id("tn-rm-all").w(40).h(40).flex_none().relative().justify_center().items_center().rounded(6)
       .bg(C.surface).cursor_pointer().tooltip("All machines")
@@ -322,31 +348,65 @@ export function renderSidebar(view) {
 }
 
 // ---- popup: New ----
+const popRow = (id, lead, label, trail, onPick) => h_flex().id(id).w_full().h(NM_ROW).flex_none().px(8).gap(8).items_center().rounded(4)
+  .text_size(13).text_color(C.fg).cursor_pointer().hover(s => s.bg(C.raised))
+  .on_click(onPick).child(lead).child(div().flex_1().min_w(0).truncate().child(label)).when(!!trail, el => el.child(trail));
+const dimText = (t) => div().px(8).py(6).text_size(12).text_color(C.dim).child(t);
+
 export function renderNewMenu(view) {
   const p = props();
-  const key = p.machine ?? LOCAL;
-  const fs = spaces().find(s => s.id === focused()?.space);
-  const here = !!fs && mkey(fs.machine) === key;
-  const list = (view.agents ?? []).filter(a => a.installed);
-  const pick = (fn) => () => { closeOverlay(p.overlay); fn(); };
-  const item = (id, lead, label, hint, onPick) => h_flex().id(id).w_full().h(30).flex_none().px(8).gap(8).items_center().rounded(4)
-    .text_size(13).text_color(C.fg).cursor_pointer().hover(s => s.bg(alpha(C.accent, 0.18)))
-    .on_click(onPick).child(lead).child(div().flex_1().min_w(0).truncate().child(label))
-    .when(!!hint, el => el.child(div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(hint)));
-  const label = (t) => div().px(8).py(4).flex_none().text_size(11).font_semibold().text_color(C.dim).child(t);
-  return v_flex().id("tn-newmenu").w_full().h(p.h ?? newMenuHeight(4)).bg(C.surface).rounded(6).border(1).border_color(rim()).shadow_xl()
-    .overflow_hidden().p(6).gap(2)
-    .child(div().px(8).pt(6).pb(4).flex_none().truncate().text_size(11).font_semibold().text_color(C.dim).child(`IN ${(p.machine === LOCAL ? "This computer" : key).toUpperCase()}`))
-    .child(item("nm-space", ico("folder", 14, C.teal), "Space", "", pick(() => run("space.new", { machine: mArg(key) }))))
-    .child(item("nm-term", ico("terminal", 14, C.cyan), "Terminal tab", bindingOf("tab.new"),
-      pick(() => here ? run("tab.new", {}) : run("space.new", { machine: mArg(key) }))))
-    .child(div().h(1).flex_none().mx(2).my(4).bg(C.raised))
-    .child(label("START AN AGENT"))
-    .child(v_flex().id("nm-agents").w_full().h((p.h ?? newMenuHeight(4)) - NEW_FIXED).gap(2).overflow_y_scrollbar()
-      .children(list.map(a => item(`nm-a-${a.key}`, prog(a, 14, C.fg), a.name, "",
-        pick(() => here ? run("tab.new", { argv: a.run }) : run("space.new", { machine: mArg(key), argv: a.run })))))
-      .when(list.length === 0, el => el.child(div().px(8).py(6).text_size(12).text_color(C.dim)
-        .child(view.agentsFailed ? "Could not load agents" : "Checking installed agents…"))));
+  const snap = snapshot();
+  const ms = menuMachines(snap);
+  const h = p.h ?? newMenuHeight(snap, p.last);
+  const closeFly = () => { if (view.fly) { closeOverlay(view.fly.id); view.fly = null; } };
+  const pick = (fn) => () => { closeFly(); closeOverlay(p.overlay); fn(); };
+  // Open the flyout beside this row (replacing another machine's); one at a time.
+  const openFly = (m, target, e) => {
+    if (view.fly?.key === m.key) return;
+    closeFly();
+    const id = openOverlay({ mod: MOD, kind: "popup", frame: "none", width: FLY_W, height: flyHeight(cachedAgents(m.key).filter(a => a.installed).length || 3),
+      at: anchorRight(e), props: { role: "agentmenu", machine: m.key, name: m.name, target, parent: p.overlay } });
+    view.fly = { key: m.key, id };
+  };
+  const hint = bindingOf("tab.new");
+  const sections = ms.map((m, i) => {
+    const target = targetSpace(snap, m.key, p.last);
+    return v_flex().w_full().flex_none()
+      .when(i > 0, el => el.child(div().w_full().h(1).flex_none().mx(2).my(4).bg(C.raised)))
+      .child(h_flex().w_full().h(NM_HEAD).flex_none().px(8).gap(6).items_center()
+        .child(machineIcon(m, 12, machineColor(m.key)))
+        .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(C.dim).child(m.name.toUpperCase())))
+      .child(popRow(`nm-space-${m.key}`, ico("folder", 14, C.teal), "New space", null, pick(() => run("space.new", { machine: mArg(m.key) })))
+        .on_hover((hv) => { if (hv) closeFly(); }))
+      .when(!!target, el => el.child(popRow(`nm-term-${m.key}`, ico("terminal", 14, C.cyan), "New terminal tab",
+        i === 0 && hint ? div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(hint) : null,
+        pick(() => run("tab.new", { space: target })))
+        .on_hover((hv) => { if (hv) closeFly(); })))
+      .child(popRow(`nm-agent-${m.key}`, ico("cpu", 14, C.purple), "Agent", div().flex_none().text_size(15).text_color(C.dim).child("›"), () => {})
+        .on_mouse_move((e) => openFly(m, target, e))
+        .on_mouse_down("left", (e) => openFly(m, target, e))); // touch: no hover
+  });
+  return v_flex().id("tn-newmenu").w_full().h(h).bg(C.surface).rounded(6).border(1).border_color(rim()).shadow_xl()
+    .overflow_y_scrollbar().p(6)
+    .children(sections)
+    .when(ms.length === 0, el => el.child(dimText("No machines connected")));
+}
+
+// ---- popup: the agents installed on one machine (flyout of New) ----
+export function renderAgentMenu(view) {
+  const p = props();
+  const all = view.agents ?? [];
+  const list = all.filter(a => a.installed);
+  const pick = (a) => () => {
+    closeOverlay(p.overlay); closeOverlay(p.parent);
+    if (p.target) run("tab.new", { space: p.target, argv: a.run });
+    else run("space.new", { machine: mArg(p.machine), argv: a.run });
+  };
+  return v_flex().id("tn-agentmenu").w_full().h(flyHeight(list.length)).bg(C.surface).rounded(6).border(1).border_color(rim()).shadow_xl()
+    .overflow_y_scrollbar().p(6)
+    .children(list.map(a => popRow(`am-${a.key}`, prog(a, 14, C.fg), a.name, null, pick(a))))
+    .when(list.length === 0, el => el.child(dimText(view.agentsFailed ? `Couldn't check ${p.name ?? p.machine}`
+      : all.length ? "No agents installed" : "Looking for agents…")));
 }
 
 // ---- popup: a machine's spaces (or all machines), from the rail ----

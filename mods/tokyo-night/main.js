@@ -3,11 +3,11 @@
 //   header   search pill, Claude usage rings, Files / Changes, settings, window buttons
 //   strip    "Nothing needs you" / offline banner / "Needs you" cards (sizes its own block)
 //   pane     the pane header
-//   newmenu, spaces          popups opened by the roles above
+//   newmenu, agentmenu, spaces          popups opened by the roles above
 // Data comes from Herdr's live state; see data.js. Colors and icons: lib.js.
 import { View, div } from "gpui-kit";
 import { props, exec, run, shared, setShared } from "herdr";
-import { renderSidebar, renderNewMenu, renderSpacesPopup, renderColorsPopup, loadAgents } from "./sidebar.js";
+import { renderSidebar, renderNewMenu, renderAgentMenu, renderSpacesPopup, renderColorsPopup, loadAgents, prefetchAgents } from "./sidebar.js";
 import { renderHeader, pollChanges, pollUsage } from "./header.js";
 import { renderStrip, renderPane, renderEmpty, EMPTY_KEY } from "./strip.js";
 import { snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
@@ -33,7 +33,8 @@ export default class TokyoNight extends View {
       cx.timer.every(2000, (cx) => pollChanges(this, cx));
     }
     if (role === "strip") cx.timer.every(30000, (cx) => cx.notify());
-    if (role === "newmenu") loadAgents(this, props().machine, cx);
+    if (role === "newmenu") prefetchAgents(cx);
+    if (role === "agentmenu") loadAgents(this, props().machine, cx);
   }
 
   // ---- the open machine: the person's choice (kept), else the focused space's machine ----
@@ -148,6 +149,7 @@ export default class TokyoNight extends View {
       case "pane": return renderPane();
       case "empty": return renderEmpty();
       case "newmenu": return renderNewMenu(this);
+      case "agentmenu": return renderAgentMenu(this);
       case "spaces": return renderSpacesPopup(this);
       case "colors": return renderColorsPopup();
       default: return div();
