@@ -43,8 +43,12 @@ function banner(snap, offline) {
 function card(r) {
   const waiting = r.kind === "waiting";
   const tint = waiting ? C.red : C.green;
+  // The whole card opens the agent; the chip on the right just names the terminal.
   return h_flex().id(`tn-card-${r.address}`).w_full().min_w(0).h(CARD).flex_none().pl(12).pr(10).gap(12).items_center().rounded(6)
     .bg(mix(tint, C.chrome, waiting ? 0.12 : 0.07)).border(1).border_color(alpha(tint, waiting ? 0.55 : 0.3))
+    .cursor_pointer().hover(s => s.bg(mix(tint, C.chrome, waiting ? 0.2 : 0.13)).border_color(alpha(tint, waiting ? 0.8 : 0.5)))
+    .tooltip(`Open ${r.short}`)
+    .on_click(() => run("agent.focus", { terminal: r.address }))
     .child(v_flex().flex_1().min_w(0).gap(3)
       .child(h_flex().w_full().min_w(0).gap(8).items_center()
         .child(mark(r.kind))
@@ -53,10 +57,8 @@ function card(r) {
         .child(div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(dur(r.ms))))
       .child(div().w_full().min_w(0).truncate().font_family(MONO).text_size(12).text_color(C.muted).child(r.report || r.program?.name || ""))
       .child(div().w_full().min_w(0).truncate().font_family(MONO).text_size(11).text_color(C.dim).child(`${r.machineName} › ${r.spaceName}`)))
-    .child(h_flex().id(`tn-open-${r.address}`).h(28).px(12).flex_none().gap(4).items_center().rounded(6)
-      .bg(waiting ? C.red : C.accent).text_size(12).font_semibold().text_color(C.ink).cursor_pointer().hover(s => s.opacity(0.88))
-      .on_click(() => run("agent.focus", { terminal: r.address }))
-      .child(div().child("Open")).child(div().font_family(MONO).child(r.short)));
+    .child(div().flex_none().px(7).rounded(9).bg(waiting ? C.red : C.accent).font_family(MONO).text_size(11).font_medium()
+      .text_color(C.ink).child(r.short));
 }
 
 function attention(snap, att) {
