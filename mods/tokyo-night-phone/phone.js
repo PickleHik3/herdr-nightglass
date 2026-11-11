@@ -57,3 +57,19 @@ export const popupOpened = (name) => { setShared(`tokyo-night-phone.${name}-open
 export const popupClosed = (name) => { setShared(`tokyo-night-phone.${name}-open`, false); setShared(`tokyo-night-phone.${name}-closed`, Date.now()); };
 export const popupIsOpen = (name) => shared(`tokyo-night-phone.${name}-open`) === true;
 export const popupJustClosed = (name) => Date.now() - (shared(`tokyo-night-phone.${name}-closed`) ?? 0) < GUARD_MS;
+
+// ---- swipes ----
+// A one-finger drag arrives as scroll-wheel events in LINES (gpui X11: ScrollDelta::Lines), and the app's scroll areas
+// turn a line into `window.line_height()` px, read inside the scroll element's own text style (gpui div.rs
+// paint_scroll_listener runs within with_text_style). So the container's text_size x line_height is the px a scroll line
+// moves; inherited from the 13 px root (26 px at zoom 2, line height ~1.6) it was far more than a finger moved. swipeArea
+// sets it on the scroll container (SWIPE_PX designed px per line; tune here), swipeBody gives the content its normal text back.
+export const SWIPE_PX = 8;
+export const swipeArea = (el) => el.text_size(SWIPE_PX).line_height(1);
+export const swipeBody = (el) => el.text_size(13).line_height(1.5);
+// A drag that starts on a control ends with a press-release in the same spot, i.e. a click on it. Scroll areas note the
+// last wheel event (watchScroll); taps on controls inside them ignore a click within SWIPE_GUARD_MS of one (tap()).
+const SWIPE_GUARD_MS = 300;
+export const watchScroll = (el, view) => el.on_scroll_wheel(() => { view.lastScroll = Date.now(); });
+export const swiped = (view) => Date.now() - (view.lastScroll ?? 0) < SWIPE_GUARD_MS;
+export const tap = (view, fn) => (e, cx) => { if (swiped(view)) return; fn(e, cx); };

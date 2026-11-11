@@ -32,6 +32,8 @@ const CASES = {
   "strip-offline": { role: "strip", scen: "offline" },
   tabs: { role: "tabs", scen: "normal" },
   composer: { role: "composer", scen: "normal" },
+  "composer-open": { role: "composer", scen: "composer-open" },
+  "composer-moved": { role: "composer", scen: "composer-moved" },
   drawer: { role: "drawer", scen: "normal" },
   "drawer-all": { role: "drawer", scen: "all" },
   "drawer-offline": { role: "drawer", scen: "offline" },
@@ -82,7 +84,10 @@ export const keys = () => [];
 export const window = () => ({ platform: "linux", titlebar: "none", buttons: false, maximized: false, fullscreen: false, active: true });
 export const layout = () => ({ id: "root", type: "row", children: [{ id: "phone", type: "column", children: [{ id: "core", type: "column", children: [{ id: "strip", type: "block", size: { px: 36 } }] }, { id: "drawer", type: "block", size: { px: 320 }, hidden: false }] }] });
 export const shared = (k) => store.get(k);
-export const setShared = (k, v) => { store.set(k, v); return null; };
+// The composer scenarios pin the composer state (the mod resets it in init, which would hide the row being checked).
+if (SCEN === "composer-open") store.set("tokyo-night-phone.composer", { open: true, target: "t1", ctx: "s1|tb1|t1" });
+if (SCEN === "composer-moved") store.set("tokyo-night-phone.composer", { open: true, target: "t1", ctx: "s1|tb1|t1", moved: "t9" });
+export const setShared = (k, v) => { if (!(SCEN.startsWith("composer-") && k === "tokyo-night-phone.composer")) store.set(k, v); return null; };
 export const spaces = () => SPACES;
 export const machines = () => [{ name: null, layout: "ready" }, { name: "amal-build", layout: SCEN === "offline" ? "unavailable" : "ready" }];
 export const panes = () => PANES;

@@ -8,8 +8,10 @@
 import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, setAgentOrder } from "herdr";
-import { C, MONO, alpha, dur, ico, mark, nodePx, machineColor } from "./lib.js";
+import { C, MONO, CLEAR, alpha, dur, ico, mark, nodePx, machineColor } from "./lib.js";
 import { snapshot, lastSeen } from "./data.js";
+import { pico, swipeArea, swipeBody, watchScroll, tap } from "./phone.js";
+import { toggleComposer, composerOpen } from "./composer.js";
 
 const QUIET = 36, BANNER = 56, CARD = 72, CARD_W = 328, GAP = 6, MAX_CARDS = 8;
 
@@ -57,14 +59,14 @@ function banner(offline) {
 
 // The whole card opens the agent (agent.focus); the chip on the right just names the terminal, in the machine's color.
 // Glass attention tints: waiting = red 16% + red 45% border + shadow_md; finished = green 10% + green 35% border.
-function card(r, i, n) {
+function card(view, r, i, n) {
   const waiting = r.kind === "waiting";
   const tint = waiting ? C.red : C.green;
   return h_flex().id(`tnp-card-${r.address}`).w(CARD_W).h(CARD).flex_none().pl(12).pr(10).gap(10).items_center().rounded(10)
     .bg(alpha(tint, waiting ? 0.16 : 0.10)).border(1).border_color(alpha(tint, waiting ? 0.45 : 0.35))
     .when(waiting, el => el.shadow_md())
     .cursor_pointer()
-    .on_click(() => run("agent.focus", { terminal: r.address }))
+    .on_click(tap(view, () => run("agent.focus", { terminal: r.address })))
     .child(v_flex().flex_1().min_w(0).gap(3)
       .child(h_flex().w_full().min_w(0).gap(7).items_center()
         .child(mark(r.kind))
@@ -100,8 +102,8 @@ export function renderStrip(view) {
   }
   return v_flex().id("tnp-strip").size_full().gap(GAP).overflow_hidden()
     .when(offline.length > 0, el => el.child(h_flex().w_full().flex_none().px(8).child(div().flex_1().min_w(0).child(banner(offline)))))
-    .when(att.length > 0, el => el.child(h_flex().id("tnp-cards").w_full().h(CARD).flex_none().px(8).gap(8).overflow_x_scroll()
-      .children(att.map((r, i) => card(r, i, att.length)))))
+    .when(att.length > 0, el => el.child(swipeArea(watchScroll(h_flex().id("tnp-cards").w_full().h(CARD).flex_none().overflow_x_scroll(), view))
+      .child(swipeBody(h_flex().h_full().flex_none().px(8).gap(8)).children(att.map((r, i) => card(view, r, i, att.length))))))
     .when(att.length === 0 && offline.length === 0, el => el.child(h_flex().w_full().flex_none().px(8)
       .child(capsule(snap))));
 }
@@ -113,7 +115,8 @@ export function renderStrip(view) {
 const ARM_MS = 4000;
 export function renderTabs(view) {
   const snap = snapshot();
-  const rows = snap.rows.filter(r => r.agent || r.focused);
+  // Every agent terminal, plus everything in the shown space (a tab made with "+" must stay visible while that space is shown).
+  const rows = snap.rows.filter(r => r.agent || r.focused || r.spaceActive);
   // agent.next / agent.prev follow the pills (this block is never hidden, so it owns the order).
   setAgentOrder(rows.filter(r => r.agent).map(r => r.address));
   const armed = (r) => view.armed?.address === r.address && Date.now() - view.armed.at < ARM_MS;
@@ -121,13 +124,13 @@ export function renderTabs(view) {
     const on = armed(r);
     return h_flex().id(`tnp-pill-x-${r.address}`).h(28).flex_none().w(on ? 64 : 28).justify_center().items_center().rounded(14)
       .bg(on ? alpha(C.red, 0.3) : alpha(C.fg, 0.08)).cursor_pointer()
-      .on_click((_e, cx) => {
+      .on_click(tap(view, (_e, cx) => {
         cx.stop_propagation();
         if (!armed(r)) { view.armed = { address: r.address, at: Date.now() }; cx.notify(); return; }
         view.armed = null; cx.notify();
         // A terminal pane closes through pane.close (the app asks when that would end the space); else the terminal is killed.
         if (r.pane) run("pane.close", { pane: r.pane }); else run("terminal.kill", { terminal: r.address });
-      })
+      }))
       .child(on ? div().text_size(11).font_semibold().text_color(C.red).whitespace_nowrap().child("Close?") : ico("win-close", 10, C.muted));
   };
   const pill = (r) => {
@@ -135,7 +138,7 @@ export function renderTabs(view) {
     const mc = machineColor(r.machine);
     const b = h_flex().id(`tnp-pill-${r.address}`).h(40).max_w(cur ? 240 : 190).flex_none().pl(10).pr(cur ? 6 : 12).gap(7).items_center().rounded(20)
       .text_size(12).text_color(r.kind === "offline" ? C.dim : cur ? C.fg : C.muted).cursor_pointer()
-      .on_click(() => focusRow(r));
+      .on_click(tap(view, () => focusRow(r)));
     // Glass: unselected = raised fill, no border; the selected / waiting one gets the one outline + shadow_md.
     return (cur ? b.bg(C.raisedHi).border(1.5).border_color(alpha(mc, 0.7)).shadow_md()
       : waiting ? b.bg(alpha(C.red, 0.16)).border(1).border_color(alpha(C.red, 0.45)).shadow_md()
@@ -145,10 +148,19 @@ export function renderTabs(view) {
       .child(div().min_w(0).truncate().font_medium().child(r.title))
       .when(cur && r.kind !== "offline", el => el.child(closeBtn(r)));
   };
-  return h_flex().id("tnp-pills").size_full().px(8).gap(6).items_center().overflow_x_scroll()
-    .children(rows.map(pill))
-    // "+": a new tab in the shown space (the desktop strip's +)
-    .child(h_flex().id("tnp-newtab").size(40).flex_none().justify_center().items_center().rounded(20)
-      .bg(C.raised).cursor_pointer().on_click(() => run("tab.new", {}))
-      .child(ico("plus", 14, C.muted)));
+  // "+": a new tab in the shown space, named explicitly (the desktop strip's +); never "whatever tab.new picks".
+  const shown = snap.foc?.space ?? null;
+  const open = composerOpen();
+  // The composer button sits at the start of the row, outside the scrolling part: it costs no height and is always in reach.
+  return h_flex().id("tnp-pillbar").size_full().px(8).gap(6).items_center()
+    .child(h_flex().id("tnp-composer-btn").size(40).flex_none().justify_center().items_center().rounded(20)
+      .bg(open ? C.raisedHi : C.raised).border(1).border_color(open ? alpha(C.accent, 0.6) : CLEAR).cursor_pointer()
+      .on_click(() => toggleComposer())
+      .child(pico("prompt", 15, open ? C.fg : C.muted)))
+    .child(swipeArea(watchScroll(h_flex().id("tnp-pills").flex_1().min_w(0).h_full().overflow_x_scroll(), view))
+      .child(swipeBody(h_flex().h_full().flex_none().gap(6).items_center())
+        .children(rows.map(pill))
+        .child(h_flex().id("tnp-newtab").size(40).flex_none().justify_center().items_center().rounded(20)
+          .bg(C.raised).cursor_pointer().on_click(tap(view, () => run("tab.new", shown ? { space: shown } : {})))
+          .child(ico("plus", 14, C.muted)))));
 }

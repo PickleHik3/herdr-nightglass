@@ -7,7 +7,7 @@ import { h_flex, v_flex } from "gpui-base";
 import { openOverlay, closeOverlay, props, shared, setShared, run } from "herdr";
 import { C, M, MONO, CLEAR, SCHEMES, COLORS_KEY, alpha, dur, ico, mark, level, machineColor, nearBlack, darkOf, lightOf, anchorBelow } from "./lib.js";
 import { snapshot, LOCAL, ALL, mArg, lastSeen, statsMachine } from "./data.js";
-import { MOD, WIN, DESIGN_W, zoom, dsg, popupIsOpen, popupJustClosed } from "./phone.js";
+import { MOD, WIN, DESIGN_W, zoom, dsg, popupIsOpen, popupJustClosed, swipeArea, swipeBody, watchScroll, tap } from "./phone.js";
 import { focusRow } from "./strip.js";
 
 const machineIcon = (m, size, color) => ico(m.key === LOCAL ? "monitor" : "server", size, color);
@@ -42,14 +42,14 @@ function tile(view, m, open, w) {
       const maxX = WIN.w > 0 ? Math.max(8 * z, WIN.w - (COLORS_W + 8) * z) : 8 * z;
       view.colorsAt = { x: Math.round(Math.min(maxX, Math.max(8 * z, a.x))), y: Math.round(Math.max(8 * z, a.y - e.bounds.height - (8 + COLORS_H) * z)) };
     })
-    .on_click((_e, cx) => {
+    .on_click(tap(view, (_e, cx) => {
       if (sel && view.colorsAt) {
         if (popupJustClosed("colors")) return;                                              // the outside press just closed it
         if (popupIsOpen("colors") && view.colorsId) { closeOverlay(view.colorsId); return; } // a second tap closes it
         view.colorsId = openOverlay({ mod: MOD, kind: "popup", frame: "none", width: COLORS_W, height: COLORS_H, at: view.colorsAt, props: { role: "colors", machine: m.key, name: m.name } });
       } else { view.goMachine(m.key); view.pollStats(cx, true); }
       cx.notify();
-    })
+    }))
     .child(h_flex().size(28).flex_none().rounded(7).justify_center().items_center().bg(alpha(mc, 0.16))
       .child(machineIcon(m, 14, mc)))
     .child(v_flex().flex_1().min_w(0).gap(1)
@@ -66,7 +66,7 @@ function allTile(view, snap, open, w) {
     .bg(sel ? C.raisedHi : C.raised).border(1).border_color(sel ? alpha("#ffffff", 0.4) : CLEAR)
     .when(sel, el => el.shadow_md())
     .cursor_pointer()
-    .on_click((_e, cx) => { view.setOpen(ALL); view.pollStats(cx, true); cx.notify(); })
+    .on_click(tap(view, (_e, cx) => { view.setOpen(ALL); view.pollStats(cx, true); cx.notify(); }))
     .child(sheep(28))
     .child(v_flex().flex_1().min_w(0).gap(1)
       .child(div().truncate().text_size(12).font_semibold().text_color(sel ? C.fg : C.muted).child("All"))
@@ -75,7 +75,7 @@ function allTile(view, snap, open, w) {
 }
 
 // ---- agent rows and space capsules (the desktop's Glass rows; the "now" line is always shown, there is no hover) ----
-function agentRow(r) {
+function agentRow(view, r) {
   const waiting = r.kind === "waiting", cur = r.focused;
   const mc = machineColor(r.machine);
   // Focused row: solid machine color, dark-of-hue text, no outline (the machine card holds the stack's one).
@@ -84,7 +84,7 @@ function agentRow(r) {
     .bg(cur ? mc : waiting ? alpha(C.red, 0.2) : CLEAR)
     .when(cur, el => el.shadow_md())
     .text_size(13).text_color(cur ? t1 : r.kind === "offline" ? C.dim : C.muted).cursor_pointer()
-    .on_click(() => focusRow(r))
+    .on_click(tap(view, () => focusRow(r)))
     .child(mark(r.kind))
     .child(v_flex().flex_1().min_w(0)
       .child(div().truncate().when(cur, el => el.font_semibold()).child(r.title))
@@ -95,7 +95,7 @@ function agentRow(r) {
 }
 
 // A space capsule: raised fill, 9 radius; tinted red / green when a terminal waits / an agent finished.
-function capsule(sp, m) {
+function capsule(view, sp, m) {
   const initial = ([...(sp.name || "?")][0] ?? "?").toUpperCase();
   const seenAt = lastSeen(m.key);
   const wants = sp.rows.some(r => r.kind === "waiting") ? C.red : sp.rows.some(r => r.kind === "done") ? C.green : null;
@@ -109,12 +109,12 @@ function capsule(sp, m) {
       .when(!m.offline && !!sp.branch, el => el.child(div().flex_none().max_w(140).truncate().font_family(MONO).text_size(10.5).text_color(C.muted).child(sp.branch)))
       .when(m.offline, el => el.child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.amber).whitespace_nowrap()
         .child(seenAt ? `last seen ${dur(Date.now() - seenAt)}` : "offline"))))
-    .children(sp.rows.map(agentRow));
+    .children(sp.rows.map(r => agentRow(view, r)));
 }
 
-const newSpaceRow = (id, m, label) => h_flex().id(id).w_full().h(40).flex_none().px(12).gap(8).items_center().rounded(9)
+const newSpaceRow = (view, id, m, label) => h_flex().id(id).w_full().h(40).flex_none().px(12).gap(8).items_center().rounded(9)
   .text_size(12).text_color(C.muted).cursor_pointer()
-  .on_click(() => run("space.new", { machine: mArg(m.key) }))
+  .on_click(tap(view, () => run("space.new", { machine: mArg(m.key) })))
   .child(ico("folder", 13, C.muted)).child(div().truncate().child(label));
 
 // The All view: one card per machine, tinted in its color (9% fill, 36% border), with its capsules inside.
@@ -124,14 +124,14 @@ function allGroups(view, snap) {
     return v_flex().id(`tnp-all-${m.key}`).w_full().flex_none().rounded(12).p(4).gap(4)
       .bg(alpha(color, 0.09)).border(1).border_color(alpha(color, 0.36)).opacity(m.offline ? 0.62 : 1)
       .child(h_flex().id(`tnp-all-h-${m.key}`).w_full().h(40).flex_none().gap(8).px(6).items_center().rounded(8).cursor_pointer()
-        .on_click((_e, cx) => { view.goMachine(m.key); view.pollStats(cx, true); cx.notify(); })
+        .on_click(tap(view, (_e, cx) => { view.goMachine(m.key); view.pollStats(cx, true); cx.notify(); }))
         .child(machineIcon(m, 13, color))
         // The name keeps its width; a long summary is what gets cut.
         .child(div().flex_none().max_w(140).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name))
         .child(div().flex_1().min_w(0).truncate().text_right().text_size(11).text_color(m.offline ? C.amber : m.count.waiting ? C.red : C.muted).child(m.summary)))
-      .children(m.spaces.map(sp => capsule(sp, m)))
+      .children(m.spaces.map(sp => capsule(view, sp, m)))
       .when(m.spaces.length === 0, el => el.child(div().px(8).py(2).text_size(11).text_color(C.muted).child("No spaces")))
-      .when(!m.offline, el => el.child(newSpaceRow(`tnp-all-new-${m.key}`, m, "New space")));
+      .when(!m.offline, el => el.child(newSpaceRow(view, `tnp-all-new-${m.key}`, m, "New space")));
   });
 }
 
@@ -174,13 +174,15 @@ export function renderDrawer(view) {
     .on_size_change((size, cx) => { if (Math.abs((view.width ?? 0) - size.width) >= 1) { view.width = size.width; cx.notify(); } })
     .child(floatBox(v_flex().w_full().flex_1().min_h(0).px(10).pt(6).pb(8).gap(8))
       .child(div().w(36).h(4).rounded(2).bg(C.rim).flex_none().self_center())
-      .child(h_flex().id("tnp-machines-row").w_full().h(48).flex_none().gap(6).overflow_x_scroll()
-        .child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW))))
-      .child(v_flex().id("tnp-spaces").w_full().flex_1().min_h(0).gap(6).overflow_y_scroll()
-        .when(all, el => el.children(allGroups(view, snap)))
-        .when(!!m, el => el.children(m.spaces.map(sp => capsule(sp, m))))
-        .when(!!m && m.spaces.length === 0, el => el.child(div().px(4).text_color(C.muted).child(`No spaces on ${m.name}`)))
-        .when(!!m && !m.offline, el => el.child(newSpaceRow("tnp-newspace", m, `New space on ${m.name}`)))))
+      .child(swipeArea(watchScroll(h_flex().id("tnp-machines-row").w_full().h(48).flex_none().overflow_x_scroll(), view))
+        .child(swipeBody(h_flex().h_full().flex_none().gap(6))
+          .child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW)))))
+      .child(swipeArea(watchScroll(v_flex().id("tnp-spaces").w_full().flex_1().min_h(0).overflow_y_scroll(), view))
+        .child(swipeBody(v_flex().w_full().flex_none().gap(6))
+          .when(all, el => el.children(allGroups(view, snap)))
+          .when(!!m, el => el.children(m.spaces.map(sp => capsule(view, sp, m))))
+          .when(!!m && m.spaces.length === 0, el => el.child(div().px(4).text_color(C.muted).child(`No spaces on ${m.name}`)))
+          .when(!!m && !m.offline, el => el.child(newSpaceRow(view, "tnp-newspace", m, `New space on ${m.name}`))))))
     .when(!!sm, el => el.child(stats(view, sm)));
 }
 

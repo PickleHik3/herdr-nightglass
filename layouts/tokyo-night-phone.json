@@ -67,6 +67,7 @@
             {
               "id": "composer",
               "type": "block",
+              "hidden": true,
               "size": { "px": 44 },
               "content": { "mod": "tokyo-night-phone", "props": { "role": "composer" } }
             }

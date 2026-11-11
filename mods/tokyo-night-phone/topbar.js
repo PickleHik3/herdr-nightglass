@@ -5,7 +5,7 @@ import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, props, spaces, panes, machines, focused, shared, setShared, exec } from "herdr";
 import { C, MONO, CLEAR, alpha, dur, ico, ring, level } from "./lib.js";
 import { USAGE_MACHINE, parseUsageJson, snapshot } from "./data.js";
-import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, popupIsOpen, popupJustClosed } from "./phone.js";
+import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, popupIsOpen, popupJustClosed, swipeArea, swipeBody } from "./phone.js";
 import { menuHeight } from "./newmenu.js";
 
 const USAGE_KEY = "tokyo-night.usage";                   // the desktop mod's key: same data, same format
@@ -161,5 +161,6 @@ export function renderUsage() {
       .child(h_flex().gap(5).items_center().child(div().size(5).rounded(3).bg(C.teal)).child(div().child("inner: 5-hour")))
       .child(div().flex_1())
       .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.muted).child(u?.stale ? `stale · ${age}` : age)))
-    .child(v_flex().id("tnp-usage-list").w_full().flex_1().min_h(0).gap(8).overflow_y_scroll().children(rows.map(row)));
+    .child(swipeArea(v_flex().id("tnp-usage-list").w_full().flex_1().min_h(0).overflow_y_scroll())
+      .child(swipeBody(v_flex().w_full().flex_none().gap(8)).children(rows.map(row))));
 }

@@ -28,7 +28,8 @@ const ABSENT_013 = new Set(["ScrollHandle", "scroll_to_item"]);
 const PROVEN = new Set(["mb", "max_h", "settings", "Input", "InputState", "new", "on", "overflow_x_scroll", "overflow_y_scroll", "line_height", "self_center"]);
 // Phone-only, but only reached inside event handlers / timers, which `check` does not run. Taken from the
 // 0.1.13 typings instead (gpui-kit.d.ts InputState: set_value, value, release; herdr.d.ts: hc).
-const TYPED_ONLY = new Set(["set_value", "value", "release", "hc"]);
+// Round 8 (no phone available): on_scroll_wheel (rendered, but not yet run through `check`), focus (timer only).
+const TYPED_ONLY = new Set(["set_value", "value", "release", "hc", "on_scroll_wheel", "focus"]);
 const herdr = process.env.HERDR_DTS ? readFileSync(process.env.HERDR_DTS, "utf8") : null;
 let fails = 0;
 const bad = (m) => { fails++; console.log("FAIL", m); };
