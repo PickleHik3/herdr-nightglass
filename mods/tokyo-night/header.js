@@ -2,7 +2,7 @@
 import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, props, spaces, panes, machines, focused, layout, window, shared, setShared, exec } from "herdr";
-import { C, MONO, CLEAR, alpha, dur, ico, ring, level, stop, findNode, anchorBelowRight, setPressed, getPressed, bindingOf } from "./lib.js";
+import { C, MONO, CLEAR, alpha, dur, ico, ring, level, stop, findNode, anchorBelowRight, setPressed, getPressed, bindingOf, raised, raisedFill, rim, inset } from "./lib.js";
 import { snapshot, USAGE_MACHINE, parseUsageJson } from "./data.js";
 
 const MOD = "tokyo-night";
@@ -91,9 +91,10 @@ function panelButtons(view) {
   syncPanel(view, spaces().find(s => s.active), panel, body, ["files", "changes"]);
   const btn = (id, label, icon, extra) => {
     const on = !panel.hidden && body.active === id;
-    return h_flex().id(`tn-panel-${id}`).h(28).px(10).gap(6).flex_none().items_center().rounded(6)
-      .bg(on ? alpha(C.accent, 0.18) : C.surface).text_size(12).text_color(on ? C.accent : C.muted)
-      .cursor_pointer().hover(s => s.bg(on ? alpha(C.accent, 0.24) : C.raised))
+    const b = h_flex().id(`tn-panel-${id}`).h(28).px(10).gap(6).flex_none().items_center().rounded(6);
+    return (on ? b.bg(alpha(C.accent, 0.18)).border(1).border_color(alpha(C.accent, 0.4)).shadow_md() : raised(b, C.surface))
+      .text_size(12).text_color(on ? C.accent : C.muted)
+      .cursor_pointer().hover(s => s.bg(on ? alpha(C.accent, 0.24) : C.raised).shadow_md())
       .on_mouse_down("left", stop)
       .on_click(() => {
         if (on) run("layout.hide", { id: "panel" });
@@ -136,7 +137,7 @@ export function renderHeader(view) {
   return h_flex().id("tn-header").relative().size_full().px(12).gap(8).items_center().overflow_hidden()
     .on_size_change((size, cx) => { if (Math.abs((view.headerW ?? 0) - size.width) >= 1) { view.headerW = size.width; cx.notify(); } })
     .when(W > 0, el => el.child(h_flex().id("tn-search").absolute().left(pillX).top(4).w(pillW).h(30).pl(10).pr(6).gap(8).items_center().rounded(15)
-      .bg(C.chrome).border(1).border_color(C.raised).text_size(12).text_color(C.dim).cursor_pointer()
+      .bg(inset()).border(1).border_color(rim()).text_size(12).text_color(C.dim).cursor_pointer()
       .on_mouse_down("left", stop).on_click(() => run("app.palette"))
       .child(ico("search", 13, C.dim))
       .child(h_flex().flex_1().min_w(0).overflow_hidden().whitespace_nowrap()
@@ -153,9 +154,11 @@ export function renderHeader(view) {
     .when(win, el => el.child(div().w(6)).children(windowButtons()));
 }
 
-// ---- Claude usage card (sidebar, above the stats card) ----
-// Collapsed: one row of rings. Tapped: grows upward into a card with a row per account.
-export function usageCard(view) {
+// ---- Claude usage (sidebar dock) ----
+// Returns { head, panel } or null. head is the collapsed row: one pill per tool (icon + rings),
+// stretched edge to edge. panel is the expanded content (legend, an account per row, collapse),
+// null while collapsed; the dock draws it above the head.
+export function usageParts(view) {
   const u = shared(USAGE_KEY);
   const rows = u?.rows ?? [];
   if (!rows.length || !machines().some(m => m.name === USAGE_MACHINE)) return null;
@@ -166,28 +169,22 @@ export function usageCard(view) {
     cx.notify();
   };
   const age = u.at ? (Date.now() - u.at < 60000 ? `${Math.max(1, Math.round((Date.now() - u.at) / 1000))}s ago` : `${dur(Date.now() - u.at)} ago`) : "";
-  // The head is the rings grouped by tool, each group led by its icon (Herdr's own program
-  // icons, full color). Every ring gets the same slot width, so they stay evenly spaced.
   const groups = [];
   for (const r of rows) {
     const tool = r.tool === "codex" ? "codex" : "claude";
     const g = groups.find(x => x.tool === tool) ?? (groups.push({ tool, rows: [] }), groups[groups.length - 1]);
     g.rows.push(r);
   }
-  // Each tool's icon and rings sit in a capsule; icons match the 20 px rings, and every ring
-  // gets the same slot width so they stay evenly spaced across both capsules.
-  const RING = 20, CAP_PAD = 4, GROUP_GAP = 8;
-  const inner = (view.width ?? 268) - 20 - 24 - 2;
-  const slot = Math.max(RING + 2, Math.floor((inner - groups.length * (2 * CAP_PAD + RING + 4) - (groups.length - 1) * GROUP_GAP) / rows.length));
-  const head = h_flex().id("tn-usage-head").w_full().h(28).flex_none().gap(GROUP_GAP).items_center().cursor_pointer().on_click(toggle)
-    .children(groups.map(g => h_flex().h(28).flex_none().px(CAP_PAD).items_center().rounded(14).bg(C.chrome) // darker than the ring track, so it stays visible
-      .child(h_flex().w(RING + 4).flex_none().items_center().child(toolIcon(g.tool, RING)))
-      .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return h_flex().w(slot).flex_none().justify_center().child(ring(RING, r.week, r.five, wc, hc)); }))));
-  const card = v_flex().id("tn-usage").w_full().flex_none().bg(C.surface).rounded(16).px(12).pt(10).pb(11).gap(8)
-    .opacity(u.stale ? 0.6 : 1).hover(s => s.bg(openState ? C.surface : C.raised))
+  // Each pill is flex_1 (so the row fills the dock) and its rings share the pill equally.
+  const RING = 20;
+  const head = h_flex().id("tn-usage-head").w_full().h(28).flex_none().gap(6).items_center().cursor_pointer().on_click(toggle)
+    .opacity(u.stale ? 0.6 : 1)
     .tooltip(openState ? "" : `Claude usage · ${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage-tui on ${USAGE_MACHINE}`)
-    .child(head);
-  if (!openState) return card;
+    .children(groups.map(g => raised(h_flex().h(28).min_w(0).flex_1().px(4).items_center().rounded(14), C.chrome)
+      .hover(s => s.bg(raisedFill(C.surface)).shadow_md())
+      .child(h_flex().w(RING + 4).flex_none().items_center().child(toolIcon(g.tool, RING)))
+      .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return h_flex().flex_1().min_w(RING).justify_center().child(ring(RING, r.week, r.five, wc, hc)); }))));
+  if (!openState) return { head, panel: null };
   const bar = (label, pct, reset) => h_flex().w_full().gap(6).items_center().font_family(MONO).text_size(11)
     .child(div().w(18).flex_none().text_color(C.dim).child(label))
     .child(div().flex_1().min_w(0).h(4).rounded(2).bg(C.raised).overflow_hidden()
@@ -207,7 +204,9 @@ export function usageCard(view) {
         .when(!!r.note, el => el.child(div().text_size(11).text_color(C.amber).truncate().child(r.note)))
         .when(!r.note, el => el.child(bar("wk", r.week, resetIn(r.weekAt))).child(bar("5h", r.five, resetIn(r.fiveAt)))));
   };
-  return card
+  // The scroll area is capped by the sidebar (view.height); the dock grows upward over the list.
+  const cap = Math.max(120, Math.round((view.height ?? 600) * 0.7) - 28 - 110);
+  const panel = v_flex().id("tn-usage-panel").w_full().flex_none().max_h(cap).gap(8).overflow_y_scrollbar().opacity(u.stale ? 0.6 : 1)
     .child(h_flex().w_full().flex_none().gap(12).items_center().text_size(11).text_color(C.dim)
       .child(h_flex().gap(5).items_center().child(div().size(9).rounded(5).border(2).border_color(C.dim)).child(div().child("outer: week")))
       .child(h_flex().gap(5).items_center().child(div().size(5).rounded(3).bg(C.dim)).child(div().child("inner: 5-hour")))
@@ -216,4 +215,5 @@ export function usageCard(view) {
     .children(rows.map(row))
     .child(h_flex().id("tn-usage-fold").w_full().h(14).flex_none().justify_center().items_center().rounded(7).cursor_pointer()
       .tooltip("Collapse").hover(s => s.bg(C.raised)).on_click(toggle).child(ico("chevron-down", 12, C.dim)));
+  return { head, panel };
 }

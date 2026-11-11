@@ -3,7 +3,7 @@
 import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, panes, props, exec, shared, setShared } from "herdr";
-import { C, MONO, alpha, mix, dur, ico, prog, mark, stop, nodePx, anchorBelowRight, setPressed, getPressed, machineColor } from "./lib.js";
+import { C, MONO, alpha, mix, raised, raisedFill, dur, ico, prog, mark, stop, nodePx, anchorBelowRight, setPressed, getPressed, machineColor } from "./lib.js";
 import { snapshot, short, LOCAL, mArg, mname } from "./data.js";
 
 export const EMPTY_KEY = "tokyo-night.empty"; // machine key shown in the empty view, or null
@@ -34,7 +34,7 @@ function banner(snap, offline) {
   const n = snap.rows.filter(r => r.agent && offline.some(m => m.key === r.machine)).length;
   const its = offline.length === 1 ? "its" : "their";
   return h_flex().w_full().h(BANNER).flex_none().px(14).gap(10).items_center().rounded(6)
-    .bg(mix(C.amber, C.chrome, 0.1)).border(1).border_color(alpha(C.amber, 0.35))
+    .bg(mix(C.amber, C.chrome, 0.1)).border(1).border_color(alpha(C.amber, 0.35)).shadow_md()
     .child(ico("wifi-off", 15, C.amber))
     .child(div().flex_none().font_medium().text_color(C.fg).child(`${names} ${offline.length === 1 ? "is" : "are"} unreachable`))
     .child(div().flex_1().min_w(0).truncate().text_color(C.muted).child(`${its} ${n} agent${n === 1 ? "" : "s"} show their last known state`));
@@ -45,8 +45,8 @@ function card(r) {
   const tint = waiting ? C.red : C.green;
   // The whole card opens the agent; the chip on the right just names the terminal.
   return h_flex().id(`tn-card-${r.address}`).w_full().min_w(0).h(CARD).flex_none().pl(12).pr(10).gap(12).items_center().rounded(6)
-    .bg(mix(tint, C.chrome, waiting ? 0.12 : 0.07)).border(1).border_color(alpha(tint, waiting ? 0.55 : 0.3))
-    .cursor_pointer().hover(s => s.bg(mix(tint, C.chrome, waiting ? 0.2 : 0.13)).border_color(alpha(tint, waiting ? 0.8 : 0.5)))
+    .bg(mix(tint, C.chrome, waiting ? 0.12 : 0.07)).border(1).border_color(alpha(tint, waiting ? 0.55 : 0.3)).shadow_md()
+    .cursor_pointer().hover(s => s.bg(mix(tint, C.chrome, waiting ? 0.2 : 0.13)).border_color(alpha(tint, waiting ? 0.8 : 0.5)).shadow_lg())
     .tooltip(`Open ${r.short}`)
     .on_click(() => run("agent.focus", { terminal: r.address }))
     .child(v_flex().flex_1().min_w(0).gap(3)
@@ -95,7 +95,7 @@ export function renderStrip(view) {
   return v_flex().id("tn-strip").size_full().gap(GAP).overflow_hidden()
     .when(offline.length > 0, el => el.child(banner(snap, offline)))
     .when(att.length > 0, el => el.child(attention(snap, att)))
-    .when(att.length === 0 && offline.length === 0, el => el.child(h_flex().w_full().h(QUIET).flex_none().px(14).gap(10).items_center().rounded(6).bg(C.chrome)
+    .when(att.length === 0 && offline.length === 0, el => el.child(raised(h_flex().w_full().h(QUIET).flex_none().px(14).gap(10).items_center().rounded(6), C.chrome).shadow_md()
       .child(ico("check-circle", 15, C.green))
       .child(div().font_medium().text_color(C.fg).child("Nothing needs you"))
       .child(div().text_color(C.dim).child(summary(snap)))));
@@ -106,7 +106,7 @@ export function renderPane() {
   const id = props()?.pane;
   const p = panes().find(x => x.pane === id);
   const root = h_flex().id(`tn-pane-${id}`).size_full().pl(12).pr(8).gap(8).items_center().rounded_t(6).overflow_hidden()
-    .bg(C.chrome).border_b(1).border_color(C.raised);
+    .bg(raisedFill(C.chrome)).border_b(1).border_color(C.raised);
   if (!p) return root;
   if (!p.terminal) {
     return root.child(div().flex_1().min_w(0).truncate().text_size(13).font_medium().text_color(C.fg).child(p.title || p.mod || "Mod"));

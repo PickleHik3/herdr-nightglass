@@ -1,6 +1,6 @@
 // tokyo-night: shared helpers (palette, icons, status marks, popup anchors, formatting).
 import { svg, image, div } from "gpui-kit";
-import { h_flex } from "gpui-base";
+import { h_flex, v_flex } from "gpui-base";
 import { theme, keys, window, layout, shared } from "herdr";
 
 export const M = "mods/tokyo-night";
@@ -41,6 +41,20 @@ export function mix(top, base, a) {
   return "#" + [0, 1, 2].map(i => Math.round(n(top, i) * a + n(base, i) * (1 - a)).toString(16).padStart(2, "0")).join("");
 }
 // Per-machine colors the person picked (right-click a machine); the theme accent by default.
+// ---- depth ----
+// `.bg()` only takes a flat color (no Background), so "raised" is a solid a hair lighter than its
+// base, plus a faint highlight rim and a soft shadow (applied with `raised`/`lift`).
+export const raisedFill = (base) => mix(base, C.fg, 0.035);
+export const rim = () => alpha(C.fg, 0.06);
+export const inset = () => mix(C.canvas, "#000000", 0.25);
+export const raised = (el, base) => el.bg(raisedFill(base)).border(1).border_color(rim()).shadow_sm();
+// A vertical fade faked with stacked strips (no gradient fill): `from` at the top to clear.
+export function fade(h, from) {
+  const n = 6;
+  return v_flex().w_full().h(h).flex_none()
+    .children(Array.from({ length: n }, (_, i) => div().w_full().h(h / n).bg(alpha(from, (1 - (i + 0.5) / n) ** 2 * 0.25))));
+}
+
 export const COLORS_KEY = "tokyo-night.colors";
 // Each swatch is a whole-window scheme: themes/<theme>.json (scripts/gen-themes.py), Tokyo Night
 // tinted toward that hue. The focused space's machine decides which one the app shows.
