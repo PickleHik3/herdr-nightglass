@@ -191,6 +191,15 @@ console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desk
     if (/on_mouse_up|on_drag/.test(d)) bad("drawer.js: drag is not used (tap only)");
     console.log("panel handle: present only while open, tap toggles full, closing restores rows: ok");
   }
+  // finished agents (round 11): count button in the bar, chip row on demand, dismissable; waiting chips unchanged
+  {
+    const st = mods["strip.js"], tb = mods["topbar.js"];
+    if (!/\.when\(finished > 0, el => el\.child\(h_flex\(\)\.id\("tnp-done"\)/.test(tb)) bad("topbar.js: the finished count button must show only while the count is above 0");
+    if (!/finishedOpen\(\) \? finishedRows\(snap\)/.test(st)) bad("strip.js: finished chips must show only while the row is open");
+    if (!/id\("tnp-clear"\)/.test(st) || !/tnp-card-x-/.test(st)) bad("strip.js: Clear chip and per-chip dismiss are missing");
+    if (!/finishedRows\(snap\)\.length === 0\) setFinishedOpen\(false\)/.test(st)) bad("strip.js: the row must close when the count reaches 0");
+    console.log("finished count button, on-demand finished chips with dismiss and Clear: ok");
+  }
   // strip: hidden by default and hidden whenever there is nothing to show; no quiet capsule row
   if (node("strip")?.hidden !== true) bad("layout: the strip must be hidden by default");
   if (!/px === 0\) \{ if \(!hidden\) run\("layout\.hide", \{ id: "strip" \}\)/.test(mods["strip.js"])) bad("strip.js: stripSync must hide the block when there is nothing to show");
