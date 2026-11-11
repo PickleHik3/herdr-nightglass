@@ -19,7 +19,7 @@
     "would read as possibly-undefined and every use would want a `?.` that",
     "means nothing at run time. Turning it on would buy noise, not safety."
   ],
-  "include": ["*.js", "../tokyo-night/gpui-kit.d.ts"],
+  "include": ["*.js", "../nightglass/gpui-kit.d.ts"],
   "compilerOptions": {
     "target": "ES2022",
     "module": "ES2022",

@@ -1,4 +1,4 @@
-// tokyo-night-phone: the message composer row (prompt field + send button), behind a button. Design: phone-template.html:456-472.
+// nightglass-phone: the message composer row (prompt field + send button), behind a button. Design: phone-template.html:456-472.
 //
 // Default: no row (the terminal takes its height; typing goes straight to the terminal). The button at the start of the pill
 // row (strip.js) reveals it: layout.show on the `composer` block (layout.hide again on a second tap, after a successful send,
@@ -17,7 +17,7 @@ import { C, MONO, alpha } from "./lib.js";
 import { pico } from "./phone.js";
 import { short } from "./data.js";
 
-const KEY = "tokyo-night-phone.composer"; // { open, target, ctx, moved? } (not persisted across loads: init resets it)
+const KEY = "nightglass-phone.composer"; // { open, target, ctx, moved? } (not persisted across loads: init resets it)
 
 // The terminal a message goes to: the focused one, else the first terminal of the shown tab.
 export function targetTerminal() {

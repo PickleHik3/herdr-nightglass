@@ -1,4 +1,4 @@
-// tokyo-night-phone: the panel under the top bar (layout node "drawer"), hidden until the top bar's last button toggles
+// nightglass-phone: the panel under the top bar (layout node "drawer"), hidden until the top bar's last button toggles
 // it. One Glass floating box: machine cards + All, the actions row (New space / Terminal / Agent / Files / Changes /
 // Settings, newmenu.js: what the retired menu popup offered) and the list (spaces as capsules with their agent rows,
 // which scrolls). Design: design/Phone.dc.html (drawer); look: design/GLASS.md. The block itself is transparent so the
@@ -218,7 +218,7 @@ export function renderDrawer(view) {
         .child(swipeBody(h_flex().h_full().flex_none().gap(6))
           .child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW)))))
       .child(v_flex().id("tnp-actions").w_full().flex_none().gap(6)
-        .children(actionRows(view, snap, sm, closePanel, shared("tokyo-night-phone.changes") ?? 0)))
+        .children(actionRows(view, snap, sm, closePanel, shared("nightglass-phone.changes") ?? 0)))
       // the list and the handle: no gap between them, the list runs to the grip
       .child(v_flex().w_full().flex_1().min_h(0)
         .child(swipeArea(watchScroll(v_flex().id("tnp-spaces").w_full().flex_1().min_h(0).overflow_y_scroll(), view))

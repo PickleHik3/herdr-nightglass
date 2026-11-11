@@ -17,16 +17,16 @@ WALL, GLASS = "#0e1016", "#0c0d12"
 NEUTRAL_ACCENT = "#e6e7eb"
 INK = "#0f1012"
 
-# name -> hue. Keep in step with SCHEMES in mods/tokyo-night/lib.js.
+# name -> hue. Keep in step with SCHEMES in mods/nightglass/lib.js.
 VARIANTS = {
-    "tokyo-night-blue": "#6e9bff",
-    "tokyo-night-frost": "#52c6f0",
-    "tokyo-night-lagoon": "#4fd1b8",
-    "tokyo-night-forest": "#86d46a",
-    "tokyo-night-dune": "#e5b45c",
-    "tokyo-night-ember": "#f58f5c",
-    "tokyo-night-sakura": "#f0708a",
-    "tokyo-night-aurora": "#a98bf5",
+    "nightglass-blue": "#6e9bff",
+    "nightglass-frost": "#52c6f0",
+    "nightglass-lagoon": "#4fd1b8",
+    "nightglass-forest": "#86d46a",
+    "nightglass-dune": "#e5b45c",
+    "nightglass-ember": "#f58f5c",
+    "nightglass-sakura": "#f0708a",
+    "nightglass-aurora": "#a98bf5",
 }
 # How far the opaque bases move toward the hue, and the tone fills' white/black toward it.
 BASE_TINT = {"canvas": 0.05, "chrome": 0.06}
@@ -91,7 +91,7 @@ def write(name, t):
 
 
 # Neutral Glass base (the layout's default theme) and the All view's scheme: the same, pale accent.
-write("tokyo-night", theme(NEUTRAL_ACCENT))
-write("tokyo-night-storm", theme(NEUTRAL_ACCENT))
+write("nightglass", theme(NEUTRAL_ACCENT))
+write("nightglass-storm", theme(NEUTRAL_ACCENT))
 for name, hue in VARIANTS.items():
     write(name, theme(hue, hue))

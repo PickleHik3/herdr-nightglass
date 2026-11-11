@@ -1,4 +1,4 @@
-// tokyo-night: the sidebar (expanded and rail), its New popup and the rail's spaces popup.
+// nightglass: the sidebar (expanded and rail), its New popup and the rail's spaces popup.
 import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, setAgentOrder, props, spaces, focused, shared, setShared, knownAgents } from "herdr";
@@ -7,7 +7,7 @@ import { C, M, MONO, CLEAR, alpha, mix, nearBlack, darkOf, lightOf, revealMotion
 import { snapshot, LOCAL, ALL, mkey, mArg, onArg, lastSeen, upText, statsMachine } from "./data.js";
 import { usageParts } from "./header.js";
 
-const MOD = "tokyo-night";
+const MOD = "nightglass";
 
 // ---- acting on a row ----
 export function focusRow(r) {

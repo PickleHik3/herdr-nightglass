@@ -1,13 +1,13 @@
-// tokyo-night-phone: what only the phone needs, on top of lib.js / data.js (which are verbatim copies
+// nightglass-phone: what only the phone needs, on top of lib.js / data.js (which are verbatim copies
 // of the desktop mod's, so they can be re-synced with `cp`). Icons and ring arcs that the desktop mod
-// already ships are loaded from its folder (mods/tokyo-night/...): asset paths are relative to the
+// already ships are loaded from its folder (mods/nightglass/...): asset paths are relative to the
 // Herdr home, unlike JS imports, which cannot leave their own mod folder.
 import { svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { settings, shared, setShared, run } from "herdr";
 import { C, anchorBelow } from "./lib.js";
 
-export const MOD = "tokyo-night-phone";
+export const MOD = "nightglass-phone";
 const PM = `mods/${MOD}`;
 
 // The design's width: the layout is drawn for a 412 px wide phone at zoom 1.
@@ -53,10 +53,10 @@ export function anchorBelowRight(e, width, win) {
 // open and when it closed; a button that toggles a popup ignores a click within GUARD_MS of the close and, while the popup
 // is open, closes it itself.
 const GUARD_MS = 400;
-export const popupOpened = (name) => { setShared(`tokyo-night-phone.${name}-open`, true); };
-export const popupClosed = (name) => { setShared(`tokyo-night-phone.${name}-open`, false); setShared(`tokyo-night-phone.${name}-closed`, Date.now()); };
-export const popupIsOpen = (name) => shared(`tokyo-night-phone.${name}-open`) === true;
-export const popupJustClosed = (name) => Date.now() - (shared(`tokyo-night-phone.${name}-closed`) ?? 0) < GUARD_MS;
+export const popupOpened = (name) => { setShared(`nightglass-phone.${name}-open`, true); };
+export const popupClosed = (name) => { setShared(`nightglass-phone.${name}-open`, false); setShared(`nightglass-phone.${name}-closed`, Date.now()); };
+export const popupIsOpen = (name) => shared(`nightglass-phone.${name}-open`) === true;
+export const popupJustClosed = (name) => Date.now() - (shared(`nightglass-phone.${name}-closed`) ?? 0) < GUARD_MS;
 
 // ---- swipes ----
 // A one-finger drag arrives as scroll-wheel events in LINES (gpui X11: ScrollDelta::Lines), and the app's scroll areas
@@ -77,24 +77,24 @@ export const tap = (view, fn) => (e, cx) => { if (swiped(view)) return; fn(e, cx
 // ---- the panel (layout node "drawer": machine cards, actions, agent list) under the top bar ----
 // Hidden by default (the top bar's init closes it), toggled by the top bar's last button; picking something in it closes it.
 // The flag is shared so the button can show its active look; the layout's hidden state is what actually shows the block.
-export const panelOpen = () => shared("tokyo-night-phone.panel") === true;
+export const panelOpen = () => shared("nightglass-phone.panel") === true;
 // Opening or closing always returns to normal size; `init` (the load) also re-shows rows a crashed run left hidden.
 export function setPanel(open, init) {
   const wasFull = panelFull();
   setShared(FULL_KEY, false);
   if (wasFull || init) restoreRows();
-  setShared("tokyo-night-phone.panel", open);
+  setShared("nightglass-phone.panel", open);
   run(open ? "layout.show" : "layout.hide", { id: "drawer" });
 }
 // "Full": the handle at the bottom of the panel expands it over everything below the top bar. The strip, the pill row,
 // the terminal and the composer are hidden with layout.hide while it is full and shown again on return to normal (the
 // strip comes back through stripSync's timer, the composer only if it was open). Opening always starts at normal size.
-const FULL_KEY = "tokyo-night-phone.panel-full";
+const FULL_KEY = "nightglass-phone.panel-full";
 export const panelFull = () => shared(FULL_KEY) === true;
 function restoreRows() {
   run("layout.show", { id: "tabs" });
   run("layout.show", { id: "term" });
-  if (shared("tokyo-night-phone.composer")?.open === true) run("layout.show", { id: "composer" });
+  if (shared("nightglass-phone.composer")?.open === true) run("layout.show", { id: "composer" });
 }
 export function setPanelFull(full) {
   if (panelFull() === full) return;
@@ -107,7 +107,7 @@ export function setPanelFull(full) {
 // The data layer (data.js) has no "seen" mark, so dismissal is phone-only: { terminal address: time it was dismissed }.
 // A finished agent is dismissed while its finish time (now - r.ms) is not after that, so a LATER finish shows again.
 // Kept in shared state (all roles) and mirrored in localStorage (as the mod's other small state: "open", "visited").
-const DIS_KEY = "tokyo-night-phone.dismissed", OPEN_KEY = "tokyo-night-phone.finished-open";
+const DIS_KEY = "nightglass-phone.dismissed", OPEN_KEY = "nightglass-phone.finished-open";
 let disLocal = null;
 const disMap = () => {
   const v = shared(DIS_KEY);

@@ -1,12 +1,12 @@
-// tokyo-night: the header (search pill, usage rings, panel toggles, window buttons) and the usage popup.
+// nightglass: the header (search pill, usage rings, panel toggles, window buttons) and the usage popup.
 import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, props, spaces, panes, machines, focused, layout, window, shared, setShared, exec } from "herdr";
 import { C, MONO, CLEAR, alpha, dur, ico, ring, level, stop, findNode, anchorBelowRight, setPressed, getPressed, bindingOf } from "./lib.js";
 import { snapshot, USAGE_MACHINE, parseUsageJson } from "./data.js";
 
-const MOD = "tokyo-night";
-const USAGE_KEY = "tokyo-night.usage";
+const MOD = "nightglass";
+const USAGE_KEY = "nightglass.usage";
 const USAGE_W = 392;
 const ROW_H = 54;
 const RIGHT_RESERVE = 360; // Files + Changes +N + Settings + window buttons

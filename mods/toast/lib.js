@@ -1,9 +1,9 @@
-// tokyo-night: shared helpers (palette, icons, status marks, popup anchors, formatting).
+// nightglass: shared helpers (palette, icons, status marks, popup anchors, formatting).
 import { svg, image, div } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { theme, keys, window, layout, shared } from "herdr";
 
-export const M = "mods/tokyo-night";
+export const M = "mods/nightglass";
 export const MONO = "JetBrains Mono";
 export const CLEAR = "#00000000";
 export const LIT = { teal: "#4fd1b8" };
@@ -50,27 +50,29 @@ export const C = new Proxy({}, {
   },
 });
 
-export const COLORS_KEY = "tokyo-night.colors";
+export const COLORS_KEY = "nightglass.colors";
 // Each swatch is a machine scheme: themes/<theme>.json (scripts/gen-themes.py), the Glass base
 // nudged toward that hue. The focused space's machine decides which one the app shows.
 export const SCHEMES = [
-  { color: "#6e9bff", theme: "tokyo-night-blue", label: "Blue" },
-  { color: "#52c6f0", theme: "tokyo-night-frost", label: "Frost" },
-  { color: "#4fd1b8", theme: "tokyo-night-lagoon", label: "Teal" },
-  { color: "#86d46a", theme: "tokyo-night-forest", label: "Forest" },
-  { color: "#e5b45c", theme: "tokyo-night-dune", label: "Dune" },
-  { color: "#f58f5c", theme: "tokyo-night-ember", label: "Ember" },
-  { color: "#f0708a", theme: "tokyo-night-sakura", label: "Rose" },
-  { color: "#a98bf5", theme: "tokyo-night-aurora", label: "Aurora" },
+  { color: "#6e9bff", theme: "nightglass-blue", label: "Blue" },
+  { color: "#52c6f0", theme: "nightglass-frost", label: "Frost" },
+  { color: "#4fd1b8", theme: "nightglass-lagoon", label: "Teal" },
+  { color: "#86d46a", theme: "nightglass-forest", label: "Forest" },
+  { color: "#e5b45c", theme: "nightglass-dune", label: "Dune" },
+  { color: "#f58f5c", theme: "nightglass-ember", label: "Ember" },
+  { color: "#f0708a", theme: "nightglass-sakura", label: "Rose" },
+  { color: "#a98bf5", theme: "nightglass-aurora", label: "Aurora" },
 ];
 export const SWATCHES = SCHEMES.map(s => s.color);
 // Picks stored before the Glass retune: the old Tokyo Night swatch -> the scheme it became.
 const OLD_SWATCHES = { "#7aa2f7": 0, "#7dcfff": 1, "#73daca": 2, "#9ece6a": 3, "#e0af68": 4, "#ff9e64": 5, "#f7768e": 6, "#bb9af7": 7 };
 // The All view's own scheme: the neutral Glass base with a pale accent, unlike any machine.
-export const ALL_THEME = "tokyo-night-storm";
+export const ALL_THEME = "nightglass-storm";
+// Renamed from tokyo-night: a stored theme name (or a pick kept under the old shared key) still resolves.
+export const migrateTheme = (name) => typeof name === "string" && name.startsWith("tokyo-night") ? `nightglass${name.slice("tokyo-night".length)}` : name;
 export const machineScheme = (key) => {
-  const c = String(shared(COLORS_KEY)?.[key] ?? "").toLowerCase();
-  return SCHEMES.find(s => s.color === c) ?? SCHEMES[OLD_SWATCHES[c] ?? 0];
+  const c = String((shared(COLORS_KEY) ?? shared("tokyo-night.colors"))?.[key] ?? "").toLowerCase();
+  return SCHEMES.find(s => s.color === c) ?? SCHEMES.find(s => s.theme === migrateTheme(c)) ?? SCHEMES[OLD_SWATCHES[c] ?? 0];
 };
 // A fixed default (not the live accent, which follows whichever machine is focused).
 export const machineColor = (key) => machineScheme(key).color;

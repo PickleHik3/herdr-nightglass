@@ -1,4 +1,4 @@
-# Glass — handoff spec for the tokyo-night mod
+# Glass — handoff spec for the nightglass mod
 
 The approved look for the mod. This file is the brief for whoever implements it; nothing in
 `mods/`, `layouts/` or `themes/` has been changed yet.
@@ -137,7 +137,7 @@ Machine names are no longer upper-cased; summaries are Inter, not mono.
 
 1. **Wallpaper placement.** Something has to draw an image behind the whole layout, and the
    layout's own backgrounds (`"background": "canvas"` and `"chrome"` in
-   `layouts/tokyo-night.json`) have to let it show. The Snow Leopard mod draws a wallpaper
+   `layouts/nightglass.json`) have to let it show. The Snow Leopard mod draws a wallpaper
    (`mods/snowleopard/desk.js`, `img/aurora.jpg` in `attractify-logan/herdr-snowleopard`); use it
    as the reference for how.
 2. **SVG as an image.** `wallpaper.svg` uses a `<pattern>` for the dot grid. If `image()` does not

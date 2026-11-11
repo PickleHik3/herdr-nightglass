@@ -2,12 +2,12 @@
   "id": "root",
   "type": "row",
   "titlebar": "none",
-  "theme": "tokyo-night",
-  "background": { "image": "mods/tokyo-night/wallpaper.png", "fit": "cover" },
+  "theme": "nightglass",
+  "background": { "image": "mods/nightglass/wallpaper.png", "fit": "cover" },
   "resizable": false,
   "terminal_padding": [10, 12],
   "terminal_opacity": 0.82,
-  "preview": "layouts/tokyo-night-phone.svg",
+  "preview": "layouts/nightglass-phone.svg",
   "ui_font": "Inter",
   "font": "JetBrains Mono",
   "font_size": 12,
@@ -27,27 +27,27 @@
               "id": "topbar",
               "type": "block",
               "size": { "px": 52 },
-              "content": { "mod": "tokyo-night-phone", "props": { "role": "topbar", "fit_zoom": true } }
+              "content": { "mod": "nightglass-phone", "props": { "role": "topbar", "fit_zoom": true } }
             },
             {
               "id": "drawer",
               "type": "block",
               "hidden": true,
               "size": { "px": 360 },
-              "content": { "mod": "tokyo-night-phone", "props": { "role": "drawer" } }
+              "content": { "mod": "nightglass-phone", "props": { "role": "drawer" } }
             },
             {
               "id": "strip",
               "type": "block",
               "hidden": true,
               "size": { "px": 28 },
-              "content": { "mod": "tokyo-night-phone", "props": { "role": "strip" } }
+              "content": { "mod": "nightglass-phone", "props": { "role": "strip" } }
             },
             {
               "id": "tabs",
               "type": "block",
               "size": { "px": 40 },
-              "content": { "mod": "tokyo-night-phone", "props": { "role": "tabs" } }
+              "content": { "mod": "nightglass-phone", "props": { "role": "tabs" } }
             },
             {
               "id": "term",
@@ -76,7 +76,7 @@
               "type": "block",
               "hidden": true,
               "size": { "px": 44 },
-              "content": { "mod": "tokyo-night-phone", "props": { "role": "composer" } }
+              "content": { "mod": "nightglass-phone", "props": { "role": "composer" } }
             }
           ]
         }
@@ -86,7 +86,7 @@
       "id": "watch",
       "type": "block",
       "size": { "px": 1 },
-      "content": { "mod": "tokyo-night-phone", "props": { "role": "watch" } }
+      "content": { "mod": "nightglass-phone", "props": { "role": "watch" } }
     }
   ]
 }

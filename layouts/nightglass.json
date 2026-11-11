@@ -6,9 +6,9 @@
     20,
     22
   ],
-  "theme": "tokyo-night",
+  "theme": "nightglass",
   "background": {
-    "image": "mods/tokyo-night/wallpaper.png",
+    "image": "mods/nightglass/wallpaper.png",
     "fit": "cover"
   },
   "padding": 8,
@@ -18,7 +18,7 @@
     22
   ],
   "terminal_opacity": 0.82,
-  "preview": "layouts/tokyo-night.svg",
+  "preview": "layouts/nightglass.svg",
   "ui_font": "Inter",
   "font": "JetBrains Mono",
   "font_size": 13,
@@ -32,7 +32,7 @@
       "min": 56,
       "max": 480,
       "content": {
-        "mod": "tokyo-night",
+        "mod": "nightglass",
         "props": {
           "role": "sidebar"
         }
@@ -52,7 +52,7 @@
           },
           "window_drag": true,
           "content": {
-            "mod": "tokyo-night",
+            "mod": "nightglass",
             "props": {
               "role": "header"
             }
@@ -65,7 +65,7 @@
             "px": 40
           },
           "content": {
-            "mod": "tokyo-night",
+            "mod": "nightglass",
             "props": {
               "role": "strip"
             }
@@ -101,7 +101,7 @@
                       },
                       "header": {
                         "content": {
-                          "mod": "tokyo-night",
+                          "mod": "nightglass",
                           "props": {
                             "role": "pane"
                           }
@@ -117,7 +117,7 @@
                   "id": "empty",
                   "type": "block",
                   "content": {
-                    "mod": "tokyo-night",
+                    "mod": "nightglass",
                     "props": {
                       "role": "empty"
                     }

@@ -1,4 +1,4 @@
-// tokyo-night: the strip (tab bar + status capsule, offline banner, "Needs you" cards), the pane header
+// nightglass: the strip (tab bar + status capsule, offline banner, "Needs you" cards), the pane header
 // and the empty view (a machine with no spaces).
 import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
@@ -6,7 +6,7 @@ import { run, openOverlay, panes, props, exec, shared, setShared, spaces } from 
 import { C, MONO, CLEAR, alpha, mix, revealMotion, dur, ico, prog, mark, stop, nodePx, anchorBelowRight, setPressed, getPressed, machineColor } from "./lib.js";
 import { snapshot, short, LOCAL, mArg, mname, mkey } from "./data.js";
 
-export const EMPTY_KEY = "tokyo-night.empty"; // machine key shown in the empty view, or null
+export const EMPTY_KEY = "nightglass.empty"; // machine key shown in the empty view, or null
 const BANNER = 44, TABS = 40, GAP = 8, CARD = 76, HEAD = 18, PAD = 22, MAX_CARDS = 6;
 
 function plan(snap) {

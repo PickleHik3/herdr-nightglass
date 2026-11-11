@@ -1,4 +1,4 @@
-// tokyo-night-phone: one multi-role mod for the "tokyo-night-phone" layout (portrait phone, 412 x 915).
+// nightglass-phone: one multi-role mod for the "nightglass-phone" layout (portrait phone, 412 x 915).
 //   topbar    search button, finished count, stats rings, usage rings (opt-in: prop "usage": true), panel toggle (with the changes dot); polls
 //             changes, the stats (and usage when on) of the machine in front; closes the panel at load
 //   strip     unreachable banner / one-line chips for agents that wait or finished (hidden when empty)
@@ -8,7 +8,7 @@
 //             the focused machine and applies its whole-window scheme (its copy lives while the panel is hidden)
 //   watch     a 1 px full-height column that only measures the window height (the panel's height cap)
 //   usage, stats, colors   popups opened by the roles above
-// Data (data.js) and helpers (lib.js) are the desktop tokyo-night mod's files, copied verbatim.
+// Data (data.js) and helpers (lib.js) are the desktop nightglass mod's files, copied verbatim.
 import { View, div } from "gpui-kit";
 import { props, run } from "herdr";
 import { renderTopbar, renderUsage, renderStatsPopup, pollChanges, pollUsage, pollStats } from "./topbar.js";
@@ -20,7 +20,7 @@ import { snapshot, ALL } from "./data.js";
 import { machineScheme, ALL_THEME } from "./lib.js";
 import { WIN, DESIGN_W, zoom, popupOpened, popupClosed, setPanel } from "./phone.js";
 
-export default class TokyoNightPhone extends View {
+export default class NightglassPhone extends View {
   init(_p, cx) {
     const role = props()?.role;
     this.role = role;

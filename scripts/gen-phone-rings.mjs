@@ -1,4 +1,4 @@
-// Generates mods/tokyo-night-phone/ring-s-*.svg: the 16 px double ring of the phone's top bar
+// Generates mods/nightglass-phone/ring-s-*.svg: the 16 px double ring of the phone's top bar
 // (outer r11 stroke 4 round = week, inner r4.5 stroke 3.5 butt = 5-hour; 5% steps), the same way
 // the desktop mod's ring-*.svg arcs are pre-made. Design: design/Phone.dc.html (ring in the top bar).
 // The usage popover uses the desktop mod's ring-* files instead (same look at 34 px).
@@ -7,7 +7,7 @@ import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const out = join(dirname(fileURLToPath(import.meta.url)), "../mods/tokyo-night-phone");
+const out = join(dirname(fileURLToPath(import.meta.url)), "../mods/nightglass-phone");
 const f = (n) => n.toFixed(3).replace(/\.?0+$/, "");
 const OW = 4, IR = 4.5, IW = 3.5;
 const svg = (sw, cap, body) =>

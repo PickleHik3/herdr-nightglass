@@ -2,7 +2,7 @@
 //
 // `herdr-app check <mod>` loads a mod once with no props and no live data, so the phone mod's
 // role switch only ever reaches `default: div()`. This writes, per role and scenario, a copy of
-// mods/tokyo-night-phone/*.js in which `from "herdr"` points at a local fixture module (spaces,
+// mods/nightglass-phone/*.js in which `from "herdr"` points at a local fixture module (spaces,
 // machines, agents, usage rows, props with the role). The copy is then checked like any mod: its
 // initial description and eager native elements are built against the app's real gpui-kit.
 //
@@ -15,11 +15,11 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const PHONE = join(ROOT, "mods/tokyo-night-phone");
+const PHONE = join(ROOT, "mods/nightglass-phone");
 const home = process.argv[2];
 if (!home) { console.error("usage: node scripts/stage-role-checks.mjs <herdr home>"); process.exit(2); }
 
-const theme = JSON.parse(readFileSync(join(ROOT, "themes/tokyo-night.json"), "utf8"));
+const theme = JSON.parse(readFileSync(join(ROOT, "themes/nightglass.json"), "utf8"));
 const themeColors = { background: theme.background, foreground: theme.foreground, selection: theme.selection, ...theme.colors };
 themeColors.ansi0 = theme.ansi[0];
 
@@ -89,12 +89,12 @@ const USAGE = { at: Date.now() - 30000, stale: false, rows: [
 ] };
 const AG = (key, name) => ({ key, name, icon: null, tint: false, tile: null, color: null, shell: false, agent: true, run: [key], installed: true });
 const STATS = { key: "@local", name: "amalv", at: Date.now() - 4000, fail: false, data: { cpu: 37, memPct: 62, memText: "9.9/16 GB", diskFree: 120.5, diskTotal: 512 } };
-const store = new Map([["tokyo-night.usage", SCEN === "nousage" ? undefined : USAGE], ["tokyo-night-phone.usage-open", false],
-  ["tokyo-night-phone.stats", SCEN === "nostats" ? undefined : STATS], ["tokyo-night-phone.stats-open", false],
-  ["tokyo-night-phone.panel", SCEN === "panel-open" || SCEN === "kbd-open" || SCEN === "full" || SCEN === "full-kbd" || SCEN === "agents" || SCEN === "all"],
-  ["tokyo-night-phone.changes", 3],
-  ["tokyo-night-phone.finished-open", SCEN === "fin-both" || SCEN === "fin-only"],
-  ["tokyo-night-phone.panel-full", SCEN === "full" || SCEN === "full-kbd"],
+const store = new Map([["nightglass.usage", SCEN === "nousage" ? undefined : USAGE], ["nightglass-phone.usage-open", false],
+  ["nightglass-phone.stats", SCEN === "nostats" ? undefined : STATS], ["nightglass-phone.stats-open", false],
+  ["nightglass-phone.panel", SCEN === "panel-open" || SCEN === "kbd-open" || SCEN === "full" || SCEN === "full-kbd" || SCEN === "agents" || SCEN === "all"],
+  ["nightglass-phone.changes", 3],
+  ["nightglass-phone.finished-open", SCEN === "fin-both" || SCEN === "fin-only"],
+  ["nightglass-phone.panel-full", SCEN === "full" || SCEN === "full-kbd"],
   ["new-menu.agents", { "": [AG("claude", "Claude Code"), AG("codex", "Codex")], "amal-build": [AG("claude", "Claude Code")] }]]);
 const done = Promise.resolve({ code: 0, stdout: "", stderr: "" });
 if (SCEN === "all") { try { localStorage.setItem("open", JSON.stringify({ set: true, key: "@all" })); } catch {} }
@@ -107,9 +107,9 @@ export const window = () => ({ platform: "linux", titlebar: "none", buttons: fal
 export const layout = () => ({ id: "root", type: "row", children: [{ id: "phone", type: "column", children: [{ id: "core", type: "column", children: [{ id: "drawer", type: "block", size: { px: 240 }, hidden: SCEN === "panel-closed" }, { id: "strip", type: "block", size: { px: 28 }, hidden: SCEN === "quiet" }] }] }] });
 export const shared = (k) => store.get(k);
 // The composer scenarios pin the composer state (the mod resets it in init, which would hide the row being checked).
-if (SCEN === "composer-open") store.set("tokyo-night-phone.composer", { open: true, target: "t1", ctx: "s1|tb1|t1" });
-if (SCEN === "composer-moved") store.set("tokyo-night-phone.composer", { open: true, target: "t1", ctx: "s1|tb1|t1", moved: "t9" });
-export const setShared = (k, v) => { if (!(SCEN.startsWith("composer-") && k === "tokyo-night-phone.composer")) store.set(k, v); return null; };
+if (SCEN === "composer-open") store.set("nightglass-phone.composer", { open: true, target: "t1", ctx: "s1|tb1|t1" });
+if (SCEN === "composer-moved") store.set("nightglass-phone.composer", { open: true, target: "t1", ctx: "s1|tb1|t1", moved: "t9" });
+export const setShared = (k, v) => { if (!(SCEN.startsWith("composer-") && k === "nightglass-phone.composer")) store.set(k, v); return null; };
 export const spaces = () => SPACES;
 export const machines = () => [{ name: null, layout: "ready" }, { name: "amal-build", layout: SCEN === "offline" ? "unavailable" : "ready" }, ...(SCEN === "all" ? [{ name: "pong", layout: "ready" }] : [])];
 export const panes = () => PANES;

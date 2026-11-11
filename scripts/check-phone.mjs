@@ -1,7 +1,7 @@
 // Static checks for the phone bundle (no Herdr needed): node scripts/check-phone.mjs
-//  - every .js of mods/tokyo-night-phone parses as an ES module (node --check)
+//  - every .js of mods/nightglass-phone parses as an ES module (node --check)
 //  - relative imports resolve inside the folder and export what is imported
-//  - names imported from gpui-kit / gpui-base are declared in mods/tokyo-night/gpui-kit.d.ts, and from
+//  - names imported from gpui-kit / gpui-base are declared in mods/nightglass/gpui-kit.d.ts, and from
 //    "herdr" in herdr.d.ts (set HERDR_DTS=<path to the app's herdr.d.ts>; skipped when unset)
 //  - every builder method called is declared in the d.ts files
 //  - lib.js and data.js are still byte-identical copies of the desktop mod's
@@ -16,8 +16,8 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const PHONE = join(ROOT, "mods/tokyo-night-phone");
-const DESK = join(ROOT, "mods/tokyo-night");
+const PHONE = join(ROOT, "mods/nightglass-phone");
+const DESK = join(ROOT, "mods/nightglass");
 // The repo's gpui-kit.d.ts comes from a newer app (0.1.15) than the store ships (0.1.13); GPUI_KIT_DTS may point at a
 // 0.1.13 one (`herdr-app types <mod>` on the phone writes it).
 const kit = readFileSync(process.env.GPUI_KIT_DTS ?? join(DESK, "gpui-kit.d.ts"), "utf8");
@@ -118,16 +118,16 @@ console.log(`phone-only API names (not used by the desktop mod): ${phoneApi.map(
 }
 
 for (const f of ["lib.js", "data.js"]) {
-  if (readFileSync(join(PHONE, f), "utf8") !== readFileSync(join(DESK, f), "utf8")) bad(`${f} differs from the desktop copy (re-sync: cp mods/tokyo-night/${f} mods/tokyo-night-phone/)`);
+  if (readFileSync(join(PHONE, f), "utf8") !== readFileSync(join(DESK, f), "utf8")) bad(`${f} differs from the desktop copy (re-sync: cp mods/nightglass/${f} mods/nightglass-phone/)`);
 }
 console.log("lib.js, data.js: identical to the desktop mod's");
 
-const layout = JSON.parse(readFileSync(join(ROOT, "layouts/tokyo-night-phone.json"), "utf8"));
+const layout = JSON.parse(readFileSync(join(ROOT, "layouts/nightglass-phone.json"), "utf8"));
 console.log("layout JSON: valid");
 const roles = new Set(), ids = [];
 const walk = (n) => {
   ids.push(n.id);
-  if (n.content?.mod) { if (n.content.mod !== "tokyo-night-phone") bad(`layout names mod ${n.content.mod}`); roles.add(n.content.props?.role); }
+  if (n.content?.mod) { if (n.content.mod !== "nightglass-phone") bad(`layout names mod ${n.content.mod}`); roles.add(n.content.props?.role); }
   (n.children ?? []).forEach(walk);
 };
 walk(layout);
@@ -142,7 +142,7 @@ for (const old of ["sidebar", "panel", "panel-body", "work-body", "main-stack"])
 }
 console.log("layout roles:", [...roles].join(", "), "| node ids:", ids.join(", "), "| referenced:", [...refs].join(", "));
 
-// icons: ico("x") loads mods/tokyo-night/x.svg (lib.js M), pico("x") mods/tokyo-night-phone/x.svg
+// icons: ico("x") loads mods/nightglass/x.svg (lib.js M), pico("x") mods/nightglass-phone/x.svg
 let nIcons = 0;
 for (const [f, src] of Object.entries(mods)) {
   for (const m of src.matchAll(/\bico\("([a-z-]+)"/g)) { nIcons++; if (!existsSync(join(DESK, `${m[1]}.svg`))) bad(`${f}: ico ${m[1]}.svg missing in the desktop mod`); }

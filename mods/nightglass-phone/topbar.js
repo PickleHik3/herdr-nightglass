@@ -1,4 +1,4 @@
-// tokyo-night-phone: the top bar (search button, stats rings, usage rings, panel toggle with the changes dot)
+// nightglass-phone: the top bar (search button, stats rings, usage rings, panel toggle with the changes dot)
 // and the two popovers its widgets open: Claude/Codex usage and machine stats (cpu / ram / disk of the machine in front).
 // Design: design/Phone.dc.html (header, usage sheet); look: Glass (design/GLASS.md).
 import { div, image } from "gpui-kit";
@@ -8,8 +8,8 @@ import { C, MONO, CLEAR, alpha, dur, ico, ring, level } from "./lib.js";
 import { USAGE_MACHINE, parseUsageJson, snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
 import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, popupIsOpen, popupJustClosed, swipeArea, swipeBody, panelOpen, setPanel, finishedRows, finishedOpen, setFinishedOpen } from "./phone.js";
 
-const USAGE_KEY = "tokyo-night.usage";                   // the desktop mod's key: same data, same format
-const STATS_KEY = "tokyo-night-phone.stats";             // { key, name, at, data, fail, offline } of the machine in front
+const USAGE_KEY = "nightglass.usage";                   // the desktop mod's key: same data, same format
+const STATS_KEY = "nightglass-phone.stats";             // { key, name, at, data, fail, offline } of the machine in front
 // Stats popover: 10 pad, header 16, three 22 px rows, 8 gaps, 10 pad.
 const STATS_H = 20 + 16 + 3 * 22 + 3 * 8;
 const diskUsed = (data) => data.diskTotal > 0 ? Math.round(100 - data.diskFree / data.diskTotal * 100) : 0;
@@ -38,7 +38,7 @@ export function pollChanges(view, cx) {
       n = r.code === 0 ? r.stdout.split("\n").filter(Boolean).length : 0;
     } catch { n = 0; }
     view.chBusy = false;
-    if (n !== view.changes) { view.changes = n; setShared("tokyo-night-phone.changes", n); cx.notify(); }
+    if (n !== view.changes) { view.changes = n; setShared("nightglass-phone.changes", n); cx.notify(); }
   });
 }
 // The stats of the machine in front (the focused space's; the first when nothing is focused): one exec every 15 s (3 s

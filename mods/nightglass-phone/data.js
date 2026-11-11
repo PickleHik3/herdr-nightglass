@@ -1,4 +1,4 @@
-// tokyo-night: live data (machines, spaces, terminals as rows), machine stats and ai-usage parsing.
+// nightglass: live data (machines, spaces, terminals as rows), machine stats and ai-usage parsing.
 import { spaces, machines, panes, agents, terminals, focused, home } from "herdr";
 
 export const LOCAL = "@local";

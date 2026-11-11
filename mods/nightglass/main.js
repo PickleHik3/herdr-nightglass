@@ -1,4 +1,4 @@
-// tokyo-night: one multi-role mod for the "tokyo-night" layout.
+// nightglass: one multi-role mod for the "nightglass" layout.
 //   sidebar  machines, folder capsules, system stats (and the 56 px rail below 160 px wide)
 //   header   search pill, Claude usage rings, Files / Changes, settings, window buttons
 //   strip    "Nothing needs you" / offline banner / "Needs you" cards (sizes its own block)
@@ -13,7 +13,7 @@ import { renderStrip, renderPane, renderEmpty, EMPTY_KEY } from "./strip.js";
 import { snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
 import { nodePx, machineScheme, ALL_THEME } from "./lib.js";
 
-export default class TokyoNight extends View {
+export default class Nightglass extends View {
   init(_p, cx) {
     const role = props()?.role;
     this.stats = {};   // machine key -> { tried, at, data, fail }

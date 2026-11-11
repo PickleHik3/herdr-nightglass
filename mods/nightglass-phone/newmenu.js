@@ -1,4 +1,4 @@
-// tokyo-night-phone: the panel's actions row (what the retired menu popup offered). Desktop's New menu lists the
+// nightglass-phone: the panel's actions row (what the retired menu popup offered). Desktop's New menu lists the
 // connected machines with their create options (New space, New terminal tab, Agent flyout); on the phone the row
 // sits in the panel (drawer.js) for the machine shown: New space, New terminal tab, Agent (its list opens as a second
 // row of chips under the first), then Files, Changes and Settings. Agent lists are the desktop's (knownAgents,

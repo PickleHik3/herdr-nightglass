@@ -1,4 +1,4 @@
-// tokyo-night-phone: the attention strip (unreachable banner / one sideways-scrolling row of one-line chips for the
+// nightglass-phone: the attention strip (unreachable banner / one sideways-scrolling row of one-line chips for the
 // agents that wait or finished) and the tab-pill row. Design: design/Phone.dc.html (attention, tab strip); look and
 // behaviour: Glass.
 //
@@ -41,7 +41,7 @@ function plan(snap) {
 }
 
 // Show / hide and size the strip block from what is on screen. Called by a timer (main.js, tabs role); a resize is
-// retried at most every 2 s. Writes nodes.strip.{hidden,size} to layouts/.state/tokyo-night-phone.json.
+// retried at most every 2 s. Writes nodes.strip.{hidden,size} to layouts/.state/nightglass-phone.json.
 export function stripSync(view) {
   if (panelFull()) return; // the panel covers the strip place: it stays hidden until the panel is normal again
   const snap = snapshot();
