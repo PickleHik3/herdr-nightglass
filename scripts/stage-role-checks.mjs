@@ -27,20 +27,26 @@ themeColors.ansi0 = theme.ansi[0];
 const CASES = {
   topbar: { role: "topbar", scen: "normal" },
   "topbar-nousage": { role: "topbar", scen: "nousage" },
-  strip: { role: "strip", scen: "normal" },
-  "strip-quiet": { role: "strip", scen: "quiet" },
+  "topbar-panel-open": { role: "topbar", scen: "panel-open" },     // toggle in its active look
+  "topbar-nostats": { role: "topbar", scen: "nostats" },           // stats rings empty
+  "strip-many": { role: "strip", scen: "many" },                   // 5 chips: the row scrolls sideways
+  strip: { role: "strip", scen: "normal" },                        // 2 chips (one waiting, one finished)
+  "strip-one": { role: "strip", scen: "one" },
+  "strip-none": { role: "strip", scen: "quiet" },                  // nothing waits: the block is hidden, the role renders an empty column
   "strip-offline": { role: "strip", scen: "offline" },
   tabs: { role: "tabs", scen: "normal" },
   composer: { role: "composer", scen: "normal" },
   "composer-open": { role: "composer", scen: "composer-open" },
   "composer-moved": { role: "composer", scen: "composer-moved" },
-  drawer: { role: "drawer", scen: "normal" },
+  "drawer-closed": { role: "drawer", scen: "panel-closed" },      // the block is hidden; the role still renders (timers)
+  drawer: { role: "drawer", scen: "panel-open" },                  // panel open
+  "drawer-kbd-open": { role: "drawer", scen: "kbd-open" },         // keyboard up (540 px window) + panel open
+  "drawer-agents": { role: "drawer", scen: "agents" },             // actions row with the Agent list open
   "drawer-all": { role: "drawer", scen: "all" },
   "drawer-offline": { role: "drawer", scen: "offline" },
   watch: { role: "watch", scen: "normal" },
-  menu: { role: "menu", scen: "normal" },
-  "menu-agents": { role: "menu", scen: "agents" },
-  "menu-offline": { role: "menu", scen: "offline" },
+  stats: { role: "stats", scen: "normal" },                        // stats popover
+  "stats-nodata": { role: "stats", scen: "nostats" },
   usage: { role: "usage", scen: "normal" },
   colors: { role: "colors", scen: "normal" },
 };
@@ -61,9 +67,10 @@ const PANES = [
   P("p1", "t1", "tb1", "Herdr Dynamic Board", "idle", true),
   P("amal-build/p2", "amal-build/t15", "amal-build/tb2", "AI Architecture", "working", false),
   P("amal-build/p3", "amal-build/t16", "amal-build/tb3", "Word Border", SCEN === "quiet" ? "working" : "blocked", false),
-  P("amal-build/p4", "amal-build/t14", "amal-build/tb4", "Issue #35", SCEN === "quiet" ? "idle" : "done", false),
+  P("amal-build/p4", "amal-build/t14", "amal-build/tb4", "Issue #35", SCEN === "quiet" || SCEN === "one" ? "idle" : "done", false),
   P("p5", "t9", "tb1", "zsh", null, false),
 ];
+if (SCEN === "many") for (let i = 0; i < 3; i++) PANES.push(P("p" + (20 + i), "t" + (20 + i), "tb1", "A long agent title number " + i, i === 1 ? "blocked" : "done", false));
 const USAGE = { at: Date.now() - 30000, stale: false, rows: [
   { tool: "claude", plan: "Max", name: "Account 1", five: 41, fiveAt: Date.now() / 1000 + 7800, week: 62, weekAt: Date.now() / 1000 + 86400, saved: null, note: "" },
   { tool: "claude", plan: "Pro", name: "Account 2", five: 0, fiveAt: null, week: 34, weekAt: Date.now() / 1000 + 90000, saved: null, note: "" },
@@ -72,17 +79,21 @@ const USAGE = { at: Date.now() - 30000, stale: false, rows: [
   { tool: "codex", plan: "", name: "Account 5", five: null, fiveAt: null, week: null, weekAt: null, saved: null, note: "no data" },
 ] };
 const AG = (key, name) => ({ key, name, icon: null, tint: false, tile: null, color: null, shell: false, agent: true, run: [key], installed: true });
+const STATS = { key: "@local", name: "amalv", at: Date.now() - 4000, fail: false, data: { cpu: 37, memPct: 62, memText: "9.9/16 GB", diskFree: 120.5, diskTotal: 512 } };
 const store = new Map([["tokyo-night.usage", SCEN === "nousage" ? undefined : USAGE], ["tokyo-night-phone.usage-open", false],
+  ["tokyo-night-phone.stats", SCEN === "nostats" ? undefined : STATS], ["tokyo-night-phone.stats-open", false],
+  ["tokyo-night-phone.panel", SCEN === "panel-open" || SCEN === "kbd-open" || SCEN === "agents" || SCEN === "all"],
+  ["tokyo-night-phone.changes", 3],
   ["new-menu.agents", { "": [AG("claude", "Claude Code"), AG("codex", "Codex")], "amal-build": [AG("claude", "Claude Code")] }]]);
 const done = Promise.resolve({ code: 0, stdout: "", stderr: "" });
 if (SCEN === "all") { try { localStorage.setItem("open", JSON.stringify({ set: true, key: "@all" })); } catch {} }
 
-export const props = () => ({ role: ROLE, fit_zoom: true, openAgents: SCEN === "agents" ? "amal-build" : null, overlay: "ov1", changes: 3, h: 428, machine: "amal-build", name: "amal-build" });
+export const props = () => ({ role: ROLE, fit_zoom: true, openAgents: SCEN === "agents" ? "@local" : null, overlay: "ov1", changes: 3, h: 428, machine: "amal-build", name: "amal-build" });
 export const theme = () => THEME;
 export const settings = () => ({ zoom: 2.5 });
 export const keys = () => [];
 export const window = () => ({ platform: "linux", titlebar: "none", buttons: false, maximized: false, fullscreen: false, active: true });
-export const layout = () => ({ id: "root", type: "row", children: [{ id: "phone", type: "column", children: [{ id: "core", type: "column", children: [{ id: "strip", type: "block", size: { px: 36 } }] }, { id: "drawer", type: "block", size: { px: 320 }, hidden: false }] }] });
+export const layout = () => ({ id: "root", type: "row", children: [{ id: "phone", type: "column", children: [{ id: "core", type: "column", children: [{ id: "drawer", type: "block", size: { px: 240 }, hidden: SCEN === "panel-closed" }, { id: "strip", type: "block", size: { px: 28 }, hidden: SCEN === "quiet" }] }] }] });
 export const shared = (k) => store.get(k);
 // The composer scenarios pin the composer state (the mod resets it in init, which would hide the row being checked).
 if (SCEN === "composer-open") store.set("tokyo-night-phone.composer", { open: true, target: "t1", ctx: "s1|tb1|t1" });

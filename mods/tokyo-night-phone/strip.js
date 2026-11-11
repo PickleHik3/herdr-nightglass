@@ -1,19 +1,21 @@
-// tokyo-night-phone: the attention strip (status capsule / unreachable banner / swipeable "Needs you" cards)
-// and the tab-pill row. Design: design/Phone.dc.html (attention, tab strip); look and behaviour: Glass.
+// tokyo-night-phone: the attention strip (unreachable banner / one sideways-scrolling row of one-line chips for the
+// agents that wait or finished) and the tab-pill row. Design: design/Phone.dc.html (attention, tab strip); look and
+// behaviour: Glass.
 //
-// Reconciled with the desktop strip (a tab bar of the shown space + a status capsule on the right): the phone keeps
-// ONE row of pills (every agent terminal across machines, the phone board's design) with the desktop's "+" (tab.new)
-// at its end, and its status capsule is the quiet row above it. When something waits or finished, the cards replace the
-// capsule (as on the board); each card carries its own Waiting / Finished label and tint, and waiting sorts first.
+// The phone keeps ONE row of pills (every agent terminal across machines, the phone board's design) with the desktop's
+// "+" (tab.new) at its end. Above it the strip: when nothing waits or finished (and no machine is unreachable) the strip
+// block is HIDDEN and takes no height; otherwise it is the banner (56) and / or the chip row (28). Each chip carries its
+// own tint (waiting = red, finished = green) and waiting sorts first. The strip block is shown / hidden and sized by
+// stripSync (a timer of the tabs role, which is never hidden); a hidden block may not render.
 import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { run, setAgentOrder } from "herdr";
-import { C, MONO, CLEAR, alpha, dur, ico, mark, nodePx, machineColor } from "./lib.js";
+import { run, layout, setAgentOrder } from "herdr";
+import { C, MONO, CLEAR, alpha, dur, ico, mark, nodePx, findNode, machineColor } from "./lib.js";
 import { snapshot, lastSeen } from "./data.js";
 import { pico, swipeArea, swipeBody, watchScroll, tap } from "./phone.js";
 import { toggleComposer, composerOpen } from "./composer.js";
 
-const QUIET = 36, BANNER = 56, CARD = 72, CARD_W = 328, GAP = 6, MAX_CARDS = 8;
+const BANNER = 56, CHIP = 28, CHIP_MAX_W = 230, GAP = 6, MAX_CARDS = 8;
 
 // ---- acting on a row (copy of the desktop sidebar's focusRow) ----
 export function focusRow(r) {
@@ -30,16 +32,25 @@ function plan(snap) {
   const offline = snap.offline;
   const parts = [];
   if (offline.length) parts.push(BANNER);
-  if (att.length) parts.push(CARD);
-  else if (!offline.length) parts.push(QUIET);
-  return { att, offline, px: parts.reduce((s, n) => s + n, 0) + GAP * (parts.length - 1) };
+  if (att.length) parts.push(CHIP);
+  // px 0: nothing to show, the block is hidden.
+  return { att, offline, px: parts.length ? parts.reduce((s, n) => s + n, 0) + GAP * (parts.length - 1) : 0 };
 }
 
-function summary(snap) {
-  const live = snap.rows.filter(r => r.kind !== "offline");
-  const w = live.filter(r => r.kind === "working").length;
-  const i = live.filter(r => r.kind === "idle").length;
-  return `${w} working · ${i} idle`;
+// Show / hide and size the strip block from what is on screen. Called by a timer (main.js, tabs role); a resize is
+// retried at most every 2 s. Writes nodes.strip.{hidden,size} to layouts/.state/tokyo-night-phone.json.
+export function stripSync(view) {
+  const { px } = plan(snapshot());
+  const hidden = !!findNode(layout(), "strip")?.hidden;
+  if (px === 0) { if (!hidden) run("layout.hide", { id: "strip" }); return; }
+  if (nodePx("strip") !== px) {
+    const now = Date.now();
+    if (view.stripReq !== px || now - (view.stripAt ?? 0) > 2000) {
+      view.stripReq = px; view.stripAt = now;
+      run("layout.resize", { id: "strip", px });
+    }
+  }
+  if (hidden) run("layout.show", { id: "strip" });
 }
 
 function banner(offline) {
@@ -57,55 +68,29 @@ function banner(offline) {
       .on_click(() => run("app.settings", { section: "machines" })).child("Machines"));
 }
 
-// The whole card opens the agent (agent.focus); the chip on the right just names the terminal, in the machine's color.
-// Glass attention tints: waiting = red 16% + red 45% border + shadow_md; finished = green 10% + green 35% border.
-function card(view, r, i, n) {
+// One line per agent, 28 px: status mark, title (cut), elapsed, the tNN tag. The whole chip opens the agent (agent.focus).
+// Glass attention tints: waiting = red 16% + red 45% border; finished = green 10% + green 35% border.
+function chip(view, r) {
   const waiting = r.kind === "waiting";
   const tint = waiting ? C.red : C.green;
-  return h_flex().id(`tnp-card-${r.address}`).w(CARD_W).h(CARD).flex_none().pl(12).pr(10).gap(10).items_center().rounded(10)
+  return h_flex().id(`tnp-card-${r.address}`).h(CHIP).max_w(CHIP_MAX_W).flex_none().pl(9).pr(4).gap(6).items_center().rounded(14)
     .bg(alpha(tint, waiting ? 0.16 : 0.10)).border(1).border_color(alpha(tint, waiting ? 0.45 : 0.35))
-    .when(waiting, el => el.shadow_md())
     .cursor_pointer()
     .on_click(tap(view, () => run("agent.focus", { terminal: r.address })))
-    .child(v_flex().flex_1().min_w(0).gap(3)
-      .child(h_flex().w_full().min_w(0).gap(7).items_center()
-        .child(mark(r.kind))
-        .child(div().min_w(0).flex_shrink(1).truncate().font_semibold().text_color(C.fg).child(r.title))
-        .child(div().flex_none().text_size(11).font_semibold().text_color(tint).child(waiting ? "Waiting" : "Finished"))
-        .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.muted).child(dur(r.ms))))
-      .child(div().w_full().min_w(0).truncate().text_size(12).text_color(C.muted).child(r.report || r.program?.name || ""))
-      .child(div().w_full().min_w(0).truncate().text_size(11).text_color(C.muted).child(`${r.machineName} › ${r.spaceName} · ${i + 1}/${n}`)))
-    .child(div().flex_none().px(6).py(1).rounded(5).bg(waiting ? C.red : machineColor(r.machine)).font_family(MONO).text_size(10.5).font_medium()
+    .child(mark(r.kind))
+    .child(div().min_w(0).flex_shrink(1).truncate().text_size(12).font_semibold().text_color(C.fg).child(r.title))
+    .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.muted).child(dur(r.ms)))
+    .child(div().flex_none().px(5).rounded(7).bg(waiting ? C.red : machineColor(r.machine)).font_family(MONO).text_size(10.5).font_medium()
       .text_color(C.ink).child(r.short));
-}
-
-// The status capsule of the quiet state: glass + rim (the desktop's status pill).
-function capsule(snap) {
-  return h_flex().flex_1().min_w(0).h(QUIET).px(12).gap(8).items_center().rounded(18).bg(C.glass).border(1).border_color(C.rim)
-    .child(ico("check-circle", 14, C.green))
-    .child(div().flex_none().text_size(12).font_medium().text_color(C.fg).child("Nothing needs you"))
-    .child(div().flex_1().min_w(0).truncate().text_right().text_size(11).text_color(C.muted).child(summary(snap)));
 }
 
 export function renderStrip(view) {
   const snap = snapshot();
-  const { att, offline, px } = plan(snap);
-  // Size our own block (as the desktop strip does): only when it differs from the layout's current px,
-  // retried at most every 2 s. This writes nodes.strip.size to layouts/.state/tokyo-night-phone.json.
-  const cur = nodePx("strip");
-  if (cur !== px) {
-    const now = Date.now();
-    if (view.stripReq !== px || now - (view.stripAt ?? 0) > 2000) {
-      view.stripReq = px; view.stripAt = now;
-      run("layout.resize", { id: "strip", px });
-    }
-  }
+  const { att, offline } = plan(snap);
   return v_flex().id("tnp-strip").size_full().gap(GAP).overflow_hidden()
     .when(offline.length > 0, el => el.child(h_flex().w_full().flex_none().px(8).child(div().flex_1().min_w(0).child(banner(offline)))))
-    .when(att.length > 0, el => el.child(swipeArea(watchScroll(h_flex().id("tnp-cards").w_full().h(CARD).flex_none().overflow_x_scroll(), view))
-      .child(swipeBody(h_flex().h_full().flex_none().px(8).gap(8)).children(att.map((r, i) => card(view, r, i, att.length))))))
-    .when(att.length === 0 && offline.length === 0, el => el.child(h_flex().w_full().flex_none().px(8)
-      .child(capsule(snap))));
+    .when(att.length > 0, el => el.child(swipeArea(watchScroll(h_flex().id("tnp-cards").w_full().h(CHIP).flex_none().overflow_x_scroll(), view))
+      .child(swipeBody(h_flex().h_full().flex_none().px(8).gap(6).items_center()).children(att.map(r => chip(view, r))))));
 }
 
 // ---- tab pills: every agent across machines (plus the focused terminal when it isn't one) ----

@@ -1,14 +1,20 @@
-// tokyo-night-phone: the drawer under the terminal. Glass, as the desktop sidebar: two floating boxes with a gap
-// between them, a list box (machine cards + All, spaces as capsules with their agent rows) and a widget box
-// (cpu / ram / disk). Design: design/Phone.dc.html (drawer); look: design/GLASS.md. The drawer block itself is
-// transparent so the wallpaper shows between and around the boxes.
+// tokyo-night-phone: the panel under the top bar (layout node "drawer"), hidden until the top bar's last button toggles
+// it. One Glass floating box: machine cards + All, the actions row (New space / Terminal / Agent / Files / Changes /
+// Settings, newmenu.js: what the retired menu popup offered) and the list (spaces as capsules with their agent rows,
+// which scrolls). Design: design/Phone.dc.html (drawer); look: design/GLASS.md. The block itself is transparent so the
+// wallpaper shows around the box. Its height follows its content up to a cap that leaves the terminal >= 120 px
+// (panelSync); it shows whether or not the soft keyboard is up. Picking an agent or a space closes it.
 import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { openOverlay, closeOverlay, props, shared, setShared, run } from "herdr";
-import { C, M, MONO, CLEAR, SCHEMES, COLORS_KEY, alpha, dur, ico, mark, level, machineColor, nearBlack, darkOf, lightOf, anchorBelow } from "./lib.js";
+import { openOverlay, closeOverlay, props, shared, setShared, run, layout } from "herdr";
+import { C, M, MONO, CLEAR, SCHEMES, COLORS_KEY, alpha, dur, ico, mark, machineColor, nearBlack, darkOf, lightOf, anchorBelow, nodePx, findNode } from "./lib.js";
 import { snapshot, LOCAL, ALL, mArg, lastSeen, statsMachine } from "./data.js";
-import { MOD, WIN, DESIGN_W, zoom, dsg, popupIsOpen, popupJustClosed, swipeArea, swipeBody, watchScroll, tap } from "./phone.js";
+import { MOD, WIN, DESIGN_W, zoom, dsg, popupIsOpen, popupJustClosed, swipeArea, swipeBody, watchScroll, tap, setPanel } from "./phone.js";
 import { focusRow } from "./strip.js";
+import { actionRows, actionsHeight } from "./newmenu.js";
+import { composerOpen } from "./composer.js";
+
+const closePanel = () => setPanel(false);
 
 const machineIcon = (m, size, color) => ico(m.key === LOCAL ? "monitor" : "server", size, color);
 // Herdr's ram ("sheep") tile, full color: the All tile's icon (the desktop mod's herdr.png).
@@ -47,7 +53,7 @@ function tile(view, m, open, w) {
         if (popupJustClosed("colors")) return;                                              // the outside press just closed it
         if (popupIsOpen("colors") && view.colorsId) { closeOverlay(view.colorsId); return; } // a second tap closes it
         view.colorsId = openOverlay({ mod: MOD, kind: "popup", frame: "none", width: COLORS_W, height: COLORS_H, at: view.colorsAt, props: { role: "colors", machine: m.key, name: m.name } });
-      } else { view.goMachine(m.key); view.pollStats(cx, true); }
+      } else view.goMachine(m.key); // switches the list; the panel stays open for picking an agent
       cx.notify();
     }))
     .child(h_flex().size(28).flex_none().rounded(7).justify_center().items_center().bg(alpha(mc, 0.16))
@@ -66,7 +72,7 @@ function allTile(view, snap, open, w) {
     .bg(sel ? C.raisedHi : C.raised).border(1).border_color(sel ? alpha("#ffffff", 0.4) : CLEAR)
     .when(sel, el => el.shadow_md())
     .cursor_pointer()
-    .on_click(tap(view, (_e, cx) => { view.setOpen(ALL); view.pollStats(cx, true); cx.notify(); }))
+    .on_click(tap(view, (_e, cx) => { view.setOpen(ALL); cx.notify(); }))
     .child(sheep(28))
     .child(v_flex().flex_1().min_w(0).gap(1)
       .child(div().truncate().text_size(12).font_semibold().text_color(sel ? C.fg : C.muted).child("All"))
@@ -84,7 +90,7 @@ function agentRow(view, r) {
     .bg(cur ? mc : waiting ? alpha(C.red, 0.2) : CLEAR)
     .when(cur, el => el.shadow_md())
     .text_size(13).text_color(cur ? t1 : r.kind === "offline" ? C.dim : C.muted).cursor_pointer()
-    .on_click(tap(view, () => focusRow(r)))
+    .on_click(tap(view, () => { closePanel(); focusRow(r); }))
     .child(mark(r.kind))
     .child(v_flex().flex_1().min_w(0)
       .child(div().truncate().when(cur, el => el.font_semibold()).child(r.title))
@@ -114,7 +120,7 @@ function capsule(view, sp, m) {
 
 const newSpaceRow = (view, id, m, label) => h_flex().id(id).w_full().h(40).flex_none().px(12).gap(8).items_center().rounded(9)
   .text_size(12).text_color(C.muted).cursor_pointer()
-  .on_click(tap(view, () => run("space.new", { machine: mArg(m.key) })))
+  .on_click(tap(view, () => { closePanel(); run("space.new", { machine: mArg(m.key) }); }))
   .child(ico("folder", 13, C.muted)).child(div().truncate().child(label));
 
 // The All view: one card per machine, tinted in its color (9% fill, 36% border), with its capsules inside.
@@ -124,7 +130,7 @@ function allGroups(view, snap) {
     return v_flex().id(`tnp-all-${m.key}`).w_full().flex_none().rounded(12).p(4).gap(4)
       .bg(alpha(color, 0.09)).border(1).border_color(alpha(color, 0.36)).opacity(m.offline ? 0.62 : 1)
       .child(h_flex().id(`tnp-all-h-${m.key}`).w_full().h(40).flex_none().gap(8).px(6).items_center().rounded(8).cursor_pointer()
-        .on_click(tap(view, (_e, cx) => { view.goMachine(m.key); view.pollStats(cx, true); cx.notify(); }))
+        .on_click(tap(view, (_e, cx) => { closePanel(); view.goMachine(m.key); cx.notify(); }))
         .child(machineIcon(m, 13, color))
         // The name keeps its width; a long summary is what gets cut.
         .child(div().flex_none().max_w(140).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name))
@@ -135,27 +141,35 @@ function allGroups(view, snap) {
   });
 }
 
-// ---- widget box: cpu / ram / disk, bars of equal length (disk = used, with what is free as its text, like the desktop) ----
-const diskUsed = (data) => data.diskTotal > 0 ? Math.round(100 - data.diskFree / data.diskTotal * 100) : 0;
-const diskFreeText = (data) => `${data.diskFree >= 100 ? Math.round(data.diskFree) : data.diskFree.toFixed(1)} GB free`;
-function stats(view, m) {
-  const st = view.stats?.[m.key];
-  const data = st?.data;
-  const col = (label, pct, text) => v_flex().flex_1().min_w(0).gap(4)
-    .child(h_flex().gap(6).items_center().whitespace_nowrap().overflow_hidden()
-      .child(ico(label, 13, C.muted))
-      .child(div().min_w(0).truncate().text_color(C.muted).child(text)))
-    .child(div().w_full().h(4).rounded(2).bg(C.well).overflow_hidden()
-      .child(div().h(4).rounded(2).w(`${Math.max(2, Math.min(100, pct))}%`).bg(level(pct, C.fg))));
-  return floatBox(h_flex().id("tnp-stats").w_full().flex_none().gap(10).px(12).py(10))
-    .font_family(MONO).text_size(10.5).opacity(m.offline ? 0.55 : 1)
-    .when(!!data, el => el
-      .child(col("cpu", data.cpu, `${data.cpu}%`))
-      .child(col("ram", data.memPct, data.memText))
-      .child(col("disk", diskUsed(data), diskFreeText(data))))
-    .when(!data, el => el.child(div().text_color(C.muted)
-      .child(m.offline ? "stats unavailable while offline" : st?.fail ? "stats unavailable" : "reading…")));
+// ---- height: the content's, up to what leaves the terminal at least TERM_MIN designed px ----
+// Rows of the stack above and below it (top bar 52, tabs 40, the strip when shown, the composer when open) and 6 px gaps.
+const TOP = 52, TABS = 40, TERM_MIN = 120, GAPS = 30;
+const listHeight = (snap, open, m) => {
+  const capsules = (mm) => mm.spaces.reduce((n, sp) => n + 6 + 28 + sp.rows.length * 45 + 6, 0);
+  if (open === ALL) return snap.machines.reduce((n, mm) => n + 8 + 40 + 4 + capsules(mm) + (mm.offline ? 0 : 44) + 6, 0);
+  return m ? capsules(m) + (m.spaces.length ? 0 : 24) : 0;
+};
+// Resize the block to its content (called by a timer of the drawer role: the block may be hidden and not render).
+export function panelSync(view) {
+  if (!(WIN.h > 0)) return;
+  const snap = snapshot();
+  const open = view.openKey(snap);
+  const m = open && open !== ALL ? snap.mBy.get(open) : null;
+  const strip = findNodeHidden("strip") ? 0 : (nodePx("strip") ?? 0) + 6;
+  const cap = Math.max(160, dsg(WIN.h) - TOP - TABS - strip - (composerOpen() ? 50 : 0) - TERM_MIN - GAPS);
+  const agentsOpen = !!m && view.agentOpen === m.key;
+  const chrome = 8 + 2 + 6 + 8 + 48 + 8 + actionsHeight(agentsOpen) + 8;
+  const px = Math.round(Math.min(cap, chrome + listHeight(snap, open, m)));
+  const want = Math.max(px, chrome + 40);
+  if (nodePx("drawer") !== want) {
+    const now = Date.now();
+    if (view.panelReq !== want || now - (view.panelAt ?? 0) > 2000) {
+      view.panelReq = want; view.panelAt = now;
+      run("layout.resize", { id: "drawer", px: want });
+    }
+  }
 }
+const findNodeHidden = (id) => !!findNode(layout(), id)?.hidden;
 
 export function renderDrawer(view) {
   const snap = snapshot();
@@ -163,6 +177,7 @@ export function renderDrawer(view) {
   const all = open === ALL;
   const m = open && !all ? snap.mBy.get(open) : null;
   const sm = all ? statsMachine(snap, open) : m;
+  view.agentOpen ??= props()?.openAgents ?? null; // the machine whose agent list is open (props: staged checks)
   const w = view.width ? dsg(view.width) : DESIGN_W; // designed px (the size event reports screen px)
   // Machine cards: with two or fewer, two equal columns inside the box padding; with more, one horizontally
   // scrollable row of the same cards, a third one peeking in. The agent rows stay on screen (three wrapped rows
@@ -173,17 +188,16 @@ export function renderDrawer(view) {
   return v_flex().id("tnp-drawer").size_full().px(8).pb(8).gap(8)
     .on_size_change((size, cx) => { if (Math.abs((view.width ?? 0) - size.width) >= 1) { view.width = size.width; cx.notify(); } })
     .child(floatBox(v_flex().w_full().flex_1().min_h(0).px(10).pt(6).pb(8).gap(8))
-      .child(div().w(36).h(4).rounded(2).bg(C.rim).flex_none().self_center())
       .child(swipeArea(watchScroll(h_flex().id("tnp-machines-row").w_full().h(48).flex_none().overflow_x_scroll(), view))
         .child(swipeBody(h_flex().h_full().flex_none().gap(6))
           .child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW)))))
+      .child(v_flex().id("tnp-actions").w_full().flex_none().gap(6)
+        .children(actionRows(view, snap, sm, closePanel, shared("tokyo-night-phone.changes") ?? 0)))
       .child(swipeArea(watchScroll(v_flex().id("tnp-spaces").w_full().flex_1().min_h(0).overflow_y_scroll(), view))
         .child(swipeBody(v_flex().w_full().flex_none().gap(6))
           .when(all, el => el.children(allGroups(view, snap)))
           .when(!!m, el => el.children(m.spaces.map(sp => capsule(view, sp, m))))
-          .when(!!m && m.spaces.length === 0, el => el.child(div().px(4).text_color(C.muted).child(`No spaces on ${m.name}`)))
-          .when(!!m && !m.offline, el => el.child(newSpaceRow(view, "tnp-newspace", m, `New space on ${m.name}`))))))
-    .when(!!sm, el => el.child(stats(view, sm)));
+          .when(!!m && m.spaces.length === 0, el => el.child(div().px(4).text_color(C.muted).child(`No spaces on ${m.name}`))))));
 }
 
 // ---- popup: theme (whole-window scheme) of a machine ----

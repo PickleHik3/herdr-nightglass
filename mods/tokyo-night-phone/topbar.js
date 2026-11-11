@@ -1,14 +1,19 @@
-// tokyo-night-phone: the top bar (app button, search, usage rings, menu with dot) and the Claude/Codex usage
-// popover. Design: design/Phone.dc.html (header, usage sheet); look: Glass (design/GLASS.md).
+// tokyo-night-phone: the top bar (app button, search button, stats rings, usage rings, panel toggle with the changes dot)
+// and the two popovers its widgets open: Claude/Codex usage and machine stats (cpu / ram / disk of the machine in front).
+// Design: design/Phone.dc.html (header, usage sheet); look: Glass (design/GLASS.md).
 import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, props, spaces, panes, machines, focused, shared, setShared, exec } from "herdr";
 import { C, MONO, CLEAR, alpha, dur, ico, ring, level } from "./lib.js";
-import { USAGE_MACHINE, parseUsageJson, snapshot } from "./data.js";
-import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, popupIsOpen, popupJustClosed, swipeArea, swipeBody } from "./phone.js";
-import { menuHeight } from "./newmenu.js";
+import { USAGE_MACHINE, parseUsageJson, snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
+import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, popupIsOpen, popupJustClosed, swipeArea, swipeBody, panelOpen, setPanel } from "./phone.js";
 
 const USAGE_KEY = "tokyo-night.usage";                   // the desktop mod's key: same data, same format
+const STATS_KEY = "tokyo-night-phone.stats";             // { key, name, at, data, fail, offline } of the machine in front
+// Stats popover: 10 pad, header 16, three 22 px rows, 8 gaps, 10 pad.
+const STATS_H = 20 + 16 + 3 * 22 + 3 * 8;
+const diskUsed = (data) => data.diskTotal > 0 ? Math.round(100 - data.diskFree / data.diskTotal * 100) : 0;
+const diskFreeText = (data) => `${data.diskFree >= 100 ? Math.round(data.diskFree) : data.diskFree.toFixed(1)} GB free`;
 // Popover (Glass usage panel, as the desktop's): 10 pad, legend 16, one 62 px well per account, 8 gaps, 10 pad.
 const UROW = 62;
 const usageHeight = (n) => 20 + 16 + n * UROW + n * 8;
@@ -33,7 +38,32 @@ export function pollChanges(view, cx) {
       n = r.code === 0 ? r.stdout.split("\n").filter(Boolean).length : 0;
     } catch { n = 0; }
     view.chBusy = false;
-    if (n !== view.changes) { view.changes = n; cx.notify(); }
+    if (n !== view.changes) { view.changes = n; setShared("tokyo-night-phone.changes", n); cx.notify(); }
+  });
+}
+// The stats of the machine in front (the focused space's; the first when nothing is focused): one exec every 15 s (3 s
+// apart at the first), shared as parsed data for the popover. Moved here from the retired bottom row.
+export function pollStats(view, cx, force) {
+  const snap = snapshot();
+  const m = statsMachine(snap, ALL);
+  if (!m || m.offline || m.layout !== "ready" || view.statsBusy[m.key]) return;
+  const key = m.key, now = Date.now();
+  const entry = view.stats[key] ?? (view.stats[key] = { tried: 0 });
+  const gap = force ? 3000 : entry.fail ? 60000 : 15000;
+  if (now - entry.tried < gap - 500) return;
+  entry.tried = now;
+  view.statsBusy[key] = true;
+  cx.spawn(async (cx) => {
+    let data = null;
+    try {
+      const r = await exec("sh", ["-c", STATS_SCRIPT], { on: onArg(key), timeout: 20000 });
+      if (r.code === 0) data = parseStats(r.stdout);
+    } catch { data = null; }
+    view.statsBusy[key] = false;
+    if (data) { entry.data = data; entry.at = Date.now(); entry.fail = false; }
+    else if (!entry.data) entry.fail = true; // keep the last good answer otherwise
+    setShared(STATS_KEY, { key, name: m.name, at: entry.at ?? 0, data: entry.data ?? null, fail: !!entry.fail });
+    cx.notify();
   });
 }
 // ai-usage-tui --json (by path: ~/.local/bin isn't on sh's PATH there) on USAGE_MACHINE every 120 s, shared as parsed data.
@@ -86,31 +116,45 @@ export function renderTopbar(view) {
     const g = groups.find(x => x.tool === tool) ?? (groups.push({ tool, rows: [] }), groups[groups.length - 1]);
     g.rows.push(r);
   }
-  // Bar: 14 + 28 + 4 + 44 + 8 + 3 gaps of 6 = 116 designed px besides the search pill and the wells (4 apart).
-  const SEARCH_MIN = 150, n = rows.length, G = groups.length;
+  // Stats: the machine in front (focused space's); three single rings (cpu, ram, disk used) in one well, as the usage wells.
+  const st = shared(STATS_KEY);
+  const sm = statsMachine(snapshot(), ALL);
+  const sdata = st && sm && st.key === sm.key ? st.data : null;
+  const statsOpen = popupIsOpen("stats");
+  const openStats = () => {
+    if (popupJustClosed("stats")) return;
+    if (popupIsOpen("stats") && view.statsId) { closeOverlay(view.statsId); return; }
+    view.statsId = openOverlay({ mod: MOD, kind: "popup", frame: "none", width: (Wd - 16) / Wd, height: STATS_H, at: { x: Math.round(8 * z), y: Math.round(58 * z) }, props: { role: "stats", h: STATS_H } });
+  };
+  // Bar widths (designed px): pl 12 + app 32 + search 40 + panel toggle 40 + pr 8 = 132, five gaps of 4 = 20, stats well
+  // 8 + 3 x 16 + 2 x 2 + 8 = 68, a gap of at least 8 where the flexible gap is. The usage wells (4 apart) take what is left;
+  // gaps shrink before any target (32 px least) does.
+  const n = rows.length, G = groups.length;
   let RING = 16;
   const wellsW = (size, icons) => G * 16 + n * size + (n - G) * 2 + (icons ? G * 18 : 0) + Math.max(0, G - 1) * 4;
-  const room = Wd - 116 - SEARCH_MIN;
+  const room = Wd - 132 - 20 - 68 - 8;
   const showIcons = n > 0 && wellsW(RING, true) <= room;
   if (n > 0 && !showIcons && wellsW(RING, false) > room) RING = 12;
-  // The menu is a sheet like the usage popover: full width minus 8 px margins, hanging under the bar (`at` in screen px).
-  const openMenu = () => {
-    if (popupJustClosed("menu")) return;                                           // the outside press just closed it
-    if (popupIsOpen("menu") && view.menuId) { closeOverlay(view.menuId); return; } // a second tap closes it
-    view.menuId = openOverlay({ mod: MOD, kind: "popup", frame: "none", width: (Wd - 16) / Wd,
-      height: Math.min(menuHeight(snapshot()), Math.max(200, Hd - 58 - 12)), at: { x: Math.round(8 * z), y: Math.round(58 * z) },
-      props: { role: "menu", changes: view.changes ?? 0 } });
-  };
-  return h_flex().id("tnp-top").size_full().pl(14).pr(8).pt(4).gap(6).items_center()
+  const open = panelOpen();
+  const hasChanges = (view.changes ?? 0) > 0;
+  const BTN = 40;
+  return h_flex().id("tnp-top").size_full().pl(12).pr(8).pt(4).gap(4).items_center()
     .on_size_change((size, cx) => { WIN.w = size.width; if (Math.abs((view.topW ?? 0) - size.width) >= 1) { view.topW = size.width; cx.notify(); } })
     // app button
-    .child(h_flex().size(28).flex_none().rounded(8).bg(C.accent).justify_center().items_center().child(ico("logo", 16, C.onAccent)))
-    // search: opens the app's command palette (a text field cannot be hosted here); well fill + rim, as Glass
-    .child(h_flex().id("tnp-search").flex_1().min_w(0).h(40).ml(4).px(12).gap(8).items_center().rounded(20)
-      .bg(C.well).border(1).border_color(C.rim).text_size(13).text_color(C.muted).cursor_pointer()
+    .child(h_flex().size(32).flex_none().rounded(8).bg(C.accent).justify_center().items_center().child(ico("logo", 16, C.onAccent)))
+    // search: a round button that opens the app's command palette (as the pill did; a text field cannot be hosted here)
+    .child(h_flex().id("tnp-search").size(BTN).flex_none().justify_center().items_center().rounded(20)
+      .bg(C.well).border(1).border_color(C.rim).cursor_pointer()
       .on_click(() => run("app.palette"))
-      .child(ico("search", 14, C.muted))
-      .child(div().min_w(0).truncate().child("Search")))
+      .child(ico("search", 16, C.muted)))
+    .child(div().flex_1().min_w(0))
+    // stats rings: one well, opens the popover
+    .child(h_flex().id("tnp-stats").h(BTN).flex_none().px(8).gap(2).items_center().rounded(20).cursor_pointer()
+      .bg(statsOpen ? C.raised : C.well).border(1).border_color(C.rim).opacity(sdata && !sm?.offline ? 1 : 0.55)
+      .on_click(openStats)
+      .child(ringS(16, sdata?.cpu, 0, level(sdata?.cpu ?? 0, C.accent), C.teal))
+      .child(ringS(16, sdata?.memPct, 0, level(sdata?.memPct ?? 0, C.teal), C.teal))
+      .child(ringS(16, sdata ? diskUsed(sdata) : 0, 0, level(sdata ? diskUsed(sdata) : 0, C.fg), C.teal)))
     // usage rings: one well per tool; all of them open the popover
     .when(n > 0, el => el.child(h_flex().id("tnp-rings").flex_none().gap(4).items_center().cursor_pointer()
       .opacity(u?.stale ? 0.6 : 1)
@@ -119,11 +163,37 @@ export function renderTopbar(view) {
         .bg(usageOpen ? C.raised : C.well).border(1).border_color(C.rim)
         .when(showIcons, e => e.child(h_flex().w(18).flex_none().items_center().child(toolIcon(g.tool, 14))))
         .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return ringS(RING, r.week, r.five, wc, hc); }))))))
-    // menu, with the amber dot while the focused space has uncommitted changes
-    .child(h_flex().id("tnp-menu").size(44).flex_none().relative().justify_center().items_center().rounded(8).cursor_pointer()
-      .on_click(openMenu)
-      .child(pico("menu", 18, C.muted))
-      .when((view.changes ?? 0) > 0, el => el.child(div().absolute().top(7).right(6).size(11).rounded(6).bg(C.amber).border(2).border_color(C.glassSolid))));
+    // panel toggle (machines, actions, agents under the bar), with the amber dot while the focused space has uncommitted
+    // changes; active look (raised fill, accent rim, bright icon) while the panel is open
+    .child(h_flex().id("tnp-menu").size(BTN).flex_none().relative().justify_center().items_center().rounded(20)
+      .bg(open ? C.raisedHi : CLEAR).border(1).border_color(open ? alpha(C.accent, 0.6) : CLEAR).cursor_pointer()
+      .on_click((_e, cx) => { setPanel(!panelOpen()); cx.notify(); })
+      .child(pico("menu", 18, open ? C.fg : C.muted))
+      .when(hasChanges, el => el.child(div().absolute().top(6).right(5).size(11).rounded(6).bg(C.amber).border(2).border_color(C.glassSolid))));
+}
+
+// ---- popover: stats of the machine in front (the retired bottom row's numbers: cpu / ram / disk) ----
+export function renderStatsPopup() {
+  const p = props();
+  const s = shared(STATS_KEY);
+  const data = s?.data;
+  const age = s?.at ? `${Math.max(1, Math.round((Date.now() - s.at) / 1000))}s ago` : "";
+  const bar = (label, pct, text) => h_flex().w_full().h(22).flex_none().gap(8).items_center().font_family(MONO).text_size(10.5)
+    .child(h_flex().w(40).flex_none().gap(5).items_center().text_color(C.muted).child(ico(label, 13, C.muted)).child(div().child(label)))
+    .child(div().flex_1().min_w(0).h(4).rounded(2).bg(C.raised).overflow_hidden()
+      .child(div().h(4).rounded(2).w(`${Math.max(2, Math.min(100, pct))}%`).bg(level(pct, C.fg))))
+    .child(div().w(84).flex_none().text_right().truncate().text_color(C.muted).child(text));
+  return v_flex().id("tnp-stats-pop").w_full().max_h(p.h ?? STATS_H).min_h(0).bg(C.glassSolid).rounded(12).border(1).border_color(C.rim)
+    .shadow_xl().overflow_hidden().p(10).gap(8)
+    .child(h_flex().w_full().h(16).flex_none().gap(8).items_center().text_size(11).text_color(C.muted)
+      .child(div().min_w(0).truncate().font_semibold().child(s?.name ?? "No machine"))
+      .child(div().flex_1())
+      .child(div().flex_none().font_family(MONO).text_size(10.5).child(age)))
+    .when(!!data, el => el
+      .child(bar("cpu", data.cpu, `${data.cpu}%`))
+      .child(bar("ram", data.memPct, data.memText))
+      .child(bar("disk", diskUsed(data), diskFreeText(data))))
+    .when(!data, el => el.child(div().text_size(12).text_color(C.muted).child(s?.fail ? "stats unavailable" : "reading…")));
 }
 
 // ---- popover: usage (the desktop's Glass usage panel: legend + one well per account) ----

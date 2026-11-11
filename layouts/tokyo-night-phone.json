@@ -15,12 +15,10 @@
     {
       "id": "phone",
       "type": "column",
-      "gap": 8,
       "children": [
         {
           "id": "core",
           "type": "column",
-          "size": { "weight": 7 },
           "gap": 6,
           "resizable": false,
           "children": [
@@ -31,9 +29,17 @@
               "content": { "mod": "tokyo-night-phone", "props": { "role": "topbar", "fit_zoom": true } }
             },
             {
+              "id": "drawer",
+              "type": "block",
+              "hidden": true,
+              "size": { "px": 200 },
+              "content": { "mod": "tokyo-night-phone", "props": { "role": "drawer" } }
+            },
+            {
               "id": "strip",
               "type": "block",
-              "size": { "px": 36 },
+              "hidden": true,
+              "size": { "px": 28 },
               "content": { "mod": "tokyo-night-phone", "props": { "role": "strip" } }
             },
             {
@@ -72,14 +78,6 @@
               "content": { "mod": "tokyo-night-phone", "props": { "role": "composer" } }
             }
           ]
-        },
-        {
-          "id": "drawer",
-          "type": "block",
-          "size": { "weight": 3 },
-          "min": 120,
-          "max": 640,
-          "content": { "mod": "tokyo-night-phone", "props": { "role": "drawer" } }
         }
       ]
     },

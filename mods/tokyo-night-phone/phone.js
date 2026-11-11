@@ -4,7 +4,7 @@
 // Herdr home, unlike JS imports, which cannot leave their own mod folder.
 import { svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { settings, shared, setShared } from "herdr";
+import { settings, shared, setShared, run } from "herdr";
 import { C, anchorBelow } from "./lib.js";
 
 export const MOD = "tokyo-night-phone";
@@ -19,8 +19,8 @@ export const zoom = () => { const z = Number(settings()?.zoom); return z > 0 ? z
 // The window as measured (main.js "watch" for the height, the top bar for the width). on_size_change reports
 // SCREEN px, i.e. designed px x zoom (materialize.rs: bounds.size), and overlay `at` points are screen px too,
 // while overlay width/height and every layout/mod px are designed px. So: WIN holds screen px; `dsg` converts.
-// Module scope: every role of this mod shares it. `dropped`: the drawer is hidden for the soft keyboard.
-export const WIN = { w: 0, h: 0, dropped: false };
+// Module scope: every role of this mod shares it.
+export const WIN = { w: 0, h: 0 };
 export const dsg = (screenPx) => screenPx / zoom();
 
 // An icon that lives in this mod's folder (menu, arrow-up, prompt); the rest come from lib.js `ico`.
@@ -73,3 +73,12 @@ const SWIPE_GUARD_MS = 300;
 export const watchScroll = (el, view) => el.on_scroll_wheel(() => { view.lastScroll = Date.now(); });
 export const swiped = (view) => Date.now() - (view.lastScroll ?? 0) < SWIPE_GUARD_MS;
 export const tap = (view, fn) => (e, cx) => { if (swiped(view)) return; fn(e, cx); };
+
+// ---- the panel (layout node "drawer": machine cards, actions, agent list) under the top bar ----
+// Hidden by default (the top bar's init closes it), toggled by the top bar's last button; picking something in it closes it.
+// The flag is shared so the button can show its active look; the layout's hidden state is what actually shows the block.
+export const panelOpen = () => shared("tokyo-night-phone.panel") === true;
+export function setPanel(open) {
+  setShared("tokyo-night-phone.panel", open);
+  run(open ? "layout.show" : "layout.hide", { id: "drawer" });
+}

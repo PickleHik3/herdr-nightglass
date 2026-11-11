@@ -132,7 +132,7 @@ const walk = (n) => {
 };
 walk(layout);
 for (const r of roles) if (!new RegExp(`case "${r}"`).test(mods["main.js"])) bad(`role ${r} has no case in main.js`);
-for (const r of ["menu", "usage", "colors"]) if (!new RegExp(`case "${r}"`).test(mods["main.js"])) bad(`popup role ${r} has no case`);
+for (const r of ["usage", "stats", "colors"]) if (!new RegExp(`case "${r}"`).test(mods["main.js"])) bad(`popup role ${r} has no case`);
 if (new Set(ids).size !== ids.length) bad("duplicate node ids");
 const refs = new Set();
 for (const src of Object.values(mods)) for (const m of src.matchAll(/(?:\{\s*id:\s*"([^"]+)"|nodePx\("([^"]+)"\)|findNode\([^,]+,\s*"([^"]+)"\))/g)) refs.add(m[1] ?? m[2] ?? m[3]);
@@ -157,5 +157,42 @@ for (const k of ["w", "h"]) for (let p = 5; p <= 100; p += 5) {
 }
 if (!existsSync(join(PHONE, "ring-s-track.svg")) || !existsSync(join(DESK, "ring-track.svg"))) bad("ring track missing");
 console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desktop ring-*`);
+// --- structure (round 9: compact strip, stats widget in the bar, toggled panel, no popup menu) ---
+{
+  const all = Object.entries(mods).filter(([f]) => !["lib.js", "data.js"].includes(f));
+  const flat = []; const order = (n) => { flat.push(n); (n.children ?? []).forEach(order); }; order(layout);
+  const idx = (id) => flat.findIndex((n) => n.id === id);
+  const node = (id) => flat[idx(id)];
+  // no stats row at the bottom: the panel sits under the top bar, nothing of the mod follows the composer, no bottom stats box
+  if (!(idx("topbar") < idx("drawer") && idx("drawer") < idx("strip") && idx("strip") < idx("tabs") && idx("tabs") < idx("term") && idx("term") < idx("composer"))) bad("rows must run topbar, panel (drawer), strip, tabs, term, composer");
+  if (idx("composer") !== flat.findLastIndex((n) => n.content?.mod && n.id !== "watch")) bad("a mod block follows the composer: no bottom row is allowed");
+  if (/id\("tnp-stats"\)/.test(mods["drawer.js"]) || /diskFreeText|STATS_SCRIPT/.test(mods["drawer.js"])) bad("drawer.js still draws a stats row");
+  console.log("no stats row at the bottom: ok");
+  // no popup menu
+  for (const [f, src] of all) if (/role:\s*"menu"|case "menu"|renderNewMenu|menuHeight|nm-space|tnp-menu-pop/.test(src)) bad(`${f}: popup menu code is still there`);
+  if (roles.has("menu")) bad("layout has a menu role");
+  if (/closeOverlay|openOverlay/.test(mods["newmenu.js"])) bad("newmenu.js opens or closes overlays: its actions are in-flow");
+  console.log("no popup menu: ok");
+  // panel: hidden by default, closed at load, never hidden for the keyboard
+  if (node("drawer")?.hidden !== true) bad("layout: the panel (drawer) must be hidden by default");
+  if (!/setPanel\(false\)/.test(mods["main.js"])) bad("main.js: the top bar must close the panel at load");
+  for (const [f, src] of all) if (/HIDE_BELOW|SHOW_AT|evalDrawer|WIN\.dropped/.test(src)) bad(`${f}: keyboard-up hiding of the panel is still there`);
+  for (const [f, src] of all) if (f !== "phone.js" && /layout\.(hide|show)["'`]?\s*:|"layout\.(hide|show)"|\? "layout\.show" : "layout\.hide"/.test(src.replace(/\/\/.*$/gm, "")) && /id:\s*"drawer"/.test(src)) bad(`${f}: shows / hides the panel outside setPanel`);
+  console.log("panel hidden by default, present with the keyboard up (no window-height hiding): ok");
+  // strip: hidden by default and hidden whenever there is nothing to show; no quiet capsule row
+  if (node("strip")?.hidden !== true) bad("layout: the strip must be hidden by default");
+  if (!/px === 0\) \{ if \(!hidden\) run\("layout\.hide", \{ id: "strip" \}\)/.test(mods["strip.js"])) bad("strip.js: stripSync must hide the block when there is nothing to show");
+  if (/Nothing needs you|QUIET/.test(mods["strip.js"])) bad("strip.js: the quiet capsule row is still there");
+  if (!/CHIP = 28/.test(mods["strip.js"])) bad("strip.js: chips are 28 px");
+  console.log("strip row absent without items: ok");
+  // top bar order and fit: app, search, flexible gap, stats, usage, toggle
+  const top = mods["topbar.js"];
+  const pos = ["ico(\"logo\"", "id(\"tnp-search\")", "flex_1().min_w(0))", "id(\"tnp-stats\")", "id(\"tnp-rings\")", "id(\"tnp-menu\")"].map((s) => top.indexOf(s));
+  if (pos.some((p) => p < 0) || pos.some((p, i) => i && p <= pos[i - 1])) bad("topbar.js: order must be app, search, flexible gap, stats, usage, panel toggle");
+  const bw = 12 + 32 + 40 + 40 + 8 + 5 * 4 + 68 + 8; // fixed part of the bar, designed px (see topbar.js)
+  if (bw + 122 > 412) bad(`topbar: fixed part ${bw} leaves no room for usage wells in 412 px`);
+  console.log(`top bar order ok; fixed width ${bw} of 412 (usage wells and the gap take the rest)`);
+}
+
 console.log(fails ? `${fails} FAILURE(S)` : "ALL STATIC CHECKS PASSED");
 process.exit(fails ? 1 : 0);

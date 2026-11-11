@@ -1,31 +1,24 @@
 // tokyo-night-phone: one multi-role mod for the "tokyo-night-phone" layout (portrait phone, 412 x 915).
-//   topbar    app button, search, usage rings, menu with dot
-//   strip     "Nothing needs you" / unreachable banner / swipeable "Needs you" cards (sizes its own block)
-//   tabs      tab pills: every agent across machines, plus "+"
+//   topbar    app button, search button, stats rings, usage rings, panel toggle (with the changes dot); polls
+//             changes, usage and the stats of the machine in front; closes the panel at load
+//   strip     unreachable banner / one-line chips for agents that wait or finished (hidden when empty)
+//   tabs      tab pills: every agent across machines, plus "+"; its timer shows / hides / sizes the strip
 //   composer  prompt field + send (hc send)
-//   drawer    machine cards + All, spaces with agent rows, cpu / ram / disk; also follows the focused
-//             machine and applies its whole-window scheme (its copy lives while the drawer is hidden)
-//   watch     a 1 px full-height column that only measures the window and drops / restores the drawer
-//   menu, usage, colors   popups opened by the roles above
+//   drawer    the panel under the top bar: machine cards + All, actions row, spaces with agent rows; also follows
+//             the focused machine and applies its whole-window scheme (its copy lives while the panel is hidden)
+//   watch     a 1 px full-height column that only measures the window height (the panel's height cap)
+//   usage, stats, colors   popups opened by the roles above
 // Data (data.js) and helpers (lib.js) are the desktop tokyo-night mod's files, copied verbatim.
 import { View, div } from "gpui-kit";
-import { props, exec, run, layout } from "herdr";
-import { renderTopbar, renderUsage, pollChanges, pollUsage } from "./topbar.js";
-import { renderNewMenu, prefetchAgents } from "./newmenu.js";
-import { renderStrip, renderTabs } from "./strip.js";
+import { props, run } from "herdr";
+import { renderTopbar, renderUsage, renderStatsPopup, pollChanges, pollUsage, pollStats } from "./topbar.js";
+import { prefetchAgents } from "./newmenu.js";
+import { renderStrip, renderTabs, stripSync } from "./strip.js";
 import { renderComposer, initComposer } from "./composer.js";
-import { renderDrawer, renderColorsPopup } from "./drawer.js";
-import { snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
-import { findNode, machineScheme, ALL_THEME } from "./lib.js";
-import { WIN, DESIGN_W, zoom, dsg, popupOpened, popupClosed } from "./phone.js";
-
-// Soft keyboard: the display resizes, so the window gets short. The design's core (top bar to
-// composer) is 595 px; below HIDE_BELOW the drawer would be under ~45 px, so it is hidden, and it
-// comes back only at SHOW_AT (a dead band between them: no flicker while the keyboard animates).
-// Heights are designed px (the watch's reported height is screen px = designed x zoom: see phone.js).
-// Keyboard down the window is ~800 designed px on the test phone, keyboard up ~540.
-const HIDE_BELOW = 650;
-const SHOW_AT = 720;
+import { renderDrawer, renderColorsPopup, panelSync } from "./drawer.js";
+import { snapshot, ALL } from "./data.js";
+import { machineScheme, ALL_THEME } from "./lib.js";
+import { WIN, DESIGN_W, zoom, popupOpened, popupClosed, setPanel } from "./phone.js";
 
 export default class TokyoNightPhone extends View {
   init(_p, cx) {
@@ -35,29 +28,33 @@ export default class TokyoNightPhone extends View {
     this.statsBusy = {};
     this.changes = 0;
     if (role === "topbar") {
+      setPanel(false); // the panel is closed whatever the last run or the saved layout said
       // The layout is drawn for 412 designed px: when props.fit_zoom is on, step the app zoom to window / 412.
       if (props()?.fit_zoom) cx.timer.every(400, () => this.fitZoom());
       pollChanges(this, cx);
       cx.timer.every(2000, (cx) => pollChanges(this, cx));
       pollUsage(this, cx);
       cx.timer.every(5000, (cx) => pollUsage(this, cx));
+      pollStats(this, cx, true);
+      cx.timer.every(3000, (cx) => pollStats(this, cx));
     }
     if (role === "strip") cx.timer.every(30000, (cx) => cx.notify()); // elapsed times
     if (role === "composer") initComposer(this, cx);
     if (role === "drawer") {
-      this.pollStats(cx, true);
-      cx.timer.every(3000, (cx) => this.pollStats(cx));
+      prefetchAgents(cx);
       cx.timer.every(30000, (cx) => cx.notify()); // elapsed times
       cx.timer.every(500, (cx) => this.watchFocus(cx));
+      cx.timer.every(400, () => panelSync(this));
     }
-    if (role === "watch") cx.timer.every(1000, () => this.evalDrawer());
-    if (role === "tabs") cx.timer.every(1000, (cx) => { if (this.armed) cx.notify(); }); // the armed close expires
-    if (role === "menu") prefetchAgents(cx);
-    if (role === "usage" || role === "menu" || role === "colors") popupOpened(role); // popup toggles: phone.js
+    if (role === "tabs") {
+      cx.timer.every(1000, (cx) => { if (this.armed) cx.notify(); }); // the armed close expires
+      cx.timer.every(500, () => stripSync(this));                      // the strip block: shown / hidden / sized
+    }
+    if (role === "usage" || role === "stats" || role === "colors") popupOpened(role); // popup toggles: phone.js
   }
 
   async close() {
-    if (this.role === "usage" || this.role === "menu" || this.role === "colors") popupClosed(this.role);
+    if (this.role === "usage" || this.role === "stats" || this.role === "colors") popupClosed(this.role);
   }
 
   // ---- the open machine: the person's choice (kept), else the focused space's machine ----
@@ -99,7 +96,7 @@ export default class TokyoNightPhone extends View {
     const sp = id && snap.spaces.find(s => s.id === id);
     if (sp && cx) {
       const open = this.openKey(snap);
-      if (open !== ALL && open !== sp.machine) { this.setOpen(sp.machine); this.pollStats(cx, true); cx.notify(); }
+      if (open !== ALL && open !== sp.machine) { this.setOpen(sp.machine); cx.notify(); }
     }
     if (sp) {
       const v = this.lastSpaces();
@@ -123,33 +120,6 @@ export default class TokyoNightPhone extends View {
     try { localStorage.setItem("open", JSON.stringify(this.openState)); } catch { /* storage unavailable */ }
   }
 
-  // ---- machine stats: one exec every 15 s, only for the open machine, only while the drawer is shown ----
-  pollStats(cx, force) {
-    if (WIN.dropped) return;
-    const snap = snapshot();
-    const open = this.openKey(snap);
-    const m = open !== null && statsMachine(snap, open);
-    if (!m || m.offline || m.layout !== "ready" || this.statsBusy[m.key]) return;
-    const key = m.key;
-    const now = Date.now();
-    const entry = this.stats[key] ?? (this.stats[key] = { tried: 0 });
-    const gap = force ? 3000 : entry.fail ? 60000 : 15000;
-    if (now - entry.tried < gap - 500) return;
-    entry.tried = now;
-    this.statsBusy[key] = true;
-    cx.spawn(async (cx) => {
-      let data = null;
-      try {
-        const r = await exec("sh", ["-c", STATS_SCRIPT], { on: onArg(key), timeout: 20000 });
-        if (r.code === 0) data = parseStats(r.stdout);
-      } catch { data = null; }
-      this.statsBusy[key] = false;
-      if (data) { entry.data = data; entry.at = Date.now(); entry.fail = false; }
-      else if (!entry.data) entry.fail = true; // keep the last good answer otherwise
-      cx.notify();
-    });
-  }
-
   // The layout only makes sense at zoom ~ window width / DESIGN_W (every px in it is designed px). There is no
   // layout-level zoom and no "set zoom" command, only app.zoom_in / app.zoom_out (one 0.1 step each, written to
   // settings.json by the app). So: one step per 400 ms tick until the zoom is within 0.05 of the target, then stop
@@ -163,20 +133,11 @@ export default class TokyoNightPhone extends View {
     run(target > z ? "app.zoom_in" : "app.zoom_out", {});
   }
 
-  // The observer: its block is 1 px wide and as tall as the window, so its height is the window's.
+  // The observer: its block is 1 px wide and as tall as the window, so its height is the window's (screen px).
+  // The panel's own timer (drawer.js panelSync) reads it, so a soft keyboard (a shorter window) shrinks the cap.
   renderWatch() {
     return div().id("tnp-watch").size_full()
-      .on_size_change((size) => { WIN.h = size.height; this.evalDrawer(); }); // screen px
-  }
-  // Hide / restore the drawer from the window height in designed px. Also run on a timer: a zoom step changes the
-  // designed height without changing the screen size, so no size event fires.
-  evalDrawer() {
-    if (!(WIN.h > 0)) return;
-    const h = dsg(WIN.h);
-    const hidden = !!findNode(layout(), "drawer")?.hidden;
-    const want = hidden ? h < SHOW_AT : h < HIDE_BELOW;
-    WIN.dropped = want;
-    if (want !== hidden) run(want ? "layout.hide" : "layout.show", { id: "drawer" });
+      .on_size_change((size) => { WIN.h = size.height; });
   }
 
   // Every role gets the design's 13 px body size as its base.
@@ -192,8 +153,8 @@ export default class TokyoNightPhone extends View {
       case "composer": return renderComposer(this);
       case "drawer": return renderDrawer(this);
       case "watch": return this.renderWatch();
-      case "menu": return renderNewMenu(this);
       case "usage": return renderUsage();
+      case "stats": return renderStatsPopup();
       case "colors": return renderColorsPopup();
       default: return div();
     }
