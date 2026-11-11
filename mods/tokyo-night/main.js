@@ -7,10 +7,10 @@
 // Data comes from Herdr's live state; see data.js. Colors and icons: lib.js.
 import { View, div } from "gpui-kit";
 import { props, exec, run, shared, setShared } from "herdr";
-import { renderSidebar, renderNewMenu, renderSpacesPopup, loadAgents } from "./sidebar.js";
+import { renderSidebar, renderNewMenu, renderSpacesPopup, renderColorsPopup, loadAgents } from "./sidebar.js";
 import { renderHeader, pollChanges, pollUsage } from "./header.js";
 import { renderStrip, renderPane, renderEmpty, EMPTY_KEY } from "./strip.js";
-import { snapshot, STATS_SCRIPT, parseStats, onArg } from "./data.js";
+import { snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
 import { nodePx } from "./lib.js";
 
 export default class TokyoNight extends View {
@@ -24,7 +24,7 @@ export default class TokyoNight extends View {
       this.pollStats(cx, true);
       cx.timer.every(3000, (cx) => this.pollStats(cx));
       cx.timer.every(30000, (cx) => cx.notify()); // elapsed times
-      cx.timer.every(500, () => this.watchFocus());
+      cx.timer.every(500, (cx) => this.watchFocus(cx));
       pollUsage(this, cx);
       cx.timer.every(5000, (cx) => pollUsage(this, cx));
     }
@@ -44,7 +44,7 @@ export default class TokyoNight extends View {
     const st = this.openState;
     if (st?.set) {
       if (st.key === null) return null;
-      if (snap.mBy.has(st.key)) return st.key;
+      if (st.key === ALL || snap.mBy.has(st.key)) return st.key;
     }
     const f = snap.foc && snap.spaces.find(s => s.id === snap.foc.space);
     return f?.machine ?? snap.machines[0]?.key ?? null;
@@ -71,12 +71,17 @@ export default class TokyoNight extends View {
     return this.visited;
   }
   // Remember the focused space per machine; any focus change puts the terminals back on screen.
-  watchFocus() {
+  watchFocus(cx) {
     const snap = snapshot();
     const id = snap.foc?.space ?? null;
     if (id === this.lastFocus) return;
     this.lastFocus = id;
     const sp = id && snap.spaces.find(s => s.id === id);
+    // Focus moved to another machine (attention card, palette): follow it, unless All is showing.
+    if (sp && cx) {
+      const open = this.openKey(snap);
+      if (open !== ALL && open !== sp.machine) { this.setOpen(sp.machine); this.pollStats(cx, true); cx.notify(); }
+    }
     if (sp) {
       const v = this.lastSpaces();
       if (v[sp.machine] !== id) { v[sp.machine] = id; try { localStorage.setItem("visited", JSON.stringify(v)); } catch { /* storage unavailable */ } }
@@ -93,9 +98,10 @@ export default class TokyoNight extends View {
   pollStats(cx, force) {
     if ((this.width ?? nodePx("sidebar") ?? 268) < 160) return;
     const snap = snapshot();
-    const key = this.openKey(snap);
-    const m = key !== null && snap.mBy.get(key);
-    if (!m || m.offline || m.layout !== "ready" || this.statsBusy[key]) return;
+    const open = this.openKey(snap);
+    const m = open !== null && statsMachine(snap, open);
+    const key = m.key;
+    if (m.offline || m.layout !== "ready" || this.statsBusy[key]) return;
     const now = Date.now();
     const entry = this.stats[key] ?? (this.stats[key] = { tried: 0 });
     const gap = force ? 3000 : entry.fail ? 60000 : 15000;
@@ -130,6 +136,7 @@ export default class TokyoNight extends View {
       case "empty": return renderEmpty();
       case "newmenu": return renderNewMenu(this);
       case "spaces": return renderSpacesPopup(this);
+      case "colors": return renderColorsPopup();
       default: return div();
     }
   }

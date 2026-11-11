@@ -3,8 +3,8 @@
 import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, panes, props, exec, shared, setShared } from "herdr";
-import { C, MONO, alpha, mix, dur, ico, prog, mark, stop, nodePx, anchorBelowRight, setPressed, getPressed } from "./lib.js";
-import { snapshot, short, LOCAL, mArg } from "./data.js";
+import { C, MONO, alpha, mix, dur, ico, prog, mark, stop, nodePx, anchorBelowRight, setPressed, getPressed, machineColor } from "./lib.js";
+import { snapshot, short, LOCAL, mArg, mname } from "./data.js";
 
 export const EMPTY_KEY = "tokyo-night.empty"; // machine key shown in the empty view, or null
 const BANNER = 44, QUIET = 40, GAP = 8, CARD = 76, HEAD = 18, PAD = 22, MAX_CARDS = 6;
@@ -57,7 +57,7 @@ function card(r) {
         .child(div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(dur(r.ms))))
       .child(div().w_full().min_w(0).truncate().font_family(MONO).text_size(12).text_color(C.muted).child(r.report || r.program?.name || ""))
       .child(div().w_full().min_w(0).truncate().font_family(MONO).text_size(11).text_color(C.dim).child(`${r.machineName} › ${r.spaceName}`)))
-    .child(div().flex_none().px(7).rounded(9).bg(waiting ? C.red : C.accent).font_family(MONO).text_size(11).font_medium()
+    .child(div().flex_none().px(7).rounded(9).bg(waiting ? C.red : machineColor(r.machine)).font_family(MONO).text_size(11).font_medium()
       .text_color(C.ink).child(r.short));
 }
 
@@ -112,20 +112,25 @@ export function renderPane() {
     return root.child(div().flex_1().min_w(0).truncate().text_size(13).font_medium().text_color(C.fg).child(p.title || p.mod || "Mod"));
   }
   const addr = short(p.terminal);
+  // The pane's machine, through the snapshot row of its terminal (local when unknown).
+  const mk = snapshot().rows.find(r => r.address === p.terminal)?.machine ?? LOCAL;
+  const mc = machineColor(mk);
   const kind = p.status === "blocked" ? "waiting" : p.status ?? (p.program?.shell === false ? "working" : "idle");
   return root
     .child(mark(kind))
     .child(div().min_w(0).flex_shrink(1).truncate().text_size(13).font_medium().text_color(C.fg).child(p.title || p.program?.name || addr))
     .child(h_flex().id(`tn-copy-${id}`).h(22).flex_none().pl(8).pr(6).gap(5).items_center().rounded(11)
-      .bg(alpha(C.accent, 0.18)).font_family(MONO).text_size(12).font_medium().text_color(C.accent).cursor_pointer()
+      .bg(alpha(mc, 0.18)).font_family(MONO).text_size(12).font_medium().text_color(mc).cursor_pointer()
       .tooltip("Copy terminal number")
-      .hover(s => s.bg(alpha(C.accent, 0.26)))
+      .hover(s => s.bg(alpha(mc, 0.26)))
       .on_mouse_down("left", stop)
       .on_click(() => {
         exec("sh", ["-c", 'printf %s "$1" | (wl-copy 2>/dev/null || xclip -selection clipboard 2>/dev/null || clip.exe)', "sh", addr]).catch(() => {});
       })
-      .child(div().child(addr)).child(ico("copy", 11, C.accent)))
+      .child(div().child(addr)).child(ico("copy", 11, mc)))
     .child(div().flex_1().min_w(0).h(1))
+    .child(h_flex().flex_none().gap(5).items_center().text_size(11).text_color(mc)
+      .child(ico(mk === LOCAL ? "monitor" : "server", 11, mc)).child(div().whitespace_nowrap().child(mname(mk))))
     .child(h_flex().flex_none().gap(6).items_center().text_size(12).text_color(C.muted)
       .child(prog(p.program, 12, C.muted)).child(div().child(p.program?.name ?? "")))
     .child(h_flex().id(`tn-opts-${id}`).size(26).flex_none().justify_center().items_center().rounded(6).cursor_pointer()
