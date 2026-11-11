@@ -32,7 +32,7 @@ function build(t) {
   const base = t.chrome ?? "#0c0d12";
   return {
     wall: t.canvas ?? "#0e1016", glassBase: base, glassSolid: t.surface ?? "#0d0e14",
-    glass: alpha(base, 0.72),
+    glass: alpha(base, 0.5), // see-through enough that the wallpaper reads through every box
     raised: alpha(white, 0.09), raisedHi: alpha(white, 0.14), well: alpha(black, 0.38), rim: alpha(white, 0.10),
     fg: t.foreground ?? "#eceef2", muted: t.muted ?? "#a8adba", dim: t.muted ?? "#a8adba",
     accent: hue, onAccent: t.accent_foreground ?? "#0f1012", ink: "#0f1012",
