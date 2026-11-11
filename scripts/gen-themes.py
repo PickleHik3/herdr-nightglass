@@ -1,55 +1,97 @@
 #!/usr/bin/env python3
-"""Generate the per-machine Tokyo Night variants (and the All view's Storm) in themes/.
+"""Generate the Glass themes in themes/: the neutral base, the All view's scheme, one per machine hue.
 
-Each variant is themes/tokyo-night.json with its surfaces nudged toward one hue and that hue
-as the accent, so a machine's whole window reads as "its" color while staying Tokyo Night.
-Re-run after changing the base theme: python3 scripts/gen-themes.py
+Glass (design/GLASS.md) is a set of alpha fills over a wallpaper. A theme carries the opaque
+bases the mod's lib.js builds those fills from:
+  canvas   wallpaper base          chrome   glass base (the colour drawn at 72%)
+  surface  glass over the wallpaper, opaque: the pane and terminal background
+  raised / hover / selected / border / input   the raised, on, rim and well tones, opaque over surface
+Machine schemes nudge canvas and chrome a few percent toward their hue and use it as the accent;
+the alpha fills in lib.js follow the accent the same way. Neutral = no nudge.
+Re-run: python3 scripts/gen-themes.py
 """
 import json, pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-BASE = json.loads((ROOT / "themes/tokyo-night.json").read_text())
+WALL, GLASS = "#0e1016", "#0c0d12"
+NEUTRAL_ACCENT = "#e6e7eb"
+INK = "#0f1012"
 
-# name -> hue. The swatch order in mods/tokyo-night/lib.js (SWATCHES) follows this list.
+# name -> hue. Keep in step with SCHEMES in mods/tokyo-night/lib.js.
 VARIANTS = {
-    "tokyo-night-frost": "#7dcfff",
-    "tokyo-night-lagoon": "#73daca",
-    "tokyo-night-forest": "#9ece6a",
-    "tokyo-night-dune": "#e0af68",
-    "tokyo-night-ember": "#ff9e64",
-    "tokyo-night-sakura": "#f7768e",
-    "tokyo-night-aurora": "#bb9af7",
+    "tokyo-night-blue": "#6e9bff",
+    "tokyo-night-frost": "#52c6f0",
+    "tokyo-night-lagoon": "#4fd1b8",
+    "tokyo-night-forest": "#86d46a",
+    "tokyo-night-dune": "#e5b45c",
+    "tokyo-night-ember": "#f58f5c",
+    "tokyo-night-sakura": "#f0708a",
+    "tokyo-night-aurora": "#a98bf5",
 }
-# How far each surface moves toward the hue: enough to tell machines apart at a glance,
-# little enough that text contrast stays as in the base theme.
-TINT = {"canvas": 0.05, "chrome": 0.06, "surface": 0.08, "popover": 0.08, "raised": 0.11,
-        "hover": 0.11, "selected": 0.14, "border": 0.13, "input": 0.18}
+# How far the opaque bases move toward the hue, and the tone fills' white/black toward it.
+BASE_TINT = {"canvas": 0.05, "chrome": 0.06}
+FILL_TINT = {"white": 0.08, "black": 0.06}
+
+ANSI = [
+    "#15161e", "#f7768e", "#9ece6a", "#e0af68", "#7aa2f7", "#bb9af7", "#7dcfff", "#a9b1d6",
+    "#414868", "#f7768e", "#9ece6a", "#e0af68", "#7aa2f7", "#bb9af7", "#7dcfff", "#c0caf5",
+]
 
 
-def mix(a, b, t):
-    pa = [int(a[i:i + 2], 16) for i in (1, 3, 5)]
-    pb = [int(b[i:i + 2], 16) for i in (1, 3, 5)]
-    return "#" + "".join(f"{round(x + (y - x) * t):02x}" for x, y in zip(pa, pb))
+def mix(top, base, a):
+    """`top` at amount `a` over `base` (same as mix() in lib.js)."""
+    pt = [int(top[i:i + 2], 16) for i in (1, 3, 5)]
+    pb = [int(base[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join(f"{round(x * a + y * (1 - a)):02x}" for x, y in zip(pt, pb))
 
 
-for name, hue in VARIANTS.items():
-    t = json.loads(json.dumps(BASE))
-    t["background"] = mix(BASE["background"], hue, TINT["chrome"])
-    t["selection"] = mix(BASE["selection"], hue, 0.30)
-    for k, amt in TINT.items():
-        t["colors"][k] = mix(BASE["colors"][k], hue, amt)
-    t["colors"].update(accent=hue, solid=hue)
+def theme(accent, hue=None):
+    """hue None = the neutral base (no nudge)."""
+    canvas = mix(hue, WALL, BASE_TINT["canvas"]) if hue else WALL
+    chrome = mix(hue, GLASS, BASE_TINT["chrome"]) if hue else GLASS
+    surface = mix(chrome, canvas, 0.72)
+    white = mix(hue, "#ffffff", FILL_TINT["white"]) if hue else "#ffffff"
+    black = mix(hue, "#000000", FILL_TINT["black"]) if hue else "#000000"
+    raised = mix(white, surface, 0.09)
+    return {
+        "background": surface,
+        "foreground": "#eceef2",
+        "selection": mix(accent, surface, 0.22),
+        "cursor": "#eceef2",
+        "ansi": ANSI,
+        "colors": {
+            "canvas": canvas,
+            "chrome": chrome,
+            "surface": surface,
+            "popover": surface,
+            "raised": raised,
+            "hover": raised,
+            "selected": mix(white, surface, 0.14),
+            "border": mix(white, surface, 0.10),
+            "input": mix(black, surface, 0.38),
+            "foreground": "#eceef2",
+            "muted": "#a8adba",
+            "dim": "#a8adba",
+            "accent": accent,
+            "accent_foreground": INK,
+            "solid": accent,
+            "solid_foreground": INK,
+            "working": "#5fd38d",
+            "blocked": "#f0708a",
+            "done": "#5fd38d",
+            "idle": "#a8adba",
+            "unknown": "#6b7080",
+        },
+    }
+
+
+def write(name, t):
     (ROOT / "themes" / f"{name}.json").write_text(json.dumps(t, indent=2) + "\n")
-    print(name, t["colors"]["chrome"], t["colors"]["canvas"], hue)
+    print(name, t["colors"]["canvas"], t["colors"]["chrome"], t["colors"]["accent"])
 
-# The All view's scheme: Tokyo Night Storm (the palette's own lighter slate variant) with a pale
-# lavender accent, so the overview looks like no single machine.
-storm = json.loads(json.dumps(BASE))
-storm.update(background="#24283b", selection="#2e3c64")
-storm["ansi"][0] = "#1d202f"
-storm["colors"].update(canvas="#1f2335", chrome="#24283b", surface="#292e42", popover="#292e42",
-                       raised="#343a55", hover="#343a55", selected="#3b4261", border="#343a55",
-                       input="#414868", accent="#c0caf5", solid="#c0caf5", accent_foreground="#1f2335",
-                       solid_foreground="#1f2335")
-(ROOT / "themes" / "tokyo-night-storm.json").write_text(json.dumps(storm, indent=2) + "\n")
-print("tokyo-night-storm", storm["colors"]["chrome"], storm["colors"]["canvas"], storm["colors"]["accent"])
+
+# Neutral Glass base (the layout's default theme) and the All view's scheme: the same, pale accent.
+write("tokyo-night", theme(NEUTRAL_ACCENT))
+write("tokyo-night-storm", theme(NEUTRAL_ACCENT))
+for name, hue in VARIANTS.items():
+    write(name, theme(hue, hue))

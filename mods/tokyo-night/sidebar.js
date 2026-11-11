@@ -2,7 +2,7 @@
 import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, setAgentOrder, props, spaces, focused, shared, setShared, knownAgents } from "herdr";
-import { C, M, MONO, CLEAR, BADGES, alpha, mix, raised, raisedFill, rim, revealMotion, dur, hash, ico, prog, mark, level, stop, nodePx,
+import { C, M, MONO, CLEAR, alpha, mix, nearBlack, darkOf, lightOf, revealMotion, dur, ico, prog, mark, level, stop, nodePx,
   anchorBelow, anchorRight, setPressed, getPressed, bindingOf, machineColor, SCHEMES, COLORS_KEY } from "./lib.js";
 import { snapshot, LOCAL, ALL, mkey, mArg, onArg, lastSeen, upText, statsMachine } from "./data.js";
 import { usageParts } from "./header.js";
@@ -68,8 +68,8 @@ export function openNewMenu(snap, last) {
 }
 
 // ---- shared pieces ----
-const iconBtn = (id, name, size, color, bg, tip, w, h, onPress) => h_flex().id(id).w(w).h(h).flex_none().justify_center().items_center().rounded(6)
-  .bg(bg).cursor_pointer().hover(s => s.bg(alpha(C.accent, 0.2))).tooltip(tip)
+const iconBtn = (id, name, size, color, bg, tip, w, h, onPress) => h_flex().id(id).w(w).h(h).flex_none().justify_center().items_center().rounded(9)
+  .bg(bg).cursor_pointer().hover(s => s.bg(C.raisedHi)).tooltip(tip)
   .on_mouse_down("left", (e, cx) => { cx.stop_propagation(); setPressed(anchorBelow(e)); })
   .on_click((e, cx) => onPress(e, cx))
   .child(ico(name, size, color));
@@ -101,7 +101,7 @@ const closeSlot = (id, shown, radius, tip, act) => h_flex().id(id).h_full().flex
   .w(shown ? 30 : 0).opacity(shown ? 1 : 0)
   .transition("width", revealMotion(shown)).transition("opacity", revealMotion(shown))
   .child(h_flex().id(`${id}-btn`).w(30).h_full().flex_none().justify_center().items_center().rounded_r(radius)
-    .bg(alpha(C.red, 0.2)).hover(s => s.bg(alpha(C.red, 0.38))).cursor_pointer().tooltip(tip)
+    .bg(alpha(C.red, 0.2)).hover(s => s.bg(alpha(C.red, 0.34))).cursor_pointer().tooltip(tip)
     .on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); act(); })
     .child(ico("win-close", 10, C.red)));
 
@@ -109,95 +109,96 @@ function rowEl(view, r, compact, onPick) {
   const hover = view.hover === r.address;
   const waiting = r.kind === "waiting";
   const mc = machineColor(r.machine);
-  const tint = r.focused ? alpha(mc, 0.16) : waiting ? alpha(C.red, 0.12) : CLEAR;
-  const ring = r.focused ? alpha(mc, 0.5) : waiting ? alpha(C.red, 0.45) : CLEAR;
+  // Focused row: solid machine color, dark-of-hue text. No outline (the card holds the stack's one).
+  const t1 = nearBlack(mc), t2 = darkOf(mc);
   const pinned = r.focused || waiting;
   const showNow = !compact && !!r.now && (hover || pinned);
   const closable = !compact && r.kind !== "offline";
-  return h_flex().id(`tn-row-${r.address}`).w_full().min_w(0).flex_none().items_stretch().rounded(14).overflow_hidden()
-    .bg(tint).border(1).border_color(ring).cursor_pointer().text_size(12).text_color(r.focused ? C.fg : C.muted)
+  const h = r.focused && !compact && !!r.now ? 42 : 30;
+  return h_flex().id(`tn-row-${r.address}`).w_full().min_w(0).flex_none().items_stretch().rounded(6).overflow_hidden()
+    .bg(r.focused ? mc : waiting ? alpha(C.red, 0.2) : CLEAR).cursor_pointer().text_size(12).text_color(r.focused ? t1 : C.muted)
+    .when(!showNow, el => el.h(h))
     .when(r.focused, el => el.shadow_md())
-    .hover(s => s.bg(r.focused ? alpha(mc, 0.22) : waiting ? alpha(C.red, 0.18) : C.raised).shadow_md())
-    .on_hover((h, cx) => { if (h) view.hover = r.address; else if (view.hover === r.address) view.hover = null; cx.notify(); })
+    .hover(s => s.bg(r.focused ? mc : waiting ? alpha(C.red, 0.28) : C.raised))
+    .on_hover((hv, cx) => { if (hv) view.hover = r.address; else if (view.hover === r.address) view.hover = null; cx.notify(); })
     .on_click((_e, cx) => { cx.stop_propagation(); onPick?.(); focusRow(r); })
     .on_mouse_down("right", (_e, cx) => {
       cx.stop_propagation();
       openOverlay({ mod: "menu", kind: "popup", width: 220, height: 300, props: { tab: "pane", target: { pane: r.pane, terminal: r.address } } });
     })
-    .child(v_flex().flex_1().min_w(0).pl(10).pr(5).py(3).gap(1)
-    .child(h_flex().w_full().h(18).gap(8).items_center()
+    .child(v_flex().flex_1().min_w(0).pl(8).pr(5).py(3).gap(1).justify_center()
+    .child(h_flex().w_full().h(20).gap(8).items_center()
       .child(mark(r.kind))
-      .child(div().flex_1().min_w(0).truncate().font_medium().child(r.title))
-      .child(div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(r.kind === "offline" ? "" : dur(r.ms)))
-      .child(h_flex().flex_none().h(18).px(7).rounded(9).items_center().font_family(MONO).text_size(11)
-        .bg(r.focused ? mc : C.raised).text_color(r.focused ? C.onAccent : C.dim).child(r.short)))
+      .child(div().flex_1().min_w(0).truncate().text_size(12).when(r.focused, el => el.font_semibold()).child(r.title))
+      .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(r.focused ? t2 : C.dim).child(r.kind === "offline" ? "" : dur(r.ms)))
+      .child(h_flex().flex_none().h(18).px(6).rounded(5).items_center().font_family(MONO).text_size(10.5)
+        .bg(r.focused ? t1 : C.raised).text_color(r.focused ? lightOf(mc) : C.dim).child(r.short)))
     // The "now" line: always shown for the focused and waiting rows; on hover it grows in after the
     // same delay as the close strip, so sweeping the pointer down the list doesn't make rows jump.
     .when(!compact && !!r.now, el => el.child(div().id(`tn-now-${r.address}`).pl(18).w_full().min_w(0).overflow_hidden()
       .h(showNow ? 16 : 0).opacity(showNow ? 1 : 0)
       .transition("height", revealMotion(showNow && !pinned)).transition("opacity", revealMotion(showNow && !pinned))
-      .child(div().w_full().truncate().font_family(MONO).text_size(11).text_color(waiting ? C.red : C.dim).child(r.now)))))
-    .when(closable, el => el.child(closeSlot(`tn-row-x-${r.address}`, hover, 13, "Close terminal",
+      .child(div().w_full().truncate().font_family(MONO).text_size(10.5).text_color(r.focused ? t2 : waiting ? C.red : C.dim).child(r.now)))))
+    .when(closable, el => el.child(closeSlot(`tn-row-x-${r.address}`, hover, 6, "Close terminal",
       () => r.pane ? run("pane.close", { pane: r.pane }) : run("terminal.kill", { terminal: r.address }))));
 }
 
-const STAT_TEXT_W = 78; // fits "20.3/63 GB", "881 GB free", "58% · 12c" in 11 px mono
+const STAT_TEXT_W = 76; // fits "20.3/63 GB", "881 GB free", "58% · 12c" in 11 px mono
 
 function capsule(view, sp, m, compact, onPick) {
-  const color = BADGES[hash(sp.id) % BADGES.length];
   const initial = ([...(sp.name || "?")][0] ?? "?").toUpperCase();
   const seenAt = lastSeen(m.key);
   const hover = view.spHover === sp.id;
   // A space with a terminal waiting on you turns red; one with an unseen finished agent, green.
   const wants = sp.rows.some(r => r.kind === "waiting") ? C.red : sp.rows.some(r => r.kind === "done") ? C.green : null;
   const strong = wants === C.red;
-  return raised(v_flex().id(`tn-sp-${sp.id}`).w_full().flex_none().rounded(16).p(5).gap(2), C.surface)
-    .when(!!wants, el => el.bg(mix(wants, C.surface, strong ? 0.13 : 0.07)).border_color(alpha(wants, strong ? 0.6 : 0.35)).shadow_md())
-    .child(h_flex().id(`tn-sph-${sp.id}`).w_full().h(28).items_stretch().rounded(12).overflow_hidden()
+  return v_flex().id(`tn-sp-${sp.id}`).w_full().flex_none().rounded(9).p(3).gap(1).bg(C.raised)
+    .when(!!wants, el => el.bg(alpha(wants, strong ? 0.16 : 0.10)).border(1).border_color(alpha(wants, strong ? 0.45 : 0.35)).when(strong, e => e.shadow_md()))
+    .child(h_flex().id(`tn-sph-${sp.id}`).w_full().h(28).items_stretch().rounded(6).overflow_hidden()
       .on_hover((h, cx) => { const id = h ? sp.id : view.spHover === sp.id ? null : view.spHover; if (id !== view.spHover) { view.spHover = id; cx.notify(); } })
       .child(h_flex().flex_1().min_w(0).gap(8).pl(4).pr(8).items_center()
-      .child(h_flex().size(20).flex_none().rounded(10).justify_center().items_center().bg(alpha(color, 0.2))
-        .text_color(color).text_size(11).font_semibold().child(initial))
+      .child(h_flex().size(20).flex_none().rounded(6).justify_center().items_center().bg(C.raised)
+        .text_color(C.fg).text_size(11).font_semibold().child(initial))
       .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(sp.name))
       .when(!m.offline && !!sp.branch, el => el.child(h_flex().flex_none().max_w(96).gap(4).items_center()
-        .child(ico("branch", 11, C.purple))
-        .child(div().min_w(0).truncate().font_family(MONO).text_size(11).text_color(C.purple).child(sp.branch))))
-      .when(m.offline, el => el.child(div().flex_none().font_family(MONO).text_size(11).text_color(C.amber).whitespace_nowrap()
+        .child(ico("branch", 11, C.muted))
+        .child(div().min_w(0).truncate().font_family(MONO).text_size(10.5).text_color(C.muted).child(sp.branch))))
+      .when(m.offline, el => el.child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.amber).whitespace_nowrap()
         .child(seenAt ? `last seen ${dur(Date.now() - seenAt)}` : "offline"))))
       // space.close asks first, so a stray click can't take a whole space.
-      .when(!m.offline, el => el.child(closeSlot(`tn-sp-x-${sp.id}`, hover, 12, "Close space", () => run("space.close", { id: sp.id })))))
+      .when(!m.offline, el => el.child(closeSlot(`tn-sp-x-${sp.id}`, hover, 6, "Close space", () => run("space.close", { id: sp.id })))))
     .children(sp.rows.map(r => rowEl(view, r, compact, onPick)));
 }
 
 function sectionTitle(m) {
   const wait = m.count.waiting > 0;
   return h_flex().w_full().h(20).flex_none().gap(8).px(6).items_center()
-    .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(C.dim).child(m.name.toUpperCase()))
-    .child(div().flex_none().font_family(MONO).text_size(11).text_color(wait ? C.red : C.dim).child(m.summary));
+    .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name))
+    .child(div().flex_none().text_size(11).text_color(wait ? C.red : C.muted).child(m.summary));
 }
 
-const newSpaceRow = (id, m, h, label) => h_flex().id(id).w_full().h(h).flex_none().px(12).gap(8).items_center().rounded(16)
-  .border(1).border_color(C.input).text_size(12).text_color(C.dim).cursor_pointer()
-  .hover(s => s.bg(C.surface))
+const newSpaceRow = (id, m, h, label) => h_flex().id(id).w_full().h(h).flex_none().px(12).gap(8).items_center().rounded(9)
+  .text_size(12).text_color(C.muted).cursor_pointer()
+  .hover(s => s.bg(C.raised))
   .on_click((_e, cx) => { cx.stop_propagation(); run("space.new", { machine: mArg(m.key) }); })
-  .child(ico("folder", 13, C.dim)).child(div().truncate().child(label));
+  .child(ico("folder", 13, C.muted)).child(div().truncate().child(label));
 
 // The "All" view: one card per machine, tinted in its color, with its capsules inside.
 // onHead is null in the rail popup (it has no sidebar state to open a machine in).
 function allGroups(view, snap, compact, onHead, onPick) {
   return snap.machines.map(m => {
     const color = machineColor(m.key);
-    return v_flex().id(`tn-all-${m.key}`).w_full().flex_none().rounded(18).p(6).gap(6)
-      .bg(alpha(color, 0.06)).border(1).border_color(alpha(color, 0.35)).shadow_sm().opacity(m.offline ? 0.62 : 1)
-      .child(h_flex().id(`tn-all-h-${m.key}`).w_full().h(24).flex_none().gap(8).px(6).items_center().rounded(12)
-        .when(!!onHead, el => el.cursor_pointer().hover(s => s.bg(alpha(color, 0.12))).on_click((_e, cx) => onHead(m, cx)))
+    return v_flex().id(`tn-all-${m.key}`).w_full().flex_none().rounded(12).p(4).gap(4)
+      .bg(alpha(color, 0.09)).border(1).border_color(alpha(color, 0.36)).opacity(m.offline ? 0.62 : 1)
+      .child(h_flex().id(`tn-all-h-${m.key}`).w_full().h(26).flex_none().gap(8).px(6).items_center().rounded(8)
+        .when(!!onHead, el => el.cursor_pointer().hover(s => s.bg(alpha(color, 0.14))).on_click((_e, cx) => onHead(m, cx)))
         .on_mouse_down("right", pickColor(m))
         .child(machineIcon(m, 13, color))
         // The name keeps its width; a long summary is what gets cut.
         .child(div().flex_none().max_w(140).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name))
-        .child(div().flex_1().min_w(0).truncate().text_right().font_family(MONO).text_size(11).text_color(m.offline ? C.amber : m.count.waiting ? C.red : C.dim).child(m.summary)))
+        .child(div().flex_1().min_w(0).truncate().text_right().text_size(11).text_color(m.offline ? C.amber : m.count.waiting ? C.red : C.muted).child(m.summary)))
       .children(m.spaces.map(sp => capsule(view, sp, m, compact, onPick)))
-      .when(m.spaces.length === 0, el => el.child(div().px(8).py(2).text_size(11).text_color(C.dim).child("No spaces")))
+      .when(m.spaces.length === 0, el => el.child(div().px(8).py(2).text_size(11).text_color(C.muted).child("No spaces")))
       .child(newSpaceRow(`tn-all-new-${m.key}`, m, 28, "New space"));
   });
 }
@@ -208,26 +209,26 @@ function statsBlock(view, m) {
   const data = st?.data;
   const meta = m.offline ? `stale · ${dur(Date.now() - (st?.at ?? lastSeen(m.key) ?? Date.now()))}`
     : [m.key === LOCAL ? "" : "ssh", upText(data?.up)].filter(Boolean).join(" · ");
-  const bar = (label, pct, text) => h_flex().w_full().h(16).flex_none().gap(8).items_center().font_family(MONO).text_size(11)
-    .child(h_flex().w(14).flex_none().items_center().tooltip(label).child(ico(label, 13, C.dim)))
-    .child(div().flex_1().min_w(0).h(5).rounded(3).bg(C.raised).overflow_hidden()
-      .child(div().h(5).rounded(3).w(`${Math.max(2, Math.min(100, pct))}%`).bg(level(pct, C.cyan))))
+  const bar = (label, pct, text) => h_flex().w_full().h(16).flex_none().gap(8).items_center().font_family(MONO).text_size(10.5)
+    .child(h_flex().w(14).flex_none().items_center().tooltip(label).child(ico(label, 13, C.muted)))
+    .child(div().flex_1().min_w(0).h(4).rounded(2).bg(C.well).overflow_hidden()
+      .child(div().h(4).rounded(2).w(`${Math.max(2, Math.min(100, pct))}%`).bg(level(pct, C.fg))))
     // A fixed text column, so every bar gets exactly the same length.
     .child(div().w(STAT_TEXT_W).flex_none().text_right().whitespace_nowrap().truncate().text_color(C.muted).child(text));
   return v_flex().id("tn-stats").w_full().flex_none().gap(5).opacity(m.offline ? 0.6 : 1)
     .child(h_flex().w_full().h(14).gap(6).items_center()
-      .child(machineIcon(m, 11, C.dim))
-      .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(C.dim).child(m.name))
-      .child(div().flex_none().font_family(MONO).text_size(10).text_color(m.offline ? C.amber : C.dim).child(meta)))
+      .child(machineIcon(m, 12, C.muted))
+      .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name))
+      .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(m.offline ? C.amber : C.muted).child(meta)))
     .when(!!data, el => el
       .child(bar("cpu", data.cpu, `${data.cpu}% · ${data.cores}c`))
       .child(bar("ram", data.memPct, data.memText))
       .child(bar("disk", diskUsed(data), diskFreeText(data))))
-    .when(!data, el => el.child(div().font_family(MONO).text_size(11).text_color(C.dim)
+    .when(!data, el => el.child(div().font_family(MONO).text_size(10.5).text_color(C.muted)
       .child(st?.fail ? "stats unavailable" : "reading…")));
 }
 
-const hairline = () => div().w_full().h(1).flex_none().bg(alpha(C.fg, 0.07));
+const hairline = () => div().w_full().h(1).flex_none().bg(C.rim);
 
 // One inset well flush with the sidebar's bottom and sides, floating over the list. Collapsed it is
 // the usage pills + stats; expanded, the usage panel stacks above the pills and the dock grows upward.
@@ -236,9 +237,9 @@ const hairline = () => div().w_full().h(1).flex_none().bg(alpha(C.fg, 0.07));
 // The sidebar is two floating boxes in one block: the list box (flex) and, under it with a gap,
 // the widget box (usage + stats). Expanding usage grows the widget box upward and the list box
 // shrinks and scrolls, so the two never touch.
-const floatBox = (el) => el.bg(C.chrome).rounded(12).border(1).border_color(rim()).shadow_lg().overflow_hidden();
+const floatBox = (el) => el.bg(C.glass).rounded(16).border(1).border_color(C.rim).shadow_2xl().overflow_hidden();
 function dock(view, usage, stats) {
-  return floatBox(v_flex().id("tn-dock").w_full().flex_none().px(8).py(8).gap(6))
+  return floatBox(v_flex().id("tn-dock").w_full().flex_none().p(10).gap(8))
     .when(!!usage?.panel, el => el.child(usage.panel).child(hairline()))
     .when(!!usage, el => el.child(usage.head))
     .when(!!usage && !!stats, el => el.child(hairline()))
@@ -253,14 +254,14 @@ const diskFreeText = (data) => `${data.diskFree >= 100 ? Math.round(data.diskFre
 function tile(view, m, open, w) {
   const sel = open === m.key;
   const mc = machineColor(m.key);
-  return v_flex().id(`tn-m-${m.key}`).w(w).h(58).flex_none().relative().items_center().justify_center().gap(5).px(6).rounded(6)
-    .bg(sel ? alpha(mc, 0.16) : raisedFill(C.surface)).border(1).border_color(sel ? alpha(mc, 0.55) : rim())
-    .when(sel, el => el.shadow_md()).when(!sel, el => el.shadow_sm())
+  return v_flex().id(`tn-m-${m.key}`).w(w).h(58).flex_none().relative().items_center().justify_center().gap(5).px(6).rounded(10)
+    .bg(sel ? C.raisedHi : C.raised).border(1).border_color(sel ? alpha(mc, 0.55) : CLEAR)
+    .when(sel, el => el.shadow_md())
     .opacity(m.offline ? 0.62 : 1).cursor_pointer().tooltip(`${m.name} · ${m.summary}`)
-    .hover(s => s.bg(sel ? alpha(mc, 0.2) : mix(C.fg, C.raised, 0.05)).shadow_md())
+    .hover(s => s.bg(C.raisedHi))
     .on_click((_e, cx) => { view.goMachine(m.key); view.pollStats(cx, true); cx.notify(); })
     .on_mouse_down("right", pickColor(m))
-    .child(h_flex().size(24).rounded(6).justify_center().items_center().bg(sel ? alpha(mc, 0.24) : C.raised)
+    .child(h_flex().size(24).rounded(7).justify_center().items_center().bg(alpha(mc, 0.16))
       .child(machineIcon(m, 14, mc)))
     .child(div().max_w(Math.max(20, w - 14)).truncate().text_size(11).font_medium().text_color(sel ? C.fg : C.muted).child(m.name))
     .when(!!m.light, el => el.child(light(m, 6, 6)));
@@ -272,11 +273,11 @@ const sheep = (size) => image(`${M}/herdr.png`).size(size).rounded(Math.round(si
 function allTile(view, snap, open, w) {
   const sel = open === ALL;
   const l = allLight(snap);
-  return v_flex().id("tn-m-all").w(w).h(58).flex_none().relative().items_center().justify_center().gap(5).px(6).rounded(6)
-    .bg(sel ? alpha(C.accent, 0.16) : raisedFill(C.surface)).border(1).border_color(sel ? alpha(C.accent, 0.55) : rim())
-    .when(sel, el => el.shadow_md()).when(!sel, el => el.shadow_sm())
+  return v_flex().id("tn-m-all").w(w).h(58).flex_none().relative().items_center().justify_center().gap(5).px(6).rounded(10)
+    .bg(sel ? C.raisedHi : C.raised).border(1).border_color(sel ? alpha("#ffffff", 0.4) : CLEAR)
+    .when(sel, el => el.shadow_md())
     .cursor_pointer().tooltip("All machines")
-    .hover(s => s.bg(sel ? alpha(C.accent, 0.2) : mix(C.fg, C.raised, 0.05)).shadow_md())
+    .hover(s => s.bg(C.raisedHi))
     .on_click((_e, cx) => { view.setOpen(ALL); view.pollStats(cx, true); cx.notify(); })
     .child(sheep(24))
     .child(div().max_w(Math.max(20, w - 14)).truncate().text_size(11).font_medium().text_color(sel ? C.fg : C.muted).child("All"))
@@ -288,8 +289,8 @@ function brand(view, snap) {
   return h_flex().w_full().h(28).flex_none().gap(4).items_center()
     .child(h_flex().size(22).flex_none().ml(2).rounded(6).bg(C.accent).justify_center().items_center().child(ico("logo", 14, C.onAccent)))
     .child(div().flex_1().min_w(0).pl(6).text_size(14).font_semibold().text_color(C.fg).child("herdr"))
-    .child(iconBtn("tn-new", "plus", 14, C.accent, alpha(C.accent, 0.14), "New", 28, 28, () => openNewMenu(snap, view.lastSpaces())))
-    .child(iconBtn("tn-collapse", "panel", 14, C.dim, CLEAR, "Collapse sidebar", 28, 28, () => run("layout.resize", { id: "sidebar", px: 56 })));
+    .child(iconBtn("tn-new", "plus", 14, C.accent, C.raised, "New", 28, 28, () => openNewMenu(snap, view.lastSpaces())))
+    .child(iconBtn("tn-collapse", "panel", 14, C.muted, CLEAR, "Collapse sidebar", 28, 28, () => run("layout.resize", { id: "sidebar", px: 56 })));
 }
 
 function full(base, view, snap, open, w) {
@@ -301,7 +302,7 @@ function full(base, view, snap, open, w) {
   const stats = sm ? statsBlock(view, sm) : null;
   const spacer = div().w_full().h(4).flex_none();
   return base.gap(8)
-    .child(floatBox(v_flex().w_full().flex_1().min_h(0).px(10).pt(10).gap(14))
+    .child(floatBox(v_flex().w_full().flex_1().min_h(0).px(10).pt(10).pb(6).gap(10))
       .child(brand(view, snap))
       .child(h_flex().w_full().flex_none().flex_wrap().gap(6).child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW))))
       .when(all, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
@@ -310,7 +311,7 @@ function full(base, view, snap, open, w) {
       .when(!!m, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
         .child(sectionTitle(m))
         .children(m.spaces.map(sp => capsule(view, sp, m, false)))
-        .child(newSpaceRow("tn-newspace", m, 34, `New space on ${m.name}`))
+        .child(newSpaceRow("tn-newspace", m, 28, `New space on ${m.name}`))
         .child(spacer)))
       .when(!m && !all, el => el.child(div().flex_1())))
     .when(!!usage || !!stats, el => el.child(dock(view, usage, stats)));
@@ -319,26 +320,26 @@ function full(base, view, snap, open, w) {
 // ---- rail ----
 function rail(base, view, snap) {
   return floatBox(base).items_center().py(10).gap(8)
-    .child(h_flex().size(28).flex_none().rounded(6).bg(C.accent).justify_center().items_center().child(ico("logo", 16, C.onAccent)))
-    .child(iconBtn("tn-new", "plus", 14, C.accent, alpha(C.accent, 0.14), "New", 36, 32, () => openNewMenu(snap, view.lastSpaces())))
-    .child(div().w(24).h(1).flex_none().my(2).bg(C.raised))
-    .child(h_flex().id("tn-rm-all").w(40).h(40).flex_none().relative().justify_center().items_center().rounded(6)
-      .bg(C.surface).cursor_pointer().tooltip("All machines")
-      .hover(s => s.bg(C.raised))
+    .child(h_flex().size(28).flex_none().rounded(8).bg(C.accent).justify_center().items_center().child(ico("logo", 16, C.onAccent)))
+    .child(iconBtn("tn-new", "plus", 14, C.accent, C.raised, "New", 36, 32, () => openNewMenu(snap, view.lastSpaces())))
+    .child(div().w(24).h(1).flex_none().my(2).bg(C.rim))
+    .child(h_flex().id("tn-rm-all").w(40).h(40).flex_none().relative().justify_center().items_center().rounded(10)
+      .bg(C.raised).cursor_pointer().tooltip("All machines")
+      .hover(s => s.bg(C.raisedHi))
       .on_mouse_down("left", (e, cx) => { cx.stop_propagation(); setPressed(anchorRight(e)); })
       .on_click(() => openSpaces(snap, ALL))
       .child(sheep(24))
       .when(!!allLight(snap), el => el.child(light({ light: allLight(snap) }, 4, 4))))
-    .children(snap.machines.map(m => h_flex().id(`tn-rm-${m.key}`).w(40).h(40).flex_none().relative().justify_center().items_center().rounded(6)
-      .bg(C.surface).opacity(m.offline ? 0.62 : 1).cursor_pointer().tooltip(`${m.name} · ${m.summary}`)
-      .hover(s => s.bg(C.raised))
+    .children(snap.machines.map(m => h_flex().id(`tn-rm-${m.key}`).w(40).h(40).flex_none().relative().justify_center().items_center().rounded(10)
+      .bg(C.raised).opacity(m.offline ? 0.62 : 1).cursor_pointer().tooltip(`${m.name} · ${m.summary}`)
+      .hover(s => s.bg(C.raisedHi))
       .on_mouse_down("left", (e, cx) => { cx.stop_propagation(); setPressed(anchorRight(e)); })
       .on_mouse_down("right", pickColor(m))
       .on_click(() => openSpaces(snap, m.key))
       .child(machineIcon(m, 16, machineColor(m.key)))
       .when(!!m.light, el => el.child(light(m, 4, 4)))))
     .child(div().flex_1())
-    .child(iconBtn("tn-expand", "panel", 15, C.dim, CLEAR, "Expand sidebar", 36, 32, () => run("layout.resize", { id: "sidebar", px: 268 })));
+    .child(iconBtn("tn-expand", "panel", 15, C.muted, CLEAR, "Expand sidebar", 36, 32, () => run("layout.resize", { id: "sidebar", px: 268 })));
 }
 
 export function renderSidebar(view) {
@@ -354,9 +355,9 @@ export function renderSidebar(view) {
 
 // ---- popup: New ----
 const popRow = (id, lead, label, trail, onPick) => h_flex().id(id).w_full().h(NM_ROW).flex_none().px(8).gap(8).items_center().rounded(4)
-  .text_size(13).text_color(C.fg).cursor_pointer().hover(s => s.bg(C.raised))
+  .text_size(12).text_color(C.fg).cursor_pointer().hover(s => s.bg(C.raised))
   .on_click(onPick).child(lead).child(div().flex_1().min_w(0).truncate().child(label)).when(!!trail, el => el.child(trail));
-const dimText = (t) => div().px(8).py(6).text_size(12).text_color(C.dim).child(t);
+const dimText = (t) => div().px(8).py(6).text_size(12).text_color(C.muted).child(t);
 
 export function renderNewMenu(view) {
   const p = props();
@@ -377,21 +378,21 @@ export function renderNewMenu(view) {
   const sections = ms.map((m, i) => {
     const target = targetSpace(snap, m.key, p.last);
     return v_flex().w_full().flex_none()
-      .when(i > 0, el => el.child(div().w_full().h(1).flex_none().mx(2).my(4).bg(C.raised)))
+      .when(i > 0, el => el.child(div().w_full().h(1).flex_none().mx(2).my(4).bg(C.rim)))
       .child(h_flex().w_full().h(NM_HEAD).flex_none().px(8).gap(6).items_center()
         .child(machineIcon(m, 12, machineColor(m.key)))
-        .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(C.dim).child(m.name.toUpperCase())))
-      .child(popRow(`nm-space-${m.key}`, ico("folder", 14, C.teal), "New space", null, pick(() => run("space.new", { machine: mArg(m.key) })))
+        .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.muted).child(m.name)))
+      .child(popRow(`nm-space-${m.key}`, ico("folder", 14, C.muted), "New space", null, pick(() => run("space.new", { machine: mArg(m.key) })))
         .on_hover((hv) => { if (hv) closeFly(); }))
-      .when(!!target, el => el.child(popRow(`nm-term-${m.key}`, ico("terminal", 14, C.cyan), "New terminal tab",
-        i === 0 && hint ? div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(hint) : null,
+      .when(!!target, el => el.child(popRow(`nm-term-${m.key}`, ico("terminal", 14, C.muted), "New terminal tab",
+        i === 0 && hint ? div().flex_none().font_family(MONO).text_size(10.5).text_color(C.muted).child(hint) : null,
         pick(() => run("tab.new", { space: target })))
         .on_hover((hv) => { if (hv) closeFly(); })))
-      .child(popRow(`nm-agent-${m.key}`, ico("cpu", 14, C.purple), "Agent", div().flex_none().text_size(15).text_color(C.dim).child("›"), () => {})
+      .child(popRow(`nm-agent-${m.key}`, ico("cpu", 14, C.muted), "Agent", div().flex_none().text_size(15).text_color(C.muted).child("›"), () => {})
         .on_mouse_move((e) => openFly(m, target, e))
         .on_mouse_down("left", (e) => openFly(m, target, e))); // touch: no hover
   });
-  return v_flex().id("tn-newmenu").w_full().h(h).bg(C.surface).rounded(6).border(1).border_color(rim()).shadow_xl()
+  return v_flex().id("tn-newmenu").w_full().h(h).bg(C.glass).rounded(12).border(1).border_color(C.rim).shadow_xl()
     .overflow_y_scrollbar().p(6)
     .children(sections)
     .when(ms.length === 0, el => el.child(dimText("No machines connected")));
@@ -407,7 +408,7 @@ export function renderAgentMenu(view) {
     if (p.target) run("tab.new", { space: p.target, argv: a.run });
     else run("space.new", { machine: mArg(p.machine), argv: a.run });
   };
-  return v_flex().id("tn-agentmenu").w_full().h(flyHeight(list.length)).bg(C.surface).rounded(6).border(1).border_color(rim()).shadow_xl()
+  return v_flex().id("tn-agentmenu").w_full().h(flyHeight(list.length)).bg(C.glass).rounded(12).border(1).border_color(C.rim).shadow_xl()
     .overflow_y_scrollbar().p(6)
     .children(list.map(a => popRow(`am-${a.key}`, prog(a, 14, C.fg), a.name, null, pick(a))))
     .when(list.length === 0, el => el.child(dimText(view.agentsFailed ? `Couldn't check ${p.name ?? p.machine}`
@@ -434,10 +435,10 @@ export function renderSpacesPopup(view) {
   const m = all ? null : snap.mBy.get(p.machine) ?? snap.machines[0];
   const h = p.h ?? spacesHeight(snap, all ? ALL : m.key);
   const close = () => closeOverlay(p.overlay);
-  return v_flex().id("tn-spaces").w_full().h(h).bg(C.chrome).rounded(16).border(1).border_color(rim()).shadow_xl().overflow_hidden().p(8).gap(8)
+  return v_flex().id("tn-spaces").w_full().h(h).bg(C.glass).rounded(12).border(1).border_color(C.rim).shadow_xl().overflow_hidden().p(8).gap(8)
     .child(h_flex().w_full().h(22).flex_none().gap(8).px(6).items_center()
-      .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(C.dim).child(all ? "ALL MACHINES" : m.name.toUpperCase()))
-      .when(!all, el => el.child(div().flex_none().font_family(MONO).text_size(11).text_color(m.count.waiting ? C.red : C.dim).child(m.summary))))
+      .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(all ? "All machines" : m.name))
+      .when(!all, el => el.child(div().flex_none().text_size(11).text_color(m.count.waiting ? C.red : C.muted).child(m.summary))))
     .child(v_flex().id("tn-spaces-list").w_full().h(h - 16 - 22 - 8).gap(8).overflow_y_scrollbar()
       .when(all, el => el.children(allGroups(view, snap, true, null, close)))
       .when(!all, el => el.children(m.spaces.map(sp => capsule(view, sp, m, true, close)))));
@@ -453,8 +454,8 @@ export function renderColorsPopup() {
     setShared(COLORS_KEY, next);
     closeOverlay(p.overlay);
   };
-  return v_flex().id("tn-colors").w_full().h(72).bg(C.surface).rounded(6).border(1).border_color(rim()).shadow_xl().overflow_hidden().p(10).gap(10)
-    .child(div().w_full().h(16).flex_none().truncate().text_size(11).font_semibold().text_color(C.dim).child(`THEME FOR ${String(p.name ?? p.machine).toUpperCase()}`))
+  return v_flex().id("tn-colors").w_full().h(72).bg(C.glass).rounded(12).border(1).border_color(C.rim).shadow_xl().overflow_hidden().p(10).gap(10)
+    .child(div().w_full().h(16).flex_none().truncate().text_size(11).font_semibold().text_color(C.muted).child(`Theme for ${String(p.name ?? p.machine)}`))
     .child(h_flex().w_full().h(26).flex_none().gap(3).items_center()
       .children(SCHEMES.map(sc => h_flex().id(`tn-sw-${sc.color}`).size(22).flex_none().rounded(11).bg(sc.color).cursor_pointer()
         .border(2).border_color(cur[p.machine] === sc.color ? C.fg : CLEAR).tooltip(sc.label)
