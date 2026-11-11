@@ -78,6 +78,11 @@ export const machineColor = (key) => {
 };
 export const machineScheme = (key) => SCHEMES.find(s => s.color === machineColor(key)) ?? SCHEMES[0];
 export const stop = (_e, cx) => cx.stop_propagation();
+// Hover-revealed controls (close buttons): wait a moment before sliding in, so passing the pointer
+// over a list doesn't make it twitch; leaving hides them at once.
+export const revealMotion = (shown) => shown
+  ? { duration: 160, delay: 350, easing: "ease-out" }
+  : { duration: 120, easing: "ease-out" };
 
 export function dur(ms) {
   const m = Math.floor(Math.max(0, ms) / 60000);

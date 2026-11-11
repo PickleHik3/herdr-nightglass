@@ -3,7 +3,7 @@
 import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, panes, props, exec, shared, setShared, spaces } from "herdr";
-import { C, MONO, alpha, mix, raised, raisedFill, dur, ico, prog, mark, stop, nodePx, anchorBelowRight, setPressed, getPressed, machineColor } from "./lib.js";
+import { C, MONO, alpha, mix, raised, raisedFill, revealMotion, dur, ico, prog, mark, stop, nodePx, anchorBelowRight, setPressed, getPressed, machineColor } from "./lib.js";
 import { snapshot, short, LOCAL, mArg, mname, mkey } from "./data.js";
 
 export const EMPTY_KEY = "tokyo-night.empty"; // machine key shown in the empty view, or null
@@ -119,7 +119,7 @@ function tabRow(view, snap, att) {
       // tab.close asks first when it would close the space's last tab.
       .child(h_flex().id(`tn-tab-xs-${t.id}`).h(16).flex_none().overflow_hidden().items_center()
         .w(view.tabHover === t.id ? 20 : 0).opacity(view.tabHover === t.id ? 1 : 0)
-        .transition("width", { duration: 160, easing: "ease-out" }).transition("opacity", { duration: 160, easing: "ease-out" })
+        .transition("width", revealMotion(view.tabHover === t.id)).transition("opacity", revealMotion(view.tabHover === t.id))
         .child(h_flex().id(`tn-tab-x-${t.id}`).size(16).flex_none().justify_center().items_center()
           .rounded(4).cursor_pointer().hover(s => s.bg(alpha(C.red, 0.25))).tooltip("Close tab")
           .on_mouse_down("left", stop).on_click((_e, cx) => { view.tabHover = null; run("tab.close", { id: t.id }); cx.notify(); })

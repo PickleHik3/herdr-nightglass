@@ -2,7 +2,7 @@
 import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, setAgentOrder, props, spaces, focused, shared, setShared, knownAgents } from "herdr";
-import { C, M, MONO, CLEAR, BADGES, alpha, mix, raised, raisedFill, rim, dur, hash, ico, prog, mark, level, stop, nodePx,
+import { C, M, MONO, CLEAR, BADGES, alpha, mix, raised, raisedFill, rim, revealMotion, dur, hash, ico, prog, mark, level, stop, nodePx,
   anchorBelow, anchorRight, setPressed, getPressed, bindingOf, machineColor, SCHEMES, COLORS_KEY } from "./lib.js";
 import { snapshot, LOCAL, ALL, mkey, mArg, onArg, lastSeen, upText, statsMachine } from "./data.js";
 import { usageParts } from "./header.js";
@@ -99,7 +99,7 @@ function allLight(snap) {
 // and opacity transitions), pushing the content left. It stops the press so the row isn't picked.
 const closeSlot = (id, shown, radius, tip, act) => h_flex().id(id).h_full().flex_none().overflow_hidden()
   .w(shown ? 30 : 0).opacity(shown ? 1 : 0)
-  .transition("width", { duration: 160, easing: "ease-out" }).transition("opacity", { duration: 160, easing: "ease-out" })
+  .transition("width", revealMotion(shown)).transition("opacity", revealMotion(shown))
   .child(h_flex().id(`${id}-btn`).w(30).h_full().flex_none().justify_center().items_center().rounded_r(radius)
     .bg(alpha(C.red, 0.2)).hover(s => s.bg(alpha(C.red, 0.38))).cursor_pointer().tooltip(tip)
     .on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); act(); })
