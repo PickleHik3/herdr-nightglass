@@ -1,5 +1,5 @@
 // tokyo-night: the sidebar (expanded and rail), its New popup and the rail's spaces popup.
-import { div } from "gpui-kit";
+import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, setAgentOrder, props, spaces, focused, shared, setShared, knownAgents } from "herdr";
 import { C, M, MONO, CLEAR, BADGES, alpha, dur, hash, ico, prog, mark, level, stop, nodePx,
@@ -196,6 +196,9 @@ function tile(view, m, open, w) {
     .when(!!m.light, el => el.child(light(m, 6, 6)));
 }
 // The All tile: no machine, so no color to pick; clicking it only changes what the sidebar lists.
+// Herdr's ram ("sheep") tile, full color: the All tile's icon.
+const sheep = (size) => image(`${M}/herdr.png`).size(size).rounded(Math.round(size / 4)).flex_none();
+
 function allTile(view, snap, open, w) {
   const sel = open === ALL;
   const l = allLight(snap);
@@ -204,8 +207,7 @@ function allTile(view, snap, open, w) {
     .cursor_pointer().tooltip("All machines")
     .hover(s => s.bg(sel ? alpha(C.accent, 0.2) : C.raised))
     .on_click((_e, cx) => { view.setOpen(ALL); view.pollStats(cx, true); cx.notify(); })
-    .child(h_flex().size(24).rounded(6).justify_center().items_center().bg(sel ? alpha(C.accent, 0.24) : C.raised)
-      .child(ico("logo", 14, sel ? C.accent : C.muted)))
+    .child(sheep(24))
     .child(div().max_w(Math.max(20, w - 14)).truncate().text_size(11).font_medium().text_color(sel ? C.fg : C.muted).child("All"))
     .when(!!l, el => el.child(light({ light: l }, 6, 6)));
 }
@@ -250,7 +252,7 @@ function rail(base, view, snap) {
       .hover(s => s.bg(C.raised))
       .on_mouse_down("left", (e, cx) => { cx.stop_propagation(); setPressed(anchorRight(e)); })
       .on_click(() => openSpaces(snap, ALL))
-      .child(ico("logo", 16, C.muted))
+      .child(sheep(24))
       .when(!!allLight(snap), el => el.child(light({ light: allLight(snap) }, 4, 4))))
     .children(snap.machines.map(m => h_flex().id(`tn-rm-${m.key}`).w(40).h(40).flex_none().relative().justify_center().items_center().rounded(6)
       .bg(C.surface).opacity(m.offline ? 0.62 : 1).cursor_pointer().tooltip(`${m.name} · ${m.summary}`)

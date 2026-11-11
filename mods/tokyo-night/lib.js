@@ -55,6 +55,8 @@ export const SCHEMES = [
   { color: "#bb9af7", theme: "tokyo-night-aurora", label: "Aurora" },
 ];
 export const SWATCHES = SCHEMES.map(s => s.color);
+// The All view's own scheme: Tokyo Night Storm, neutral slate with a pale accent, unlike any machine.
+export const ALL_THEME = "tokyo-night-storm";
 // A fixed default (not the live accent, which follows whichever machine is focused).
 export const machineColor = (key) => {
   const c = shared(COLORS_KEY)?.[key];

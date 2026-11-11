@@ -11,7 +11,7 @@ import { renderSidebar, renderNewMenu, renderSpacesPopup, renderColorsPopup, loa
 import { renderHeader, pollChanges, pollUsage } from "./header.js";
 import { renderStrip, renderPane, renderEmpty, EMPTY_KEY } from "./strip.js";
 import { snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
-import { nodePx, machineScheme } from "./lib.js";
+import { nodePx, machineScheme, ALL_THEME } from "./lib.js";
 
 export default class TokyoNight extends View {
   init(_p, cx) {
@@ -90,12 +90,13 @@ export default class TokyoNight extends View {
     if (this.emptyShown()) { setShared(EMPTY_KEY, null); run("layout.select", { stack: "main-stack", child: "main" }); }
   }
   // The whole window wears the focused space's machine scheme (the empty view: the machine it
-  // shows). Checked every tick, so a color picked for the focused machine applies at once.
+  // shows; All: its own Storm scheme). Checked every tick, so a color picked for the focused machine applies at once.
   applyScheme(snap) {
     const sp = snap.foc && snap.spaces.find(s => s.id === snap.foc.space);
     const key = shared(EMPTY_KEY) ?? sp?.machine;
-    if (key == null) return;
-    const theme = machineScheme(key).theme;
+    const all = this.openKey(snap) === ALL;
+    if (key == null && !all) return;
+    const theme = all ? ALL_THEME : machineScheme(key).theme;
     if (theme === this.appliedTheme) return;
     this.appliedTheme = theme;
     run("app.theme", { name: theme });

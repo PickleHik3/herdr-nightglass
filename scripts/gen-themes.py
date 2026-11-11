@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the per-machine Tokyo Night variants in themes/.
+"""Generate the per-machine Tokyo Night variants (and the All view's Storm) in themes/.
 
 Each variant is themes/tokyo-night.json with its surfaces nudged toward one hue and that hue
 as the accent, so a machine's whole window reads as "its" color while staying Tokyo Night.
@@ -41,3 +41,15 @@ for name, hue in VARIANTS.items():
     t["colors"].update(accent=hue, solid=hue)
     (ROOT / "themes" / f"{name}.json").write_text(json.dumps(t, indent=2) + "\n")
     print(name, t["colors"]["chrome"], t["colors"]["canvas"], hue)
+
+# The All view's scheme: Tokyo Night Storm (the palette's own lighter slate variant) with a pale
+# lavender accent, so the overview looks like no single machine.
+storm = json.loads(json.dumps(BASE))
+storm.update(background="#24283b", selection="#2e3c64")
+storm["ansi"][0] = "#1d202f"
+storm["colors"].update(canvas="#1f2335", chrome="#24283b", surface="#292e42", popover="#292e42",
+                       raised="#343a55", hover="#343a55", selected="#3b4261", border="#343a55",
+                       input="#414868", accent="#c0caf5", solid="#c0caf5", accent_foreground="#1f2335",
+                       solid_foreground="#1f2335")
+(ROOT / "themes" / "tokyo-night-storm.json").write_text(json.dumps(storm, indent=2) + "\n")
+print("tokyo-night-storm", storm["colors"]["chrome"], storm["colors"]["canvas"], storm["colors"]["accent"])
