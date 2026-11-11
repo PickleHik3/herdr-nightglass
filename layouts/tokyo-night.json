@@ -28,9 +28,6 @@
       },
       "min": 56,
       "max": 480,
-      "background": "chrome",
-      "radius": 6,
-      "shadow": "lg",
       "content": {
         "mod": "tokyo-night",
         "props": {

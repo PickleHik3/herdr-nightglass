@@ -118,6 +118,7 @@ function windowButtons() {
 }
 
 const toolIcon = (tool, size) => image(`icons/${tool === "codex" ? "codex" : "claude"}.svg`).size(size).flex_none();
+const UROW = 62; // one account row in the expanded usage list
 const resetIn = (at) => at ? dur(at * 1000 - Date.now()) : null;
 const ringColors = (u) => [level(u.week ?? 0, C.accent), level(u.five ?? 0, C.teal)];
 
@@ -194,7 +195,7 @@ export function usageParts(view) {
   const row = (r) => {
     const hot = (r.week ?? 0) >= 85 || (r.five ?? 0) >= 85;
     const [wc, hc] = ringColors(r);
-    return h_flex().w_full().flex_none().gap(10).px(6).py(6).items_center().rounded(12)
+    return h_flex().w_full().h(UROW).flex_none().gap(10).px(6).items_center().rounded(12)
       .bg(hot ? alpha(C.red, 0.1) : CLEAR).border(1).border_color(hot ? alpha(C.red, 0.4) : CLEAR)
       .child(ring(30, r.week, r.five, wc, hc))
       .child(v_flex().flex_1().min_w(0).gap(3)
@@ -204,10 +205,13 @@ export function usageParts(view) {
         .when(!!r.note, el => el.child(div().text_size(11).text_color(C.amber).truncate().child(r.note)))
         .when(!r.note, el => el.child(bar("wk", r.week, resetIn(r.weekAt))).child(bar("5h", r.five, resetIn(r.fiveAt)))));
   };
-  // The floating list is capped by the sidebar (view.height) and scrolls past that.
-  const cap = Math.max(120, Math.round((view.height ?? 600) * 0.7) - (view.dockH ?? 150));
-  const panel = v_flex().id("tn-usage-panel").w_full().flex_none().max_h(cap).gap(8).overflow_y_scrollbar().opacity(u.stale ? 0.6 : 1)
-    .child(h_flex().w_full().flex_none().gap(12).items_center().text_size(11).text_color(C.dim)
+  // The expanded list is capped by the sidebar height (view.height) and scrolls past that.
+  const cap = Math.max(120, Math.round((view.height ?? 600) * 0.55) - 130); // leaves the list box room
+  // An explicit height (content, capped): a scroll area with only max_h takes all the room it may
+  // and pushed the usage row and stats out of the widget box.
+  const contentH = 16 + rows.length * UROW + 14 + (rows.length + 1) * 8;
+  const panel = v_flex().id("tn-usage-panel").w_full().flex_none().h(Math.min(cap, contentH)).gap(8).overflow_y_scrollbar().opacity(u.stale ? 0.6 : 1)
+    .child(h_flex().w_full().h(16).flex_none().gap(12).items_center().text_size(11).text_color(C.dim)
       .child(h_flex().gap(5).items_center().child(div().size(9).rounded(5).border(2).border_color(C.dim)).child(div().child("outer: week")))
       .child(h_flex().gap(5).items_center().child(div().size(5).rounded(3).bg(C.dim)).child(div().child("inner: 5-hour")))
       .child(div().flex_1())

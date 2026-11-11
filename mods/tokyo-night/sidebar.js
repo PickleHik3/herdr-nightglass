@@ -2,7 +2,7 @@
 import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, setAgentOrder, props, spaces, focused, shared, setShared, knownAgents } from "herdr";
-import { C, M, MONO, CLEAR, BADGES, alpha, mix, raised, raisedFill, rim, fade, dur, hash, ico, prog, mark, level, stop, nodePx,
+import { C, M, MONO, CLEAR, BADGES, alpha, mix, raised, raisedFill, rim, dur, hash, ico, prog, mark, level, stop, nodePx,
   anchorBelow, anchorRight, setPressed, getPressed, bindingOf, machineColor, SCHEMES, COLORS_KEY } from "./lib.js";
 import { snapshot, LOCAL, ALL, mkey, mArg, onArg, lastSeen, upText, statsMachine } from "./data.js";
 import { usageParts } from "./header.js";
@@ -223,27 +223,21 @@ function statsBlock(view, m) {
 }
 
 const hairline = () => div().w_full().h(1).flex_none().bg(alpha(C.fg, 0.07));
-const DOCK_FALLBACK = 150;
 
 // One inset well flush with the sidebar's bottom and sides, floating over the list. Collapsed it is
 // the usage pills + stats; expanded, the usage panel stacks above the pills and the dock grows upward.
 // The dock (usage row + stats) stays in the sidebar's flow at the bottom, a fixed size; only the
 // expanded usage list floats, absolutely placed just above the dock and over the space list.
+// The sidebar is two floating boxes in one block: the list box (flex) and, under it with a gap,
+// the widget box (usage + stats). Expanding usage grows the widget box upward and the list box
+// shrinks and scrolls, so the two never touch.
+const floatBox = (el) => el.bg(C.chrome).rounded(12).border(1).border_color(rim()).shadow_lg().overflow_hidden();
 function dock(view, usage, stats) {
-  return v_flex().id("tn-dock").w_full().flex_none()
-    .on_size_change((size, cx) => { if (Math.abs((view.dockH ?? 0) - size.height) >= 1) { view.dockH = size.height; cx.notify(); } })
-    .child(fade(7, "#000000"))
-    .child(v_flex().w_full().flex_none().rounded_b(6).overflow_hidden().px(8).py(6).gap(6)
-      .bg(mix("#000000", C.chrome, 0.18)).border_t(1).border_color(alpha(C.fg, 0.07))
-      .when(!!usage, el => el.child(usage.head))
-      .when(!!usage && !!stats, el => el.child(hairline()))
-      .when(!!stats, el => el.child(stats)));
-}
-function usageOverlay(view, panel) {
-  return v_flex().id("tn-usage-float").absolute().left(0).right(0).bottom(Math.max(0, (view.dockH ?? DOCK_FALLBACK) - 7))
-    .px(8).pt(8).pb(6).rounded_t(10).bg(mix("#000000", C.chrome, 0.18))
-    .border(1).border_color(alpha(C.fg, 0.07)).shadow_2xl()
-    .child(panel);
+  return floatBox(v_flex().id("tn-dock").w_full().flex_none().px(8).py(8).gap(6))
+    .when(!!usage?.panel, el => el.child(usage.panel).child(hairline()))
+    .when(!!usage, el => el.child(usage.head))
+    .when(!!usage && !!stats, el => el.child(hairline()))
+    .when(!!stats, el => el.child(stats));
 }
 
 // Disk: a used bar like cpu/ram, and what's free as the text (df's Available, so the two agree).
@@ -301,8 +295,8 @@ function full(base, view, snap, open, w) {
   const usage = usageParts(view);
   const stats = sm ? statsBlock(view, sm) : null;
   const spacer = div().w_full().h(4).flex_none();
-  return base.relative()
-    .child(v_flex().w_full().flex_1().min_h(0).px(10).pt(10).gap(14)
+  return base.gap(8)
+    .child(floatBox(v_flex().w_full().flex_1().min_h(0).px(10).pt(10).gap(14))
       .child(brand(view, snap))
       .child(h_flex().w_full().flex_none().flex_wrap().gap(6).child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW))))
       .when(all, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
@@ -314,13 +308,12 @@ function full(base, view, snap, open, w) {
         .child(newSpaceRow("tn-newspace", m, 34, `New space on ${m.name}`))
         .child(spacer)))
       .when(!m && !all, el => el.child(div().flex_1())))
-    .when(!!usage || !!stats, el => el.child(dock(view, usage, stats)))
-    .when(!!usage?.panel, el => el.child(usageOverlay(view, usage.panel)));
+    .when(!!usage || !!stats, el => el.child(dock(view, usage, stats)));
 }
 
 // ---- rail ----
 function rail(base, view, snap) {
-  return base.items_center().py(10).gap(8)
+  return floatBox(base).items_center().py(10).gap(8)
     .child(h_flex().size(28).flex_none().rounded(6).bg(C.accent).justify_center().items_center().child(ico("logo", 16, C.onAccent)))
     .child(iconBtn("tn-new", "plus", 14, C.accent, alpha(C.accent, 0.14), "New", 36, 32, () => openNewMenu(snap, view.lastSpaces())))
     .child(div().w(24).h(1).flex_none().my(2).bg(C.raised))
