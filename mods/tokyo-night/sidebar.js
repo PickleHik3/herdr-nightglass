@@ -182,7 +182,7 @@ function dock(view, usage, stats) {
     })
     .child(fade(7, "#000000"))
     .child(v_flex().w_full().flex_none().rounded_b(6).overflow_hidden().px(8).py(6).gap(6)
-      .bg(mix(C.chrome, "#000000", 0.18)).border_t(1).border_color(alpha(C.fg, 0.07))
+      .bg(mix("#000000", C.chrome, 0.18)).border_t(1).border_color(alpha(C.fg, 0.07))
       .when(open, el => el.shadow_2xl())
       .when(open, el => el.child(usage.panel).child(hairline()))
       .when(!!usage, el => el.child(usage.head))

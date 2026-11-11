@@ -44,9 +44,9 @@ export function mix(top, base, a) {
 // ---- depth ----
 // `.bg()` only takes a flat color (no Background), so "raised" is a solid a hair lighter than its
 // base, plus a faint highlight rim and a soft shadow (applied with `raised`/`lift`).
-export const raisedFill = (base) => mix(base, C.fg, 0.035);
+export const raisedFill = (base) => mix(C.fg, base, 0.035); // mix(top, base, amount of top)
 export const rim = () => alpha(C.fg, 0.06);
-export const inset = () => mix(C.canvas, "#000000", 0.25);
+export const inset = () => mix("#000000", C.canvas, 0.25);
 export const raised = (el, base) => el.bg(raisedFill(base)).border(1).border_color(rim()).shadow_sm();
 // A vertical fade faked with stacked strips (no gradient fill): `from` at the top to clear.
 export function fade(h, from) {
