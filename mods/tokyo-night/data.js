@@ -136,7 +136,7 @@ export function parseStats(out) {
     cpu: dt > 0 ? Math.max(0, Math.min(100, Math.round((dt - di) / dt * 100))) : 0,
     cores: L.cores?.[0] || 1,
     memPct: mem[0] > 0 ? Math.round((mem[0] - mem[1]) / mem[0] * 100) : 0,
-    memText: `${gb(mem[0] - mem[1]).toFixed(1)} / ${Math.round(gb(mem[0]))} GB`,
+    memText: `${gb(mem[0] - mem[1]).toFixed(1)}/${Math.round(gb(mem[0]))} GB`,
     diskPct: disk[0] > 0 ? Math.round(disk[1] / disk[0] * 100) : 0,
     diskText: `${Math.round(gb(disk[1]))} / ${Math.round(gb(disk[0]))} GB`,
     // df's Available column (excludes reserved blocks); older 2-column output falls back to size − used.

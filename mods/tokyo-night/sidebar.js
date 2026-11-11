@@ -136,12 +136,18 @@ function rowEl(view, r, compact, onPick) {
       () => r.pane ? run("pane.close", { pane: r.pane }) : run("terminal.kill", { terminal: r.address }))));
 }
 
+const STAT_TEXT_W = 78; // fits "20.3/63 GB", "881 GB free", "58% · 12c" in 11 px mono
+
 function capsule(view, sp, m, compact, onPick) {
   const color = BADGES[hash(sp.id) % BADGES.length];
   const initial = ([...(sp.name || "?")][0] ?? "?").toUpperCase();
   const seenAt = lastSeen(m.key);
   const hover = view.spHover === sp.id;
+  // A space with a terminal waiting on you turns red; one with an unseen finished agent, green.
+  const wants = sp.rows.some(r => r.kind === "waiting") ? C.red : sp.rows.some(r => r.kind === "done") ? C.green : null;
+  const strong = wants === C.red;
   return raised(v_flex().id(`tn-sp-${sp.id}`).w_full().flex_none().rounded(16).p(5).gap(2), C.surface)
+    .when(!!wants, el => el.bg(mix(wants, C.surface, strong ? 0.13 : 0.07)).border_color(alpha(wants, strong ? 0.6 : 0.35)).shadow_md())
     .child(h_flex().id(`tn-sph-${sp.id}`).w_full().h(28).items_stretch().rounded(12).overflow_hidden()
       .on_hover((h, cx) => { const id = h ? sp.id : view.spHover === sp.id ? null : view.spHover; if (id !== view.spHover) { view.spHover = id; cx.notify(); } })
       .child(h_flex().flex_1().min_w(0).gap(8).pl(4).pr(8).items_center()
@@ -201,14 +207,15 @@ function statsBlock(view, m) {
     .child(h_flex().w(14).flex_none().items_center().tooltip(label).child(ico(label, 13, C.dim)))
     .child(div().flex_1().min_w(0).h(5).rounded(3).bg(C.raised).overflow_hidden()
       .child(div().h(5).rounded(3).w(`${Math.max(2, Math.min(100, pct))}%`).bg(level(pct, C.cyan))))
-    .child(div().min_w(82).flex_none().text_right().whitespace_nowrap().text_color(C.muted).child(text));
+    // A fixed text column, so every bar gets exactly the same length.
+    .child(div().w(STAT_TEXT_W).flex_none().text_right().whitespace_nowrap().truncate().text_color(C.muted).child(text));
   return v_flex().id("tn-stats").w_full().flex_none().gap(5).opacity(m.offline ? 0.6 : 1)
     .child(h_flex().w_full().h(14).gap(6).items_center()
       .child(machineIcon(m, 11, C.dim))
       .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(C.dim).child(m.name))
       .child(div().flex_none().font_family(MONO).text_size(10).text_color(m.offline ? C.amber : C.dim).child(meta)))
     .when(!!data, el => el
-      .child(bar("cpu", data.cpu, `${data.cpu}% · ${data.cores} cores`))
+      .child(bar("cpu", data.cpu, `${data.cpu}% · ${data.cores}c`))
       .child(bar("ram", data.memPct, data.memText))
       .child(bar("disk", diskUsed(data), diskFreeText(data))))
     .when(!data, el => el.child(div().font_family(MONO).text_size(11).text_color(C.dim)
