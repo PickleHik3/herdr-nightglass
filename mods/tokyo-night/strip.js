@@ -62,11 +62,15 @@ function card(r) {
 function attention(snap, att) {
   const shown = att.slice(0, MAX_CARDS);
   const more = att.length - shown.length;
+  const nWait = att.filter(r => r.kind === "waiting").length, nDone = att.length - nWait;
   const col = (xs) => v_flex().flex_1().min_w(0).gap(GAP).children(xs.map(card));
   return v_flex().w_full().flex_none().bg(C.chrome).rounded(6).px(12).pt(10).pb(12).gap(GAP)
     .child(h_flex().w_full().h(HEAD).flex_none().gap(8).px(2).items_center()
-      .child(div().text_size(12).font_semibold().text_color(C.fg).child("Needs you"))
-      .child(div().px(5).rounded(4).bg(C.red).font_family(MONO).text_size(11).font_medium().text_color(C.ink).child(String(att.length)))
+      .when(nWait > 0, el => el.child(div().text_size(12).font_semibold().text_color(C.fg).child("Needs you"))
+        .child(div().px(5).rounded(4).bg(C.red).font_family(MONO).text_size(11).font_medium().text_color(C.ink).child(String(nWait))))
+      .when(nDone > 0, el => el.when(nWait > 0, e => e.child(div().w(6)))
+        .child(div().text_size(12).font_semibold().text_color(C.fg).child("Done"))
+        .child(div().px(5).rounded(4).bg(C.green).font_family(MONO).text_size(11).font_medium().text_color(C.ink).child(String(nDone))))
       .child(div().flex_1())
       .child(div().text_size(12).text_color(C.dim).child(more > 0 ? `${summary(snap)} · +${more} more` : summary(snap))))
     .child(h_flex().w_full().gap(GAP).items_start()

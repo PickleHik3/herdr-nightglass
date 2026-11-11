@@ -9,7 +9,7 @@ const MOD = "tokyo-night";
 const USAGE_KEY = "tokyo-night.usage";
 const USAGE_W = 392;
 const ROW_H = 54;
-const RIGHT_RESERVE = 500; // usage rings (≤6) + Files + Changes +N + Settings + window buttons
+const RIGHT_RESERVE = 360; // Files + Changes +N + Settings + window buttons
 const usageHeight = (n) => Math.min(720, 24 + 18 + 16 + n * ROW_H + 34 + (n + 2) * 8);
 
 // ---- pollers (called from timers, each with its own cx) ----
@@ -116,25 +116,11 @@ function windowButtons() {
   ];
 }
 
-// ---- usage ----
 const resetIn = (at) => at ? dur(at * 1000 - Date.now()) : null;
 const ringColors = (u) => [level(u.week ?? 0, C.accent), level(u.five ?? 0, C.teal)];
-function usageButton(u) {
-  const rows = u.rows;
-  return h_flex().id("tn-usage").h(30).flex_none().px(7).gap(3).items_center().rounded(15)
-    .bg(C.chrome).border(1).border_color(C.raised).opacity(u.stale ? 0.55 : 1).cursor_pointer()
-    .tooltip(`Claude usage for ${rows.length} account${rows.length === 1 ? "" : "s"}${u.stale ? " (stale)" : ""}`)
-    .hover(s => s.bg(C.surface))
-    .on_mouse_down("left", (e, cx) => { cx.stop_propagation(); setPressed(anchorBelowRight(e, USAGE_W)); })
-    .on_click(() => openOverlay({ mod: MOD, kind: "popup", frame: "none", width: USAGE_W, height: usageHeight(rows.length),
-      at: getPressed(), props: { role: "usage", h: usageHeight(rows.length) } }))
-    .children(rows.map(r => { const [wc, hc] = ringColors(r); return ring(22, r.week, r.five, wc, hc); }));
-}
 
 export function renderHeader(view) {
   const snap = snapshot();
-  const u = shared(USAGE_KEY);
-  const showUsage = !!u?.rows?.length && machines().some(m => m.name === USAGE_MACHINE);
   // Stable sample: the lowest terminal address, so the pill's text doesn't change with focus.
   const sample = snap.rows.map(r => r.short).filter(Boolean)
     .sort((a, b) => (parseInt(a.slice(1)) || 0) - (parseInt(b.slice(1)) || 0))[0] ?? "t1";
@@ -159,7 +145,6 @@ export function renderHeader(view) {
       .when(!!key, el => el.child(div().flex_none().px(8).py(1).rounded(10).bg(C.raised).font_family(MONO).text_size(11)
         .text_color(C.muted).child(key)))))
     .child(div().flex_1().h(1))
-    .when(showUsage, el => el.child(usageButton(u)))
     .children(panelButtons(view))
     .child(h_flex().id("tn-settings").size(28).flex_none().justify_center().items_center().rounded(6).cursor_pointer()
       .hover(s => s.bg(C.raised)).tooltip("Settings")
@@ -167,51 +152,63 @@ export function renderHeader(view) {
     .when(win, el => el.child(div().w(6)).children(windowButtons()));
 }
 
-// ---- popup: Claude usage ----
-export function renderUsagePopup() {
-  const p = props();
+// ---- Claude usage card (sidebar, above the stats card) ----
+// Collapsed: one row of rings. Tapped: grows upward into a card with a row per account.
+export function usageCard(view) {
+  const u = shared(USAGE_KEY);
+  const rows = u?.rows ?? [];
+  if (!rows.length || !machines().some(m => m.name === USAGE_MACHINE)) return null;
   const snap = snapshot();
-  const u = shared(USAGE_KEY) ?? { rows: [], at: 0 };
-  const rows = u.rows ?? [];
-  const age = u.at ? (Date.now() - u.at < 60000 ? `${Math.max(1, Math.round((Date.now() - u.at) / 1000))}s ago` : `${dur(Date.now() - u.at)} ago`) : "";
-  const fs = snap.foc && snap.spaces.find(s => s.id === snap.foc.space);
-  const open = () => {
-    closeOverlay(p.overlay);
-    if (fs?.machine === USAGE_MACHINE) run("tab.new", { argv: ["ai-usage-tui"] });
-    else run("space.new", { machine: USAGE_MACHINE, name: "usage", argv: ["ai-usage-tui"] });
+  const openState = view.usageOpen ?? (view.usageOpen = (() => { try { return localStorage.getItem("usageOpen") === "1"; } catch { return false; } })());
+  const toggle = (_e, cx) => {
+    view.usageOpen = !openState;
+    try { localStorage.setItem("usageOpen", view.usageOpen ? "1" : "0"); } catch { /* storage unavailable */ }
+    cx.notify();
   };
-  const bar = (label, pct, reset) => h_flex().w_full().gap(8).items_center().font_family(MONO).text_size(11)
-    .child(div().w(30).flex_none().text_color(C.dim).child(label))
+  const age = u.at ? (Date.now() - u.at < 60000 ? `${Math.max(1, Math.round((Date.now() - u.at) / 1000))}s ago` : `${dur(Date.now() - u.at)} ago`) : "";
+  const head = h_flex().id("tn-usage-head").w_full().h(18).flex_none().gap(7).items_center().cursor_pointer().on_click(toggle)
+    .child(ico("terminal", 12, C.muted))
+    .child(div().flex_none().text_size(12).font_semibold().text_color(C.fg).child("Claude usage"))
+    .child(div().flex_1().min_w(0))
+    .when(!openState, el => el.child(h_flex().flex_none().gap(2).items_center()
+      .children(rows.map(r => { const [wc, hc] = ringColors(r); return ring(18, r.week, r.five, wc, hc); }))))
+    .when(openState, el => el.child(div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(u.stale ? `stale · ${age}` : age)))
+    .child(ico(openState ? "chevron-down" : "chevron-up", 12, C.dim));
+  const card = v_flex().id("tn-usage").w_full().flex_none().bg(C.surface).rounded(16).px(12).pt(10).pb(11).gap(8)
+    .opacity(u.stale ? 0.6 : 1).hover(s => s.bg(openState ? C.surface : C.raised))
+    .tooltip(openState ? "" : `Claude usage · ${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage-tui on ${USAGE_MACHINE}`)
+    .child(head);
+  if (!openState) return card;
+  const bar = (label, pct, reset) => h_flex().w_full().gap(6).items_center().font_family(MONO).text_size(11)
+    .child(div().w(18).flex_none().text_color(C.dim).child(label))
     .child(div().flex_1().min_w(0).h(4).rounded(2).bg(C.raised).overflow_hidden()
       .when(pct != null, el => el.child(div().h(4).rounded(2).w(`${Math.max(2, Math.min(100, pct))}%`).bg(level(pct, label === "5h" ? C.teal : C.accent)))))
-    .child(div().w(30).flex_none().text_right().text_color(pct == null ? C.dim : level(pct, C.muted)).child(pct == null ? "–" : `${Math.round(pct)}%`))
-    .child(div().w(72).flex_none().whitespace_nowrap().text_color(C.dim).child(reset ? `in ${reset}` : ""));
-  const legend = (dot, text) => h_flex().gap(5).items_center().child(dot).child(div().child(text));
+    .child(div().w(28).flex_none().text_right().text_color(pct == null ? C.dim : level(pct, C.muted)).child(pct == null ? "–" : `${Math.round(pct)}%`))
+    .child(div().w(46).flex_none().text_right().whitespace_nowrap().text_color(C.dim).child(reset ?? ""));
   const row = (r) => {
     const hot = (r.week ?? 0) >= 85 || (r.five ?? 0) >= 85;
     const [wc, hc] = ringColors(r);
-    return h_flex().w_full().h(ROW_H).flex_none().gap(12).px(10).items_center().rounded(12)
+    return h_flex().w_full().flex_none().gap(10).px(6).py(6).items_center().rounded(12)
       .bg(hot ? alpha(C.red, 0.1) : CLEAR).border(1).border_color(hot ? alpha(C.red, 0.4) : CLEAR)
-      .child(ring(36, r.week, r.five, wc, hc))
-      .child(v_flex().flex_1().min_w(0).gap(4)
-        .child(h_flex().gap(8).items_baseline().child(div().text_size(12).font_semibold().text_color(C.fg).child(r.name))
+      .child(ring(30, r.week, r.five, wc, hc))
+      .child(v_flex().flex_1().min_w(0).gap(3)
+        .child(h_flex().gap(6).items_baseline().child(div().text_size(12).font_semibold().text_color(C.fg).child(r.name))
           .child(div().font_family(MONO).text_size(11).text_color(C.dim).child(r.plan))
-          .when(!!r.saved, el => el.child(div().font_family(MONO).text_size(11).text_color(C.amber).child(`saved ${dur(Date.now() - r.saved * 1000)} ago`))))
+          .when(!!r.saved, el => el.child(div().font_family(MONO).text_size(11).text_color(C.amber).child(`saved ${dur(Date.now() - r.saved * 1000)}`))))
         .when(!!r.note, el => el.child(div().text_size(11).text_color(C.amber).truncate().child(r.note)))
-        .when(!r.note, el => el.child(bar("week", r.week, resetIn(r.weekAt))).child(bar("5h", r.five, resetIn(r.fiveAt)))));
+        .when(!r.note, el => el.child(bar("wk", r.week, resetIn(r.weekAt))).child(bar("5h", r.five, resetIn(r.fiveAt)))));
   };
-  return v_flex().id("tn-usage-pop").w_full().h(p.h ?? usageHeight(rows.length)).bg(C.surface).rounded(16)
-    .border(1).border_color(C.raised).overflow_hidden().p(12).gap(8)
-    .child(h_flex().w_full().h(18).flex_none().gap(8).px(4).items_baseline()
-      .child(div().text_size(13).font_semibold().text_color(C.fg).child("Claude usage"))
-      .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(C.dim)
-        .child(`${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage-tui on ${USAGE_MACHINE}${u.stale ? " · stale" : ""}`))
-      .child(div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(age)))
-    .child(h_flex().w_full().h(16).flex_none().gap(14).px(4).text_size(11).text_color(C.dim)
-      .child(legend(div().size(9).rounded(5).border(2.5).border_color(C.dim), "Outer ring: this week"))
-      .child(legend(div().size(5).rounded(3).bg(C.dim), "Inner ring: 5-hour window")))
+  const fs = snap.foc && snap.spaces.find(s => s.id === snap.foc.space);
+  const openTui = () => {
+    if (fs?.machine === USAGE_MACHINE) run("tab.new", { argv: ["ai-usage-tui"] });
+    else run("space.new", { machine: USAGE_MACHINE, name: "usage", argv: ["ai-usage-tui"] });
+  };
+  return card
+    .child(h_flex().w_full().flex_none().gap(12).text_size(11).text_color(C.dim)
+      .child(h_flex().gap(5).items_center().child(div().size(9).rounded(5).border(2).border_color(C.dim)).child(div().child("outer: week")))
+      .child(h_flex().gap(5).items_center().child(div().size(5).rounded(3).bg(C.dim)).child(div().child("inner: 5-hour"))))
     .children(rows.map(row))
-    .child(h_flex().id("tn-usage-open").w_full().h(32).flex_none().mt(2).gap(8).justify_center().items_center().rounded(16)
+    .child(h_flex().id("tn-usage-open").w_full().h(30).flex_none().gap(8).justify_center().items_center().rounded(15)
       .bg(C.raised).text_size(12).font_medium().text_color(C.fg).cursor_pointer().hover(s => s.bg(C.input))
-      .on_click(open).child(ico("terminal", 13, C.cyan)).child(div().child("Open ai-usage-tui in a new tab")));
+      .on_click(openTui).child(ico("terminal", 13, C.cyan)).child(div().child("Open ai-usage-tui")));
 }

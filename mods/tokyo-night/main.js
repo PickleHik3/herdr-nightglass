@@ -3,12 +3,12 @@
 //   header   search pill, Claude usage rings, Files / Changes, settings, window buttons
 //   strip    "Nothing needs you" / offline banner / "Needs you" cards (sizes its own block)
 //   pane     the pane header
-//   newmenu, spaces, usage   popups opened by the roles above
+//   newmenu, spaces          popups opened by the roles above
 // Data comes from Herdr's live state; see data.js. Colors and icons: lib.js.
 import { View, div } from "gpui-kit";
 import { props, exec, run, shared, setShared } from "herdr";
 import { renderSidebar, renderNewMenu, renderSpacesPopup, loadAgents } from "./sidebar.js";
-import { renderHeader, renderUsagePopup, pollChanges, pollUsage } from "./header.js";
+import { renderHeader, pollChanges, pollUsage } from "./header.js";
 import { renderStrip, renderPane, renderEmpty, EMPTY_KEY } from "./strip.js";
 import { snapshot, STATS_SCRIPT, parseStats, onArg } from "./data.js";
 import { nodePx } from "./lib.js";
@@ -25,15 +25,14 @@ export default class TokyoNight extends View {
       cx.timer.every(3000, (cx) => this.pollStats(cx));
       cx.timer.every(30000, (cx) => cx.notify()); // elapsed times
       cx.timer.every(500, () => this.watchFocus());
+      pollUsage(this, cx);
+      cx.timer.every(5000, (cx) => pollUsage(this, cx));
     }
     if (role === "header") {
       pollChanges(this, cx);
-      pollUsage(this, cx);
       cx.timer.every(2000, (cx) => pollChanges(this, cx));
-      cx.timer.every(5000, (cx) => pollUsage(this, cx));
     }
     if (role === "strip") cx.timer.every(30000, (cx) => cx.notify());
-    if (role === "usage") cx.timer.every(15000, (cx) => cx.notify()); // "30s ago"
     if (role === "newmenu") loadAgents(this, props().machine, cx);
   }
 
@@ -131,7 +130,6 @@ export default class TokyoNight extends View {
       case "empty": return renderEmpty();
       case "newmenu": return renderNewMenu(this);
       case "spaces": return renderSpacesPopup(this);
-      case "usage": return renderUsagePopup();
       default: return div();
     }
   }

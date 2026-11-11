@@ -5,6 +5,7 @@ import { run, openOverlay, closeOverlay, setAgentOrder, props, spaces, focused, 
 import { C, M, MONO, CLEAR, BADGES, alpha, dur, hash, ico, prog, mark, level, stop, nodePx,
   anchorBelow, anchorRight, setPressed, getPressed, bindingOf } from "./lib.js";
 import { snapshot, LOCAL, mkey, mArg, onArg, lastSeen, upText } from "./data.js";
+import { usageCard } from "./header.js";
 
 const MOD = "tokyo-night";
 
@@ -168,6 +169,7 @@ function brand(snap, open) {
 function full(base, view, snap, open, w) {
   const m = open ? snap.mBy.get(open) : null;
   const tileW = Math.max(40, Math.floor((w - 20 - 12) / 3));
+  const usage = usageCard(view);
   return base.px(10).pt(10).pb(12).gap(14)
     .child(brand(snap, open))
     .child(h_flex().w_full().flex_none().flex_wrap().gap(6).children(snap.machines.map(mm => tile(view, mm, open, tileW))))
@@ -180,6 +182,7 @@ function full(base, view, snap, open, w) {
         .on_click(() => run("space.new", { machine: mArg(m.key) }))
         .child(ico("folder", 13, C.dim)).child(div().truncate().child(`New space on ${m.name}`)))))
     .when(!m, el => el.child(div().flex_1()))
+    .when(!!usage, el => el.child(usage))
     .when(!!m, el => el.child(statsCard(view, m)));
 }
 
