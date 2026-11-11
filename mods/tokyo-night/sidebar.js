@@ -69,6 +69,12 @@ function allLight(snap) {
 }
 
 // ---- capsules ----
+// A small × shown on hover; it stops the press so the row or capsule underneath isn't picked.
+const closeBtn = (id, tip, act) => h_flex().id(id).size(18).flex_none().justify_center().items_center().rounded(5)
+  .cursor_pointer().hover(s => s.bg(alpha(C.red, 0.25))).tooltip(tip)
+  .on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); act(); })
+  .child(ico("win-close", 9, C.muted));
+
 function rowEl(view, r, compact, onPick) {
   const hover = view.hover === r.address;
   const waiting = r.kind === "waiting";
@@ -91,7 +97,9 @@ function rowEl(view, r, compact, onPick) {
       .child(div().flex_1().min_w(0).truncate().font_medium().child(r.title))
       .child(div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(r.kind === "offline" ? "" : dur(r.ms)))
       .child(h_flex().flex_none().h(18).px(7).rounded(9).items_center().font_family(MONO).text_size(11)
-        .bg(r.focused ? mc : C.raised).text_color(r.focused ? C.onAccent : C.dim).child(r.short)))
+        .bg(r.focused ? mc : C.raised).text_color(r.focused ? C.onAccent : C.dim).child(r.short))
+      .when(hover && r.kind !== "offline", el => el.child(closeBtn(`tn-row-x-${r.address}`, "Close terminal",
+        () => r.pane ? run("pane.close", { pane: r.pane }) : run("terminal.kill", { terminal: r.address })))))
     .when(showNow, el => el.child(div().pl(18).w_full().min_w(0).truncate().font_family(MONO).text_size(11)
       .text_color(waiting ? C.red : C.dim).child(r.now)));
 }
@@ -100,8 +108,10 @@ function capsule(view, sp, m, compact, onPick) {
   const color = BADGES[hash(sp.id) % BADGES.length];
   const initial = ([...(sp.name || "?")][0] ?? "?").toUpperCase();
   const seenAt = lastSeen(m.key);
+  const hover = view.spHover === sp.id;
   return raised(v_flex().id(`tn-sp-${sp.id}`).w_full().flex_none().rounded(16).p(5).gap(2), C.surface)
-    .child(h_flex().w_full().h(28).gap(8).pl(4).pr(8).items_center()
+    .on_hover((h, cx) => { const id = h ? sp.id : view.spHover === sp.id ? null : view.spHover; if (id !== view.spHover) { view.spHover = id; cx.notify(); } })
+    .child(h_flex().w_full().h(28).gap(8).pl(4).pr(hover && !m.offline ? 4 : 8).items_center()
       .child(h_flex().size(20).flex_none().rounded(10).justify_center().items_center().bg(alpha(color, 0.2))
         .text_color(color).text_size(11).font_semibold().child(initial))
       .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(sp.name))
@@ -109,7 +119,9 @@ function capsule(view, sp, m, compact, onPick) {
         .child(ico("branch", 11, C.purple))
         .child(div().min_w(0).truncate().font_family(MONO).text_size(11).text_color(C.purple).child(sp.branch))))
       .when(m.offline, el => el.child(div().flex_none().font_family(MONO).text_size(11).text_color(C.amber).whitespace_nowrap()
-        .child(seenAt ? `last seen ${dur(Date.now() - seenAt)}` : "offline"))))
+        .child(seenAt ? `last seen ${dur(Date.now() - seenAt)}` : "offline")))
+      // space.close asks first, so a stray click can't take a whole space.
+      .when(hover && !m.offline, el => el.child(closeBtn(`tn-sp-x-${sp.id}`, "Close space", () => run("space.close", { id: sp.id })))))
     .children(sp.rows.map(r => rowEl(view, r, compact, onPick)));
 }
 
