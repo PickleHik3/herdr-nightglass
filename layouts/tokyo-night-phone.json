@@ -3,10 +3,10 @@
   "type": "row",
   "titlebar": "none",
   "theme": "tokyo-night",
-  "background": "canvas",
+  "background": { "image": "mods/tokyo-night/wallpaper.png", "fit": "cover" },
   "resizable": false,
   "terminal_padding": [10, 12],
-  "terminal_opacity": 0,
+  "terminal_opacity": 0.82,
   "preview": "layouts/tokyo-night-phone.svg",
   "ui_font": "Inter",
   "font": "JetBrains Mono",
@@ -49,18 +49,16 @@
               "children": [
                 {
                   "id": "main",
-                  "radius": 6,
-                  "shadow": "lg",
                   "type": "block",
                   "content": {
                     "tab": "active",
                     "pane": {
                       "gap": 6,
-                      "radius": 6,
-                      "background": "chrome",
+                      "radius": 12,
+                      "background": "surface",
                       "lone": true,
-                      "border": { "width": 0, "color": "chrome" },
-                      "focus": { "width": 0, "color": "chrome" }
+                      "border": { "width": 1, "color": "border" },
+                      "focus": { "width": 1, "color": "#ffffff40" }
                     }
                   }
                 }

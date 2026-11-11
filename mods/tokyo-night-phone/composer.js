@@ -4,7 +4,7 @@
 import { div } from "gpui-kit";
 import { h_flex, InputState, Input } from "gpui-base";
 import { hc, focused, spaces, panes, notify } from "herdr";
-import { C, MONO, mix, inset } from "./lib.js";
+import { C, MONO, alpha } from "./lib.js";
 import { pico } from "./phone.js";
 import { short } from "./data.js";
 
@@ -61,12 +61,12 @@ export function renderComposer(view) {
   const t = targetTerminal();
   const on = view.inputFocused;
   return h_flex().id("tnp-composer").size_full().px(8).gap(6)
-    .child(h_flex().flex_1().min_w(0).h(44).px(12).gap(8).items_center().rounded(8).bg(inset())
-      .border(on ? 1.5 : 1).border_color(on ? C.accent : mix(C.accent, C.raised, 0.4))
+    .child(h_flex().flex_1().min_w(0).h(44).px(12).gap(8).items_center().rounded(10).bg(C.well)
+      .border(on ? 1.5 : 1).border_color(on ? C.accent : alpha(C.accent, 0.35))
       .font_family(MONO).text_size(13)
       .child(div().flex_none().text_color(C.accent).child("❯"))
       .child(Input.new(view.input).flex_1().min_w(0).h(40).text_size(13).font_family(MONO).text_color(C.fg)))
-    .child(h_flex().id("tnp-send").size(44).flex_none().justify_center().items_center().rounded(8).bg(C.accent).shadow_md()
+    .child(h_flex().id("tnp-send").size(44).flex_none().justify_center().items_center().rounded(10).bg(C.accent).shadow_md()
       .opacity(t ? 1 : 0.5).cursor_pointer().on_click(() => send(view))
       .child(pico("arrow-up", 16, C.ink)));
 }

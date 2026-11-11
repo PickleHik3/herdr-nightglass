@@ -25,7 +25,7 @@ const kit = readFileSync(process.env.GPUI_KIT_DTS ?? join(DESK, "gpui-kit.d.ts")
 const ABSENT_013 = new Set(["ScrollHandle", "scroll_to_item"]);
 // Used by the phone mod, not by the desktop mod, and built without error by `herdr-app check` on 0.1.13
 // (14 staged role checks, scripts/stage-role-checks.mjs: they run init() and render() with fixtures).
-const PROVEN = new Set(["settings", "Input", "InputState", "new", "on", "overflow_x_scroll", "overflow_y_scroll", "line_height", "self_center"]);
+const PROVEN = new Set(["max_h", "settings", "Input", "InputState", "new", "on", "overflow_x_scroll", "overflow_y_scroll", "line_height", "self_center"]);
 // Phone-only, but only reached inside event handlers / timers, which `check` does not run. Taken from the
 // 0.1.13 typings instead (gpui-kit.d.ts InputState: set_value, value, release; herdr.d.ts: hc).
 const TYPED_ONLY = new Set(["set_value", "value", "release", "hc"]);
@@ -101,6 +101,20 @@ for (const [f, src] of Object.entries(mods)) for (const n of namesOf(src)) {
 const phoneApi = [...extra].filter(([n]) => !(exportsAll.has(n)));
 for (const [n, fs] of phoneApi) if (!PROVEN.has(n) && !TYPED_ONLY.has(n)) bad(`${n} (${[...fs].join(", ")}) is not used by the desktop mod and not in PROVEN: run scripts/stage-role-checks.mjs through herdr-app check on 0.1.13, then add it`);
 console.log(`phone-only API names (not used by the desktop mod): ${phoneApi.map(([n]) => n).sort().join(", ")}; typed-only (not run by check): ${[...TYPED_ONLY].join(", ")}`);
+
+// --- theme tokens: every C.<name> the phone reads must be one lib.js's build() provides (Glass renamed/removed several) ---
+{
+  const lib = readFileSync(join(PHONE, "lib.js"), "utf8");
+  const fn = lib.slice(lib.indexOf("function build(t)"), lib.indexOf("let sig = null"));
+  const have = new Set([...fn.matchAll(/\b([A-Za-z_]\w*)\s*:/g)].map((m) => m[1]));
+  for (const m of lib.matchAll(/export const LIT = \{([^}]*)\}/g)) for (const k of m[1].matchAll(/(\w+)\s*:/g)) have.add(k[1]);
+  const used = new Set();
+  for (const [f, src] of Object.entries(mods)) {
+    if (f === "lib.js") continue;
+    for (const m of src.replace(/\/\/.*$/gm, "").matchAll(/\bC\.([A-Za-z_]\w*)/g)) { used.add(m[1]); if (!have.has(m[1])) bad(`${f}: C.${m[1]} is not a token of lib.js build()`); }
+  }
+  console.log(`theme tokens used: ${[...used].sort().join(", ")}`);
+}
 
 for (const f of ["lib.js", "data.js"]) {
   if (readFileSync(join(PHONE, f), "utf8") !== readFileSync(join(DESK, f), "utf8")) bad(`${f} differs from the desktop copy (re-sync: cp mods/tokyo-night/${f} mods/tokyo-night-phone/)`);

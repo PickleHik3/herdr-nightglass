@@ -10,12 +10,13 @@
 // Data (data.js) and helpers (lib.js) are the desktop tokyo-night mod's files, copied verbatim.
 import { View, div } from "gpui-kit";
 import { props, exec, run, layout } from "herdr";
-import { renderTopbar, renderMenu, renderUsage, pollChanges, pollUsage, usageOpened, usageClosed } from "./topbar.js";
+import { renderTopbar, renderUsage, pollChanges, pollUsage, usageOpened, usageClosed } from "./topbar.js";
+import { renderNewMenu, prefetchAgents } from "./newmenu.js";
 import { renderStrip, renderTabs } from "./strip.js";
 import { renderComposer, initComposer } from "./composer.js";
 import { renderDrawer, renderColorsPopup } from "./drawer.js";
 import { snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
-import { C, findNode, machineScheme, ALL_THEME } from "./lib.js";
+import { findNode, machineScheme, ALL_THEME } from "./lib.js";
 import { WIN, DESIGN_W, zoom, dsg } from "./phone.js";
 
 // Soft keyboard: the display resizes, so the window gets short. The design's core (top bar to
@@ -50,6 +51,8 @@ export default class TokyoNightPhone extends View {
       cx.timer.every(500, (cx) => this.watchFocus(cx));
     }
     if (role === "watch") cx.timer.every(1000, () => this.evalDrawer());
+    if (role === "tabs") cx.timer.every(1000, (cx) => { if (this.armed) cx.notify(); }); // the armed close expires
+    if (role === "menu") prefetchAgents(cx);
     if (role === "usage") usageOpened();
   }
 
@@ -162,7 +165,7 @@ export default class TokyoNightPhone extends View {
 
   // The observer: its block is 1 px wide and as tall as the window, so its height is the window's.
   renderWatch() {
-    return div().id("tnp-watch").size_full().bg(C.canvas)
+    return div().id("tnp-watch").size_full()
       .on_size_change((size) => { WIN.h = size.height; this.evalDrawer(); }); // screen px
   }
   // Hide / restore the drawer from the window height in designed px. Also run on a timer: a zoom step changes the
@@ -189,7 +192,7 @@ export default class TokyoNightPhone extends View {
       case "composer": return renderComposer(this);
       case "drawer": return renderDrawer(this);
       case "watch": return this.renderWatch();
-      case "menu": return renderMenu();
+      case "menu": return renderNewMenu(this);
       case "usage": return renderUsage();
       case "colors": return renderColorsPopup();
       default: return div();

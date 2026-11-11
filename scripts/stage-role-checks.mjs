@@ -37,6 +37,8 @@ const CASES = {
   "drawer-offline": { role: "drawer", scen: "offline" },
   watch: { role: "watch", scen: "normal" },
   menu: { role: "menu", scen: "normal" },
+  "menu-agents": { role: "menu", scen: "agents" },
+  "menu-offline": { role: "menu", scen: "offline" },
   usage: { role: "usage", scen: "normal" },
   colors: { role: "colors", scen: "normal" },
 };
@@ -67,11 +69,13 @@ const USAGE = { at: Date.now() - 30000, stale: false, rows: [
   { tool: "codex", plan: "Plus", name: "Account 4", five: 5, fiveAt: Date.now() / 1000 + 16000, week: 15, weekAt: Date.now() / 1000 + 200000, saved: null, note: "" },
   { tool: "codex", plan: "", name: "Account 5", five: null, fiveAt: null, week: null, weekAt: null, saved: null, note: "no data" },
 ] };
-const store = new Map([["tokyo-night.usage", SCEN === "nousage" ? undefined : USAGE], ["tokyo-night-phone.usage-open", false]]);
+const AG = (key, name) => ({ key, name, icon: null, tint: false, tile: null, color: null, shell: false, agent: true, run: [key], installed: true });
+const store = new Map([["tokyo-night.usage", SCEN === "nousage" ? undefined : USAGE], ["tokyo-night-phone.usage-open", false],
+  ["new-menu.agents", { "": [AG("claude", "Claude Code"), AG("codex", "Codex")], "amal-build": [AG("claude", "Claude Code")] }]]);
 const done = Promise.resolve({ code: 0, stdout: "", stderr: "" });
 if (SCEN === "all") { try { localStorage.setItem("open", JSON.stringify({ set: true, key: "@all" })); } catch {} }
 
-export const props = () => ({ role: ROLE, fit_zoom: true, overlay: "ov1", changes: 3, h: 428, machine: "amal-build", name: "amal-build" });
+export const props = () => ({ role: ROLE, fit_zoom: true, openAgents: SCEN === "agents" ? "amal-build" : null, overlay: "ov1", changes: 3, h: 428, machine: "amal-build", name: "amal-build" });
 export const theme = () => THEME;
 export const settings = () => ({ zoom: 2.5 });
 export const keys = () => [];
