@@ -2,10 +2,10 @@
 import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, setAgentOrder, props, spaces, focused, shared, setShared, knownAgents } from "herdr";
-import { C, M, MONO, CLEAR, BADGES, alpha, dur, hash, ico, prog, mark, level, stop, nodePx,
+import { C, M, MONO, CLEAR, BADGES, alpha, mix, raised, raisedFill, rim, fade, dur, hash, ico, prog, mark, level, stop, nodePx,
   anchorBelow, anchorRight, setPressed, getPressed, bindingOf, machineColor, SCHEMES, COLORS_KEY } from "./lib.js";
 import { snapshot, LOCAL, ALL, mkey, mArg, onArg, lastSeen, upText, statsMachine } from "./data.js";
-import { usageCard } from "./header.js";
+import { usageParts } from "./header.js";
 
 const MOD = "tokyo-night";
 
@@ -78,7 +78,8 @@ function rowEl(view, r, compact, onPick) {
   const showNow = !compact && r.now && (hover || r.focused || waiting);
   return v_flex().id(`tn-row-${r.address}`).w_full().min_w(0).flex_none().rounded(14).bg(tint).border(1).border_color(ring)
     .pl(10).pr(5).py(3).gap(1).cursor_pointer().text_size(12).text_color(r.focused ? C.fg : C.muted)
-    .hover(s => s.bg(r.focused ? alpha(mc, 0.22) : waiting ? alpha(C.red, 0.18) : C.raised))
+    .when(r.focused, el => el.shadow_md())
+    .hover(s => s.bg(r.focused ? alpha(mc, 0.22) : waiting ? alpha(C.red, 0.18) : C.raised).shadow_md())
     .on_hover((h, cx) => { if (h) view.hover = r.address; else if (view.hover === r.address) view.hover = null; cx.notify(); })
     .on_click((_e, cx) => { cx.stop_propagation(); onPick?.(); focusRow(r); })
     .on_mouse_down("right", (_e, cx) => {
@@ -99,7 +100,7 @@ function capsule(view, sp, m, compact, onPick) {
   const color = BADGES[hash(sp.id) % BADGES.length];
   const initial = ([...(sp.name || "?")][0] ?? "?").toUpperCase();
   const seenAt = lastSeen(m.key);
-  return v_flex().id(`tn-sp-${sp.id}`).w_full().flex_none().bg(C.surface).rounded(16).p(5).gap(2)
+  return raised(v_flex().id(`tn-sp-${sp.id}`).w_full().flex_none().rounded(16).p(5).gap(2), C.surface)
     .child(h_flex().w_full().h(28).gap(8).pl(4).pr(8).items_center()
       .child(h_flex().size(20).flex_none().rounded(10).justify_center().items_center().bg(alpha(color, 0.2))
         .text_color(color).text_size(11).font_semibold().child(initial))
@@ -131,7 +132,7 @@ function allGroups(view, snap, compact, onHead, onPick) {
   return snap.machines.map(m => {
     const color = machineColor(m.key);
     return v_flex().id(`tn-all-${m.key}`).w_full().flex_none().rounded(18).p(6).gap(6)
-      .bg(alpha(color, 0.06)).border(1).border_color(alpha(color, 0.35)).opacity(m.offline ? 0.62 : 1)
+      .bg(alpha(color, 0.06)).border(1).border_color(alpha(color, 0.35)).shadow_sm().opacity(m.offline ? 0.62 : 1)
       .child(h_flex().id(`tn-all-h-${m.key}`).w_full().h(24).flex_none().gap(8).px(6).items_center().rounded(12)
         .when(!!onHead, el => el.cursor_pointer().hover(s => s.bg(alpha(color, 0.12))).on_click((_e, cx) => onHead(m, cx)))
         .on_mouse_down("right", pickColor(m))
@@ -144,23 +145,22 @@ function allGroups(view, snap, compact, onHead, onPick) {
   });
 }
 
-// ---- stats card ----
-function statsCard(view, m) {
+// ---- stats (inside the dock) ----
+function statsBlock(view, m) {
   const st = view.stats?.[m.key];
   const data = st?.data;
   const meta = m.offline ? `stale · ${dur(Date.now() - (st?.at ?? lastSeen(m.key) ?? Date.now()))}`
     : [m.key === LOCAL ? "" : "ssh", upText(data?.up)].filter(Boolean).join(" · ");
-  const bar = (label, pct, text) => h_flex().w_full().gap(8).items_center().font_family(MONO).text_size(11)
+  const bar = (label, pct, text) => h_flex().w_full().h(16).flex_none().gap(8).items_center().font_family(MONO).text_size(11)
     .child(h_flex().w(14).flex_none().items_center().tooltip(label).child(ico(label, 13, C.dim)))
-    .child(div().flex_1().min_w(0).h(6).rounded(3).bg(C.raised).overflow_hidden()
-      .child(div().h(6).rounded(3).w(`${Math.max(2, Math.min(100, pct))}%`).bg(level(pct, C.cyan))))
+    .child(div().flex_1().min_w(0).h(5).rounded(3).bg(C.raised).overflow_hidden()
+      .child(div().h(5).rounded(3).w(`${Math.max(2, Math.min(100, pct))}%`).bg(level(pct, C.cyan))))
     .child(div().min_w(82).flex_none().text_right().whitespace_nowrap().text_color(C.muted).child(text));
-  return v_flex().id("tn-stats").w_full().flex_none().bg(C.surface).rounded(16).px(12).pt(10).pb(11).gap(7)
-    .opacity(m.offline ? 0.6 : 1)
-    .child(h_flex().w_full().gap(7).items_center()
-      .child(machineIcon(m, 12, C.muted))
-      .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name))
-      .child(div().flex_none().font_family(MONO).text_size(11).text_color(m.offline ? C.amber : C.dim).child(meta)))
+  return v_flex().id("tn-stats").w_full().flex_none().gap(5).opacity(m.offline ? 0.6 : 1)
+    .child(h_flex().w_full().h(14).gap(6).items_center()
+      .child(machineIcon(m, 11, C.dim))
+      .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(C.dim).child(m.name))
+      .child(div().flex_none().font_family(MONO).text_size(10).text_color(m.offline ? C.amber : C.dim).child(meta)))
     .when(!!data, el => el
       .child(bar("cpu", data.cpu, `${data.cpu}% · ${data.cores} cores`))
       .child(bar("ram", data.memPct, data.memText))
@@ -169,12 +169,33 @@ function statsCard(view, m) {
       .child(st?.fail ? "stats unavailable" : "reading…")));
 }
 
+const hairline = () => div().w_full().h(1).flex_none().bg(alpha(C.fg, 0.07));
+const DOCK_FALLBACK = 150;
+
+// One inset well flush with the sidebar's bottom and sides, floating over the list. Collapsed it is
+// the usage pills + stats; expanded, the usage panel stacks above the pills and the dock grows upward.
+function dock(view, usage, stats) {
+  const open = !!usage?.panel;
+  return v_flex().id("tn-dock").absolute().bottom(0).left(0).right(0)
+    .on_size_change((size, cx) => {
+      if (!open && Math.abs((view.dockH ?? 0) - size.height) >= 1) { view.dockH = size.height; cx.notify(); }
+    })
+    .child(fade(7, "#000000"))
+    .child(v_flex().w_full().flex_none().rounded_b(6).overflow_hidden().px(8).py(6).gap(6)
+      .bg(mix(C.chrome, "#000000", 0.18)).border_t(1).border_color(alpha(C.fg, 0.07))
+      .when(open, el => el.shadow_2xl())
+      .when(open, el => el.child(usage.panel).child(hairline()))
+      .when(!!usage, el => el.child(usage.head))
+      .when(!!usage && !!stats, el => el.child(hairline()))
+      .when(!!stats, el => el.child(stats)));
+}
+
 // Disk as text: what's free matters more than a bar. Amber under 15% free, red under 5%.
 function diskRow(data) {
   const size = (g) => g >= 100 ? `${Math.round(g)} GB` : `${g.toFixed(1)} GB`;
   const freePct = data.diskTotal > 0 ? data.diskFree / data.diskTotal * 100 : 100;
   const tint = freePct < 5 ? C.red : freePct < 15 ? C.amber : C.fg;
-  return h_flex().w_full().gap(8).items_center().font_family(MONO).text_size(11)
+  return h_flex().w_full().h(16).flex_none().gap(8).items_center().font_family(MONO).text_size(11)
     .child(h_flex().w(14).flex_none().items_center().tooltip("disk").child(ico("disk", 13, C.dim)))
     .child(div().flex_1().min_w(0).whitespace_nowrap().text_color(tint).child(`${size(data.diskFree)} free`))
     .child(div().flex_none().whitespace_nowrap().text_color(C.dim).child(`of ${size(data.diskTotal)}`));
@@ -185,9 +206,10 @@ function tile(view, m, open, w) {
   const sel = open === m.key;
   const mc = machineColor(m.key);
   return v_flex().id(`tn-m-${m.key}`).w(w).h(58).flex_none().relative().items_center().justify_center().gap(5).px(6).rounded(6)
-    .bg(sel ? alpha(mc, 0.16) : C.surface).border(1).border_color(sel ? alpha(mc, 0.55) : CLEAR)
+    .bg(sel ? alpha(mc, 0.16) : raisedFill(C.surface)).border(1).border_color(sel ? alpha(mc, 0.55) : rim())
+    .when(sel, el => el.shadow_md()).when(!sel, el => el.shadow_sm())
     .opacity(m.offline ? 0.62 : 1).cursor_pointer().tooltip(`${m.name} · ${m.summary}`)
-    .hover(s => s.bg(sel ? alpha(mc, 0.2) : C.raised))
+    .hover(s => s.bg(sel ? alpha(mc, 0.2) : mix(C.fg, C.raised, 0.05)).shadow_md())
     .on_click((_e, cx) => { view.goMachine(m.key); view.pollStats(cx, true); cx.notify(); })
     .on_mouse_down("right", pickColor(m))
     .child(h_flex().size(24).rounded(6).justify_center().items_center().bg(sel ? alpha(mc, 0.24) : C.raised)
@@ -203,9 +225,10 @@ function allTile(view, snap, open, w) {
   const sel = open === ALL;
   const l = allLight(snap);
   return v_flex().id("tn-m-all").w(w).h(58).flex_none().relative().items_center().justify_center().gap(5).px(6).rounded(6)
-    .bg(sel ? alpha(C.accent, 0.16) : C.surface).border(1).border_color(sel ? alpha(C.accent, 0.55) : CLEAR)
+    .bg(sel ? alpha(C.accent, 0.16) : raisedFill(C.surface)).border(1).border_color(sel ? alpha(C.accent, 0.55) : rim())
+    .when(sel, el => el.shadow_md()).when(!sel, el => el.shadow_sm())
     .cursor_pointer().tooltip("All machines")
-    .hover(s => s.bg(sel ? alpha(C.accent, 0.2) : C.raised))
+    .hover(s => s.bg(sel ? alpha(C.accent, 0.2) : mix(C.fg, C.raised, 0.05)).shadow_md())
     .on_click((_e, cx) => { view.setOpen(ALL); view.pollStats(cx, true); cx.notify(); })
     .child(sheep(24))
     .child(div().max_w(Math.max(20, w - 14)).truncate().text_size(11).font_medium().text_color(sel ? C.fg : C.muted).child("All"))
@@ -226,19 +249,24 @@ function full(base, view, snap, open, w) {
   const m = open && !all ? snap.mBy.get(open) : null;
   const sm = all ? statsMachine(snap, open) : m;
   const tileW = Math.max(40, Math.floor((w - 20 - 12) / 3));
-  const usage = usageCard(view);
-  return base.px(10).pt(10).pb(12).gap(14)
-    .child(brand(snap, open))
-    .child(h_flex().w_full().flex_none().flex_wrap().gap(6).child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW))))
-    .when(all, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
-      .children(allGroups(view, snap, false, (mm, cx) => { view.goMachine(mm.key); view.pollStats(cx, true); cx.notify(); }))))
-    .when(!!m, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
-      .child(sectionTitle(m))
-      .children(m.spaces.map(sp => capsule(view, sp, m, false)))
-      .child(newSpaceRow("tn-newspace", m, 34, `New space on ${m.name}`))))
-    .when(!m && !all, el => el.child(div().flex_1()))
-    .when(!!usage, el => el.child(usage))
-    .when(!!sm, el => el.child(statsCard(view, sm)));
+  const usage = usageParts(view);
+  const stats = sm ? statsBlock(view, sm) : null;
+  // The dock floats over the list, so the list ends in a spacer as tall as the collapsed dock.
+  const spacer = div().w_full().h(view.dockH ?? DOCK_FALLBACK).flex_none();
+  return base.relative()
+    .child(v_flex().size_full().px(10).pt(10).gap(14)
+      .child(brand(snap, open))
+      .child(h_flex().w_full().flex_none().flex_wrap().gap(6).child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW))))
+      .when(all, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
+        .children(allGroups(view, snap, false, (mm, cx) => { view.goMachine(mm.key); view.pollStats(cx, true); cx.notify(); }))
+        .child(spacer)))
+      .when(!!m, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
+        .child(sectionTitle(m))
+        .children(m.spaces.map(sp => capsule(view, sp, m, false)))
+        .child(newSpaceRow("tn-newspace", m, 34, `New space on ${m.name}`))
+        .child(spacer)))
+      .when(!m && !all, el => el.child(div().flex_1())))
+    .when(!!usage || !!stats, el => el.child(dock(view, usage, stats)));
 }
 
 // ---- rail ----
@@ -271,7 +299,9 @@ export function renderSidebar(view) {
   setAgentOrder(snap.rows.filter(r => r.agent).map(r => r.address));
   const w = view.width ?? nodePx("sidebar") ?? 268;
   const base = v_flex().id("tn-sidebar").size_full().overflow_hidden()
-    .on_size_change((size, cx) => { if (Math.abs((view.width ?? 0) - size.width) >= 1) { view.width = size.width; cx.notify(); } });
+    .on_size_change((size, cx) => {
+      if (Math.abs((view.width ?? 0) - size.width) >= 1 || Math.abs((view.height ?? 0) - size.height) >= 1) { view.width = size.width; view.height = size.height; cx.notify(); }
+    });
   return w < 160 ? rail(base, view, snap) : full(base, view, snap, view.openKey(snap), w);
 }
 
@@ -288,7 +318,7 @@ export function renderNewMenu(view) {
     .on_click(onPick).child(lead).child(div().flex_1().min_w(0).truncate().child(label))
     .when(!!hint, el => el.child(div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(hint)));
   const label = (t) => div().px(8).py(4).flex_none().text_size(11).font_semibold().text_color(C.dim).child(t);
-  return v_flex().id("tn-newmenu").w_full().h(p.h ?? newMenuHeight(4)).bg(C.surface).rounded(6).border(1).border_color(C.raised)
+  return v_flex().id("tn-newmenu").w_full().h(p.h ?? newMenuHeight(4)).bg(C.surface).rounded(6).border(1).border_color(rim()).shadow_xl()
     .overflow_hidden().p(6).gap(2)
     .child(div().px(8).pt(6).pb(4).flex_none().truncate().text_size(11).font_semibold().text_color(C.dim).child(`IN ${(p.machine === LOCAL ? "This computer" : key).toUpperCase()}`))
     .child(item("nm-space", ico("folder", 14, C.teal), "Space", "", pick(() => run("space.new", { machine: mArg(key) }))))
@@ -323,7 +353,7 @@ export function renderSpacesPopup(view) {
   const m = all ? null : snap.mBy.get(p.machine) ?? snap.machines[0];
   const h = p.h ?? spacesHeight(snap, all ? ALL : m.key);
   const close = () => closeOverlay(p.overlay);
-  return v_flex().id("tn-spaces").w_full().h(h).bg(C.chrome).rounded(16).border(1).border_color(C.raised).overflow_hidden().p(8).gap(8)
+  return v_flex().id("tn-spaces").w_full().h(h).bg(C.chrome).rounded(16).border(1).border_color(rim()).shadow_xl().overflow_hidden().p(8).gap(8)
     .child(h_flex().w_full().h(22).flex_none().gap(8).px(6).items_center()
       .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(C.dim).child(all ? "ALL MACHINES" : m.name.toUpperCase()))
       .when(!all, el => el.child(div().flex_none().font_family(MONO).text_size(11).text_color(m.count.waiting ? C.red : C.dim).child(m.summary))))
@@ -342,7 +372,7 @@ export function renderColorsPopup() {
     setShared(COLORS_KEY, next);
     closeOverlay(p.overlay);
   };
-  return v_flex().id("tn-colors").w_full().h(72).bg(C.surface).rounded(6).border(1).border_color(C.raised).overflow_hidden().p(10).gap(10)
+  return v_flex().id("tn-colors").w_full().h(72).bg(C.surface).rounded(6).border(1).border_color(rim()).shadow_xl().overflow_hidden().p(10).gap(10)
     .child(div().w_full().h(16).flex_none().truncate().text_size(11).font_semibold().text_color(C.dim).child(`THEME FOR ${String(p.name ?? p.machine).toUpperCase()}`))
     .child(h_flex().w_full().h(26).flex_none().gap(3).items_center()
       .children(SCHEMES.map(sc => h_flex().id(`tn-sw-${sc.color}`).size(22).flex_none().rounded(11).bg(sc.color).cursor_pointer()
