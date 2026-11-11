@@ -42,11 +42,25 @@ export function mix(top, base, a) {
 }
 // Per-machine colors the person picked (right-click a machine); the theme accent by default.
 export const COLORS_KEY = "tokyo-night.colors";
-export const SWATCHES = ["#7aa2f7", "#7dcfff", "#73daca", "#9ece6a", "#e0af68", "#ff9e64", "#f7768e", "#bb9af7"];
+// Each swatch is a whole-window scheme: themes/<theme>.json (scripts/gen-themes.py), Tokyo Night
+// tinted toward that hue. The focused space's machine decides which one the app shows.
+export const SCHEMES = [
+  { color: "#7aa2f7", theme: "tokyo-night", label: "Tokyo Night" },
+  { color: "#7dcfff", theme: "tokyo-night-frost", label: "Frost" },
+  { color: "#73daca", theme: "tokyo-night-lagoon", label: "Lagoon" },
+  { color: "#9ece6a", theme: "tokyo-night-forest", label: "Forest" },
+  { color: "#e0af68", theme: "tokyo-night-dune", label: "Dune" },
+  { color: "#ff9e64", theme: "tokyo-night-ember", label: "Ember" },
+  { color: "#f7768e", theme: "tokyo-night-sakura", label: "Sakura" },
+  { color: "#bb9af7", theme: "tokyo-night-aurora", label: "Aurora" },
+];
+export const SWATCHES = SCHEMES.map(s => s.color);
+// A fixed default (not the live accent, which follows whichever machine is focused).
 export const machineColor = (key) => {
   const c = shared(COLORS_KEY)?.[key];
-  return HEX.test(c ?? "") ? c : C.accent;
+  return HEX.test(c ?? "") ? c : SCHEMES[0].color;
 };
+export const machineScheme = (key) => SCHEMES.find(s => s.color === machineColor(key)) ?? SCHEMES[0];
 export const stop = (_e, cx) => cx.stop_propagation();
 
 export function dur(ms) {

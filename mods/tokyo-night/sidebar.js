@@ -3,7 +3,7 @@ import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, setAgentOrder, props, spaces, focused, shared, setShared, knownAgents } from "herdr";
 import { C, M, MONO, CLEAR, BADGES, alpha, dur, hash, ico, prog, mark, level, stop, nodePx,
-  anchorBelow, anchorRight, setPressed, getPressed, bindingOf, machineColor, SWATCHES, COLORS_KEY } from "./lib.js";
+  anchorBelow, anchorRight, setPressed, getPressed, bindingOf, machineColor, SCHEMES, COLORS_KEY } from "./lib.js";
 import { snapshot, LOCAL, ALL, mkey, mArg, onArg, lastSeen, upText, statsMachine } from "./data.js";
 import { usageCard } from "./header.js";
 
@@ -341,11 +341,11 @@ export function renderColorsPopup() {
     closeOverlay(p.overlay);
   };
   return v_flex().id("tn-colors").w_full().h(118).bg(C.surface).rounded(6).border(1).border_color(C.raised).overflow_hidden().p(10).gap(10)
-    .child(div().w_full().h(16).flex_none().truncate().text_size(11).font_semibold().text_color(C.dim).child(`COLOR FOR ${String(p.name ?? p.machine).toUpperCase()}`))
+    .child(div().w_full().h(16).flex_none().truncate().text_size(11).font_semibold().text_color(C.dim).child(`THEME FOR ${String(p.name ?? p.machine).toUpperCase()}`))
     .child(h_flex().w_full().h(26).flex_none().gap(3).items_center()
-      .children(SWATCHES.map(c => h_flex().id(`tn-sw-${c}`).size(22).flex_none().rounded(11).bg(c).cursor_pointer()
-        .border(2).border_color(cur[p.machine] === c ? C.fg : CLEAR)
-        .on_click(() => set(c)))))
+      .children(SCHEMES.map(sc => h_flex().id(`tn-sw-${sc.color}`).size(22).flex_none().rounded(11).bg(sc.color).cursor_pointer()
+        .border(2).border_color(cur[p.machine] === sc.color ? C.fg : CLEAR).tooltip(sc.label)
+        .on_click(() => set(sc.color)))))
     .child(h_flex().id("tn-sw-default").w_full().h(24).flex_none().px(6).items_center().rounded(4).text_size(12).text_color(C.muted)
       .cursor_pointer().hover(s => s.bg(C.raised)).on_click(() => set(null)).child("Default"));
 }

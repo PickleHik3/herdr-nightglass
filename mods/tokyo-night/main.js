@@ -11,7 +11,7 @@ import { renderSidebar, renderNewMenu, renderSpacesPopup, renderColorsPopup, loa
 import { renderHeader, pollChanges, pollUsage } from "./header.js";
 import { renderStrip, renderPane, renderEmpty, EMPTY_KEY } from "./strip.js";
 import { snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
-import { nodePx } from "./lib.js";
+import { nodePx, machineScheme } from "./lib.js";
 
 export default class TokyoNight extends View {
   init(_p, cx) {
@@ -74,6 +74,7 @@ export default class TokyoNight extends View {
   watchFocus(cx) {
     const snap = snapshot();
     const id = snap.foc?.space ?? null;
+    this.applyScheme(snap);
     if (id === this.lastFocus) return;
     this.lastFocus = id;
     const sp = id && snap.spaces.find(s => s.id === id);
@@ -87,6 +88,17 @@ export default class TokyoNight extends View {
       if (v[sp.machine] !== id) { v[sp.machine] = id; try { localStorage.setItem("visited", JSON.stringify(v)); } catch { /* storage unavailable */ } }
     }
     if (this.emptyShown()) { setShared(EMPTY_KEY, null); run("layout.select", { stack: "main-stack", child: "main" }); }
+  }
+  // The whole window wears the focused space's machine scheme (the empty view: the machine it
+  // shows). Checked every tick, so a color picked for the focused machine applies at once.
+  applyScheme(snap) {
+    const sp = snap.foc && snap.spaces.find(s => s.id === snap.foc.space);
+    const key = shared(EMPTY_KEY) ?? sp?.machine;
+    if (key == null) return;
+    const theme = machineScheme(key).theme;
+    if (theme === this.appliedTheme) return;
+    this.appliedTheme = theme;
+    run("app.theme", { name: theme });
   }
   emptyShown() { return shared(EMPTY_KEY) != null; }
   setOpen(key) {
