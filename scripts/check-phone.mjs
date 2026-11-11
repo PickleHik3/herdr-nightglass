@@ -233,5 +233,16 @@ console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desk
   console.log(`top bar order ok; gaps at 360/412/480 (all items): ${[360, 412, 480].map((W) => gapAt(W, true).gap.toFixed(1)).join(" / ")} px (rule: equal gaps, widgets grow past 24)`);
 }
 
+// --- toast mod (round 13): replaces the app's `toast` mod; lib.js verbatim; phone capsule only on the phone layout ---
+{
+  const T = join(ROOT, "mods/toast");
+  const src = readFileSync(join(T, "main.js"), "utf8");
+  const r = spawnSync(process.execPath, ["--input-type=module", "--check"], { input: src, encoding: "utf8" });
+  if (r.status !== 0) bad(`toast/main.js: syntax: ${r.stderr}`);
+  if (readFileSync(join(T, "lib.js"), "utf8") !== readFileSync(join(DESK, "lib.js"), "utf8")) bad("mods/toast/lib.js differs from the desktop copy");
+  if (!/findNode\(layout\(\), "drawer"\)/.test(src) || !/glassSolid/.test(src) || !/\.h\(32\)/.test(src) || !/closeOverlay\(p\.overlay\)/.test(src)) bad("toast/main.js: phone capsule (32 px, glassSolid, tap closes) or the phone-layout switch is missing");
+  console.log("toast mod: syntax ok, lib.js identical, phone capsule only when the layout has the drawer node");
+}
+
 console.log(fails ? `${fails} FAILURE(S)` : "ALL STATIC CHECKS PASSED");
 process.exit(fails ? 1 : 0);
