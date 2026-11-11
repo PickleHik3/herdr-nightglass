@@ -158,7 +158,7 @@ export function parseUsageJson(text) {
     const label = a.label ?? a.tool ?? "?";
     return {
       tool: a.tool, plan: a.plan ?? "",
-      name: a.tool === "claude" || a.tool === label ? label : `${a.tool} ${label}`,
+      name: label, // the tool shows as its icon
       five: five?.percent ?? null, fiveAt: five?.resets_at ?? null,
       week: week?.percent ?? null, weekAt: week?.resets_at ?? null,
       saved: a.saved_at ?? null,                       // set when the numbers are a saved snapshot

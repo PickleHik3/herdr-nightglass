@@ -1,5 +1,5 @@
 // tokyo-night: the header (search pill, usage rings, panel toggles, window buttons) and the usage popup.
-import { div } from "gpui-kit";
+import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, props, spaces, panes, machines, focused, layout, window, shared, setShared, exec } from "herdr";
 import { C, MONO, CLEAR, alpha, dur, ico, ring, level, stop, findNode, anchorBelowRight, setPressed, getPressed, bindingOf } from "./lib.js";
@@ -116,6 +116,8 @@ function windowButtons() {
   ];
 }
 
+const TOOL_ICON = 12;
+const toolIcon = (tool, size) => image(`icons/${tool === "codex" ? "codex" : "claude"}.svg`).size(size).flex_none();
 const resetIn = (at) => at ? dur(at * 1000 - Date.now()) : null;
 const ringColors = (u) => [level(u.week ?? 0, C.accent), level(u.five ?? 0, C.teal)];
 
@@ -165,9 +167,21 @@ export function usageCard(view) {
     cx.notify();
   };
   const age = u.at ? (Date.now() - u.at < 60000 ? `${Math.max(1, Math.round((Date.now() - u.at) / 1000))}s ago` : `${dur(Date.now() - u.at)} ago`) : "";
-  // The head is just the rings, spread evenly; tapping anywhere on it opens or closes the card.
-  const head = h_flex().id("tn-usage-head").w_full().h(20).flex_none().justify_between().items_center().cursor_pointer().on_click(toggle)
-    .children(rows.map(r => { const [wc, hc] = ringColors(r); return ring(20, r.week, r.five, wc, hc); }));
+  // The head is the rings grouped by tool, each group led by its icon (Herdr's own program
+  // icons, full color). Every ring gets the same slot width, so they stay evenly spaced.
+  const groups = [];
+  for (const r of rows) {
+    const tool = r.tool === "codex" ? "codex" : "claude";
+    const g = groups.find(x => x.tool === tool) ?? (groups.push({ tool, rows: [] }), groups[groups.length - 1]);
+    g.rows.push(r);
+  }
+  const inner = (view.width ?? 268) - 20 - 24 - 2;
+  const GROUP_GAP = 10;
+  const slot = Math.max(22, Math.floor((inner - groups.length * (TOOL_ICON + 6) - (groups.length - 1) * GROUP_GAP) / rows.length));
+  const head = h_flex().id("tn-usage-head").w_full().h(20).flex_none().items_center().cursor_pointer().on_click(toggle)
+    .children(groups.map((g, i) => h_flex().flex_none().items_center().when(i > 0, el => el.ml(GROUP_GAP))
+      .child(h_flex().w(TOOL_ICON + 6).flex_none().items_center().child(toolIcon(g.tool, TOOL_ICON)))
+      .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return h_flex().w(slot).flex_none().justify_center().child(ring(20, r.week, r.five, wc, hc)); }))));
   const card = v_flex().id("tn-usage").w_full().flex_none().bg(C.surface).rounded(16).px(12).pt(10).pb(11).gap(8)
     .opacity(u.stale ? 0.6 : 1).hover(s => s.bg(openState ? C.surface : C.raised))
     .tooltip(openState ? "" : `Claude usage · ${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage-tui on ${USAGE_MACHINE}`)
@@ -186,7 +200,7 @@ export function usageCard(view) {
       .bg(hot ? alpha(C.red, 0.1) : CLEAR).border(1).border_color(hot ? alpha(C.red, 0.4) : CLEAR)
       .child(ring(30, r.week, r.five, wc, hc))
       .child(v_flex().flex_1().min_w(0).gap(3)
-        .child(h_flex().gap(6).items_baseline().child(div().text_size(12).font_semibold().text_color(C.fg).child(r.name))
+        .child(h_flex().gap(6).items_center().child(toolIcon(r.tool, 12)).child(div().text_size(12).font_semibold().text_color(C.fg).child(r.name))
           .child(div().font_family(MONO).text_size(11).text_color(C.dim).child(r.plan))
           .when(!!r.saved, el => el.child(div().font_family(MONO).text_size(11).text_color(C.amber).child(`saved ${dur(Date.now() - r.saved * 1000)}`))))
         .when(!!r.note, el => el.child(div().text_size(11).text_color(C.amber).truncate().child(r.note)))
@@ -198,5 +212,7 @@ export function usageCard(view) {
       .child(h_flex().gap(5).items_center().child(div().size(5).rounded(3).bg(C.dim)).child(div().child("inner: 5-hour")))
       .child(div().flex_1())
       .child(div().flex_none().font_family(MONO).text_color(C.dim).child(u.stale ? `stale · ${age}` : age)))
-    .children(rows.map(row));
+    .children(rows.map(row))
+    .child(h_flex().id("tn-usage-fold").w_full().h(14).flex_none().justify_center().items_center().rounded(7).cursor_pointer()
+      .tooltip("Collapse").hover(s => s.bg(C.raised)).on_click(toggle).child(ico("chevron-down", 12, C.dim)));
 }
