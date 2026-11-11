@@ -99,15 +99,8 @@ export function renderStrip(view) {
 export function renderTabs(view) {
   const snap = snapshot();
   const rows = snap.rows.filter(r => r.agent || r.focused);
-  const curIdx = rows.findIndex(r => r.focused);
-  const curAddr = curIdx >= 0 ? rows[curIdx].address : null;
   // agent.next / agent.prev follow the pills (this block is never hidden, so it owns the order).
   setAgentOrder(rows.filter(r => r.agent).map(r => r.address));
-  // Bring the current pill into view when the focus moves (smallest scroll needed).
-  if (curAddr !== view.pillFocus) {
-    view.pillFocus = curAddr;
-    if (curIdx >= 0) view.pillScroll.scroll_to_item(curIdx);
-  }
   const pill = (r) => {
     const cur = r.focused, waiting = r.kind === "waiting";
     const mc = machineColor(r.machine);
@@ -121,7 +114,7 @@ export function renderTabs(view) {
       .child(div().flex_none().font_family(MONO).text_size(11).text_color(cur ? mc : C.dim).child(r.short))
       .child(div().min_w(0).truncate().font_medium().child(r.title));
   };
-  return h_flex().id("tnp-pills").size_full().px(8).gap(6).items_center().overflow_x_scroll().track_scroll(view.pillScroll)
+  return h_flex().id("tnp-pills").size_full().px(8).gap(6).items_center().overflow_x_scroll()
     .children(rows.map(pill))
     .child(h_flex().id("tnp-newtab").size(40).flex_none().justify_center().items_center().rounded(20)
       .bg(alpha(C.accent, 0.14)).border(1).border_color(rim()).cursor_pointer().on_click(() => run("tab.new", {}))

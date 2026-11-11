@@ -6,6 +6,9 @@
 //  - every builder method called is declared in the d.ts files
 //  - lib.js and data.js are still byte-identical copies of the desktop mod's
 //  - the layout parses, names only this mod, every role has a case in main.js, node ids the mod uses exist
+//  - APIs the phone mod uses that the desktop mod does not use are listed; each must be in PROVEN below (proven by
+//    `herdr-app check` on app 0.1.13, see scripts/stage-role-checks.mjs) or the run fails. Names known to be absent
+//    from 0.1.13 (ABSENT_013) fail at once, even though the repo's newer gpui-kit.d.ts declares them.
 //  - every icon the mod draws exists (ico -> the desktop mod's folder, pico/ring-s -> the phone's own)
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -15,7 +18,17 @@ import { spawnSync } from "node:child_process";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PHONE = join(ROOT, "mods/tokyo-night-phone");
 const DESK = join(ROOT, "mods/tokyo-night");
-const kit = readFileSync(join(DESK, "gpui-kit.d.ts"), "utf8");
+// The repo's gpui-kit.d.ts comes from a newer app (0.1.15) than the store ships (0.1.13); GPUI_KIT_DTS may point at a
+// 0.1.13 one (`herdr-app types <mod>` on the phone writes it).
+const kit = readFileSync(process.env.GPUI_KIT_DTS ?? join(DESK, "gpui-kit.d.ts"), "utf8");
+// Declared by the 0.1.15 typings, missing from 0.1.13 (diff of both d.ts files).
+const ABSENT_013 = new Set(["ScrollHandle", "scroll_to_item"]);
+// Used by the phone mod, not by the desktop mod, and built without error by `herdr-app check` on 0.1.13
+// (14 staged role checks, scripts/stage-role-checks.mjs: they run init() and render() with fixtures).
+const PROVEN = new Set(["Input", "InputState", "new", "on", "overflow_x_scroll", "overflow_y_scroll", "line_height", "self_center"]);
+// Phone-only, but only reached inside event handlers / timers, which `check` does not run. Taken from the
+// 0.1.13 typings instead (gpui-kit.d.ts InputState: set_value, value, release; herdr.d.ts: hc).
+const TYPED_ONLY = new Set(["set_value", "value", "release", "hc"]);
 const herdr = process.env.HERDR_DTS ? readFileSync(process.env.HERDR_DTS, "utf8") : null;
 let fails = 0;
 const bad = (m) => { fails++; console.log("FAIL", m); };
@@ -55,6 +68,7 @@ const JS = new Set(["map", "filter", "find", "findIndex", "some", "every", "slic
 const local = new Set(["openKey", "setOpen", "goMachine", "lastSpaces", "watchFocus", "applyScheme", "pollStats", "renderRole", "renderWatch", "init", "close", "render"]);
 const text = kit + (herdr ?? "");
 const used = new Map();
+const exportsAll = new Set(Object.values(mods).flatMap((src) => [...exportsOf(src)]));
 for (const [f, src] of Object.entries(mods)) {
   const body = src.replace(/\/\/.*$/gm, "").replace(/`[^`]*`/g, "``").replace(/"(?:[^"\\]|\\.)*"/g, '""');
   for (const m of body.matchAll(/\.([a-z_][a-z0-9_]*)\s*\(/g)) {
@@ -68,6 +82,25 @@ for (const [n, fs] of [...used].sort()) {
   if (!new RegExp(`\\b${n}\\s*(?:<[^>]*>)?\\s*\\(`).test(text) && !new RegExp(`\\b${n}\\s*:`).test(text)) { bad(`method .${n}() not in the d.ts files (${[...fs].join(", ")})`); missing++; }
 }
 console.log(`distinct builder/API methods checked: ${used.size}, missing: ${missing}`);
+
+// --- API surface: phone-only names must be proven; names absent from 0.1.13 fail ---
+const deskSrc = readdirSync(DESK).filter((f) => f.endsWith(".js")).map((f) => readFileSync(join(DESK, f), "utf8")).join("\n");
+const strip = (src) => src.replace(/\/\/.*$/gm, "").replace(/`[^`]*`/g, "``").replace(/"(?:[^"\\]|\\.)*"/g, '""');
+const namesOf = (src) => {
+  const body = strip(src), out = new Set();
+  for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*"(gpui-kit|gpui-base|herdr)"/g)) for (const n of m[1].split(",").map((x) => x.trim().split(/\s+as\s+/)[0]).filter(Boolean)) out.add(n);
+  for (const m of body.matchAll(/\.([a-z_][a-z0-9_]*)\s*\(/g)) out.add(m[1]);
+  return out;
+};
+const deskNames = namesOf(deskSrc);
+const extra = new Map();
+for (const [f, src] of Object.entries(mods)) for (const n of namesOf(src)) {
+  if (ABSENT_013.has(n)) { bad(`${f}: ${n} is not in herdr-app 0.1.13 (only in the newer d.ts)`); continue; }
+  if (!deskNames.has(n) && !JS.has(n) && !local.has(n) && /^[A-Za-z_]/.test(n)) { if (!extra.has(n)) extra.set(n, new Set()); extra.get(n).add(f); }
+}
+const phoneApi = [...extra].filter(([n]) => !(exportsAll.has(n)));
+for (const [n, fs] of phoneApi) if (!PROVEN.has(n) && !TYPED_ONLY.has(n)) bad(`${n} (${[...fs].join(", ")}) is not used by the desktop mod and not in PROVEN: run scripts/stage-role-checks.mjs through herdr-app check on 0.1.13, then add it`);
+console.log(`phone-only API names (not used by the desktop mod): ${phoneApi.map(([n]) => n).sort().join(", ")}; typed-only (not run by check): ${[...TYPED_ONLY].join(", ")}`);
 
 for (const f of ["lib.js", "data.js"]) {
   if (readFileSync(join(PHONE, f), "utf8") !== readFileSync(join(DESK, f), "utf8")) bad(`${f} differs from the desktop copy (re-sync: cp mods/tokyo-night/${f} mods/tokyo-night-phone/)`);

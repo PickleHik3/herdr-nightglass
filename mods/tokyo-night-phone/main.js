@@ -9,7 +9,6 @@
 //   menu, usage, colors   popups opened by the roles above
 // Data (data.js) and helpers (lib.js) are the desktop tokyo-night mod's files, copied verbatim.
 import { View, div } from "gpui-kit";
-import { ScrollHandle } from "gpui-base";
 import { props, exec, run, layout } from "herdr";
 import { renderTopbar, renderMenu, renderUsage, pollChanges, pollUsage, usageOpened, usageClosed } from "./topbar.js";
 import { renderStrip, renderTabs } from "./strip.js";
@@ -39,7 +38,6 @@ export default class TokyoNightPhone extends View {
       cx.timer.every(5000, (cx) => pollUsage(this, cx));
     }
     if (role === "strip") cx.timer.every(30000, (cx) => cx.notify()); // elapsed times
-    if (role === "tabs") this.pillScroll = ScrollHandle.new();
     if (role === "composer") initComposer(this, cx);
     if (role === "drawer") {
       this.pollStats(cx, true);
