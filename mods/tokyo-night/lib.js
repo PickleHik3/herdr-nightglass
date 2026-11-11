@@ -1,35 +1,12 @@
 // tokyo-night: shared helpers (palette, icons, status marks, popup anchors, formatting).
 import { svg, image, div } from "gpui-kit";
-import { h_flex, v_flex } from "gpui-base";
+import { h_flex } from "gpui-base";
 import { theme, keys, window, layout, shared } from "herdr";
 
 export const M = "mods/tokyo-night";
 export const MONO = "JetBrains Mono";
 export const CLEAR = "#00000000";
-export const LIT = { teal: "#73daca", cyan: "#7dcfff", orange: "#ff9e64", purple: "#bb9af7", amber: "#e0af68", slate: "#565f89" };
-export const BADGES = [LIT.cyan, LIT.orange, LIT.teal, LIT.purple, LIT.amber, "#7aa2f7"];
-
-// Colors: theme names where the theme has one (so the accent follows settings), the design's
-// literal Tokyo Night hexes for the rest. Read through C at render time.
-function build(t) {
-  return {
-    canvas: t.canvas ?? "#16161e", chrome: t.chrome ?? "#1a1b26", surface: t.surface ?? "#1f2335",
-    raised: t.raised ?? "#292e42", input: t.input ?? "#3b4261",
-    fg: t.foreground ?? "#c0caf5", muted: t.muted ?? "#a9b1d6", dim: t.dim ?? "#8a92c2",
-    accent: t.accent ?? "#7aa2f7", onAccent: t.accent_foreground ?? "#16161e",
-    red: t.blocked ?? "#f7768e", green: t.working ?? "#9ece6a", idle: t.idle ?? "#8a92c2",
-    ...LIT, ink: "#16161e",
-  };
-}
-let sig = null, cache = null;
-export const C = new Proxy({}, {
-  get(_o, k) {
-    const t = theme();
-    const s = `${t.canvas}|${t.chrome}|${t.accent}|${t.foreground}|${t.blocked}|${t.working}|${t.dim}`;
-    if (s !== sig) { sig = s; cache = build(t); }
-    return cache[k];
-  },
-});
+export const LIT = { teal: "#4fd1b8" };
 
 const HEX = /^#[0-9a-f]{6}([0-9a-f]{2})?$/i;
 // A color at `a` (0..1) opacity, as 8-digit hex.
@@ -40,43 +17,63 @@ export function mix(top, base, a) {
   const n = (h, i) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
   return "#" + [0, 1, 2].map(i => Math.round(n(top, i) * a + n(base, i) * (1 - a)).toString(16).padStart(2, "0")).join("");
 }
-// Per-machine colors the person picked (right-click a machine); the theme accent by default.
-// ---- depth ----
-// `.bg()` only takes a flat color (no Background), so "raised" is a solid a hair lighter than its
-// base, plus a faint highlight rim and a soft shadow (applied with `raised`/`lift`).
-export const raisedFill = (base) => mix(C.fg, base, 0.035); // mix(top, base, amount of top)
-export const rim = () => alpha(C.fg, 0.06);
-export const inset = () => mix("#000000", C.canvas, 0.25);
-export const raised = (el, base) => el.bg(raisedFill(base)).border(1).border_color(rim()).shadow_sm();
-// A vertical fade faked with stacked strips (no gradient fill): `from` at the top to clear.
-export function fade(h, from) {
-  const n = 6;
-  return v_flex().w_full().h(h).flex_none()
-    .children(Array.from({ length: n }, (_, i) => div().w_full().h(h / n).bg(alpha(from, (1 - (i + 0.5) / n) ** 2 * 0.25))));
+// Derived from a machine color c (the Glass spec's "focused row" family).
+export const nearBlack = (c) => mix(c, "#000000", 0.16);
+export const darkOf = (c) => mix(c, "#000000", 0.31);
+export const lightOf = (c) => mix("#ffffff", c, 0.35);
+
+// ---- Glass tokens ----
+// The theme carries the opaque bases (themes/*.json, scripts/gen-themes.py): canvas = wallpaper
+// base, chrome = glass base, surface = glass over the wallpaper (opaque), accent = the hue.
+// The Glass tokens are alpha fills over those; a machine theme tints the bases slightly.
+function build(t) {
+  const hue = t.accent ?? "#e6e7eb";
+  const white = mix(hue, "#ffffff", 0.08), black = mix(hue, "#000000", 0.06);
+  const base = t.chrome ?? "#0c0d12";
+  return {
+    wall: t.canvas ?? "#0e1016", glassBase: base, glassSolid: t.surface ?? "#0d0e14",
+    glass: alpha(base, 0.72),
+    raised: alpha(white, 0.09), raisedHi: alpha(white, 0.14), well: alpha(black, 0.38), rim: alpha(white, 0.10),
+    fg: t.foreground ?? "#eceef2", muted: t.muted ?? "#a8adba", dim: t.muted ?? "#a8adba",
+    accent: hue, onAccent: t.accent_foreground ?? "#0f1012", ink: "#0f1012",
+    red: t.blocked ?? "#f0708a", green: t.working ?? "#5fd38d", amber: "#e0af68", idle: t.muted ?? "#a8adba",
+    ...LIT,
+  };
 }
+let sig = null, cache = null;
+export const C = new Proxy({}, {
+  get(_o, k) {
+    const t = theme();
+    const s = `${t.canvas}|${t.chrome}|${t.surface}|${t.accent}|${t.foreground}|${t.blocked}|${t.working}|${t.muted}`;
+    if (s !== sig) { sig = s; cache = build(t); }
+    return cache[k];
+  },
+});
 
 export const COLORS_KEY = "tokyo-night.colors";
-// Each swatch is a whole-window scheme: themes/<theme>.json (scripts/gen-themes.py), Tokyo Night
-// tinted toward that hue. The focused space's machine decides which one the app shows.
+// Each swatch is a machine scheme: themes/<theme>.json (scripts/gen-themes.py), the Glass base
+// nudged toward that hue. The focused space's machine decides which one the app shows.
 export const SCHEMES = [
-  { color: "#7aa2f7", theme: "tokyo-night", label: "Tokyo Night" },
-  { color: "#7dcfff", theme: "tokyo-night-frost", label: "Frost" },
-  { color: "#73daca", theme: "tokyo-night-lagoon", label: "Lagoon" },
-  { color: "#9ece6a", theme: "tokyo-night-forest", label: "Forest" },
-  { color: "#e0af68", theme: "tokyo-night-dune", label: "Dune" },
-  { color: "#ff9e64", theme: "tokyo-night-ember", label: "Ember" },
-  { color: "#f7768e", theme: "tokyo-night-sakura", label: "Sakura" },
-  { color: "#bb9af7", theme: "tokyo-night-aurora", label: "Aurora" },
+  { color: "#6e9bff", theme: "tokyo-night-blue", label: "Blue" },
+  { color: "#52c6f0", theme: "tokyo-night-frost", label: "Frost" },
+  { color: "#4fd1b8", theme: "tokyo-night-lagoon", label: "Teal" },
+  { color: "#86d46a", theme: "tokyo-night-forest", label: "Forest" },
+  { color: "#e5b45c", theme: "tokyo-night-dune", label: "Dune" },
+  { color: "#f58f5c", theme: "tokyo-night-ember", label: "Ember" },
+  { color: "#f0708a", theme: "tokyo-night-sakura", label: "Rose" },
+  { color: "#a98bf5", theme: "tokyo-night-aurora", label: "Aurora" },
 ];
 export const SWATCHES = SCHEMES.map(s => s.color);
-// The All view's own scheme: Tokyo Night Storm, neutral slate with a pale accent, unlike any machine.
+// Picks stored before the Glass retune: the old Tokyo Night swatch -> the scheme it became.
+const OLD_SWATCHES = { "#7aa2f7": 0, "#7dcfff": 1, "#73daca": 2, "#9ece6a": 3, "#e0af68": 4, "#ff9e64": 5, "#f7768e": 6, "#bb9af7": 7 };
+// The All view's own scheme: the neutral Glass base with a pale accent, unlike any machine.
 export const ALL_THEME = "tokyo-night-storm";
-// A fixed default (not the live accent, which follows whichever machine is focused).
-export const machineColor = (key) => {
-  const c = shared(COLORS_KEY)?.[key];
-  return HEX.test(c ?? "") ? c : SCHEMES[0].color;
+export const machineScheme = (key) => {
+  const c = String(shared(COLORS_KEY)?.[key] ?? "").toLowerCase();
+  return SCHEMES.find(s => s.color === c) ?? SCHEMES[OLD_SWATCHES[c] ?? 0];
 };
-export const machineScheme = (key) => SCHEMES.find(s => s.color === machineColor(key)) ?? SCHEMES[0];
+// A fixed default (not the live accent, which follows whichever machine is focused).
+export const machineColor = (key) => machineScheme(key).color;
 export const stop = (_e, cx) => cx.stop_propagation();
 // Hover-revealed controls (close buttons): wait a moment before sliding in, so passing the pointer
 // over a list doesn't make it twitch; leaving hides them at once.
@@ -106,7 +103,7 @@ export const nodePx = (id) => findNode(layout(), id)?.size?.px;
 export const ico = (name, size, color) => svg(`${M}/${name}.svg`).size(size).flex_none().text_color(color ?? C.dim);
 export function prog(p, size, color) {
   if (p?.icon) return (p.tint ? svg(p.icon).text_color(color ?? C.muted) : image(p.icon)).size(size).flex_none();
-  return div().size(size).rounded(3).bg(LIT.slate).flex_none();
+  return image(`${M}/herdr.png`).size(size).rounded(3).flex_none();
 }
 // The status marks of the design, in a fixed 10 px slot. kind: waiting | working | done | idle | offline
 export function mark(kind, slot = 10) {

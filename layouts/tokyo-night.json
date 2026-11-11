@@ -7,14 +7,17 @@
     22
   ],
   "theme": "tokyo-night",
-  "background": "canvas",
+  "background": {
+    "image": "mods/tokyo-night/wallpaper.png",
+    "fit": "cover"
+  },
   "padding": 8,
   "gap": 8,
   "terminal_padding": [
     14,
     22
   ],
-  "terminal_opacity": 0,
+  "terminal_opacity": 1,
   "preview": "layouts/tokyo-night.svg",
   "ui_font": "Inter",
   "font": "JetBrains Mono",
@@ -85,16 +88,16 @@
                     "tab": "active",
                     "pane": {
                       "gap": 8,
-                      "radius": 6,
-                      "background": "chrome",
+                      "radius": 12,
+                      "background": "surface",
                       "lone": true,
                       "border": {
-                        "width": 0,
-                        "color": "chrome"
+                        "width": 1,
+                        "color": "border"
                       },
                       "focus": {
                         "width": 1,
-                        "color": "#7aa2f766"
+                        "color": "#ffffff40"
                       },
                       "header": {
                         "content": {
@@ -103,7 +106,7 @@
                             "role": "pane"
                           }
                         },
-                        "height": 38,
+                        "height": 34,
                         "position": "top",
                         "reveal": "always"
                       }

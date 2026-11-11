@@ -2,7 +2,7 @@
 import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, props, spaces, panes, machines, focused, layout, window, shared, setShared, exec } from "herdr";
-import { C, MONO, CLEAR, alpha, dur, ico, ring, level, stop, findNode, anchorBelowRight, setPressed, getPressed, bindingOf, raised, raisedFill, rim, inset } from "./lib.js";
+import { C, MONO, CLEAR, alpha, dur, ico, ring, level, stop, findNode, anchorBelowRight, setPressed, getPressed, bindingOf } from "./lib.js";
 import { snapshot, USAGE_MACHINE, parseUsageJson } from "./data.js";
 
 const MOD = "tokyo-night";
@@ -91,25 +91,26 @@ function panelButtons(view) {
   syncPanel(view, spaces().find(s => s.active), panel, body, ["files", "changes"]);
   const btn = (id, label, icon, extra) => {
     const on = !panel.hidden && body.active === id;
-    const b = h_flex().id(`tn-panel-${id}`).h(28).px(10).gap(6).flex_none().items_center().rounded(6);
-    return (on ? b.bg(alpha(C.accent, 0.18)).border(1).border_color(alpha(C.accent, 0.4)).shadow_md() : raised(b, C.surface))
-      .text_size(12).text_color(on ? C.accent : C.muted)
-      .cursor_pointer().hover(s => s.bg(on ? alpha(C.accent, 0.24) : C.raised).shadow_md())
+    const b = h_flex().id(`tn-panel-${id}`).h(28).px(10).gap(6).flex_none().items_center().rounded(8);
+    // No fill at rest; the on-state is the raised tint with primary text.
+    return b.bg(on ? C.raised : CLEAR)
+      .text_size(12).text_color(on ? C.fg : C.muted)
+      .cursor_pointer().hover(s => s.bg(on ? C.raisedHi : C.raised))
       .on_mouse_down("left", stop)
       .on_click(() => {
         if (on) run("layout.hide", { id: "panel" });
         else { run("layout.select", { stack: "panel-body", child: id }); run("layout.show", { id: "panel" }); }
       })
-      .child(ico(icon, 13, on ? C.accent : C.muted)).child(div().child(label))
-      .when(!!extra, el => el.child(div().font_family(MONO).text_size(11).text_color(C.amber).child(extra)));
+      .child(ico(icon, 13, on ? C.fg : C.muted)).child(div().child(label))
+      .when(!!extra, el => el.child(div().font_family(MONO).text_size(10.5).text_color(C.amber).child(extra)));
   };
   return [btn("files", "Files", "file"), btn("changes", "Changes", "changes", view.changes > 0 ? `+${view.changes}` : "")];
 }
 
 function windowButtons() {
-  const btn = (id, icon, action, danger) => h_flex().id(id).w(30).h(28).flex_none().justify_center().items_center().rounded(6)
+  const btn = (id, icon, action, danger) => h_flex().id(id).w(30).h(28).flex_none().justify_center().items_center().rounded(8)
     .cursor_pointer().hover(s => s.bg(danger ? C.red : C.raised))
-    .on_mouse_down("left", stop).on_click(action).child(ico(icon, 12, C.dim));
+    .on_mouse_down("left", stop).on_click(action).child(ico(icon, 12, C.muted));
   return [
     btn("tn-win-min", "win-min", () => run("window.minimize")),
     btn("tn-win-max", "win-max", () => run("window.maximize")),
@@ -138,20 +139,20 @@ export function renderHeader(view) {
   return h_flex().id("tn-header").relative().size_full().px(12).gap(8).items_center().overflow_hidden()
     .on_size_change((size, cx) => { if (Math.abs((view.headerW ?? 0) - size.width) >= 1) { view.headerW = size.width; cx.notify(); } })
     .when(W > 0, el => el.child(h_flex().id("tn-search").absolute().left(pillX).top(4).w(pillW).h(30).pl(10).pr(6).gap(8).items_center().rounded(15)
-      .bg(inset()).border(1).border_color(rim()).text_size(12).text_color(C.dim).cursor_pointer()
+      .bg(C.well).border(1).border_color(C.rim).text_size(12).text_color(C.muted).cursor_pointer()
       .on_mouse_down("left", stop).on_click(() => run("app.palette"))
-      .child(ico("search", 13, C.dim))
+      .child(ico("search", 13, C.muted))
       .child(h_flex().flex_1().min_w(0).overflow_hidden().whitespace_nowrap()
         .child(div().flex_none().child("Jump to an agent, "))
-        .child(div().flex_none().font_family(MONO).text_color(C.muted).child(sample))
+        .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.fg).child(sample))
         .child(div().flex_none().child(", or a command")))
-      .when(!!key, el => el.child(div().flex_none().px(8).py(1).rounded(10).bg(C.raised).font_family(MONO).text_size(11)
+      .when(!!key, el => el.child(div().flex_none().px(8).py(1).rounded(6).bg(C.raised).font_family(MONO).text_size(10.5)
         .text_color(C.muted).child(key)))))
     .child(div().flex_1().h(1))
     .children(panelButtons(view))
-    .child(h_flex().id("tn-settings").size(28).flex_none().justify_center().items_center().rounded(6).cursor_pointer()
+    .child(h_flex().id("tn-settings").size(28).flex_none().justify_center().items_center().rounded(8).cursor_pointer()
       .hover(s => s.bg(C.raised)).tooltip("Settings")
-      .on_mouse_down("left", stop).on_click(() => run("app.settings")).child(ico("settings", 15, C.dim)))
+      .on_mouse_down("left", stop).on_click(() => run("app.settings")).child(ico("settings", 15, C.muted)))
     .when(win, el => el.child(div().w(6)).children(windowButtons()));
 }
 
@@ -178,35 +179,38 @@ export function usageParts(view) {
   }
   // Each pill is as wide as its icon plus its rings: every ring gets the same slot across both
   // pills, so a group with more accounts takes more of the row. The last pill takes the rounding.
-  const RING = 20, PILL_PAD = 8, ICON_W = RING + 4, GAP = 6;
-  const inner = (view.width ?? 268) - 16 - 2;
-  const slot = Math.max(RING + 2, Math.floor((inner - (groups.length - 1) * GAP - groups.length * (PILL_PAD + ICON_W)) / rows.length));
-  const head = h_flex().id("tn-usage-head").w_full().h(28).flex_none().gap(GAP).items_center().cursor_pointer().on_click(toggle)
+  // Glass: one well per tool, 34 high, rings 22. The wells share the row by ring count (a lone ring
+// counts 1.6), and every ring gets an equal slot inside its well; the last well takes the rounding.
+  const RING = 22, ICON_W = RING + 8, GAP = 6;
+  const weight = (g) => g.rows.length === 1 ? 1.6 : g.rows.length;
+  const total = groups.reduce((a, g) => a + weight(g), 0);
+  const avail = (view.width ?? 268) - 20 - 2 - (groups.length - 1) * GAP;
+  const head = h_flex().id("tn-usage-head").w_full().h(34).flex_none().gap(GAP).items_center().cursor_pointer().on_click(toggle)
     .opacity(u.stale ? 0.6 : 1)
     .tooltip(openState ? "" : `Claude usage · ${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage-tui on ${USAGE_MACHINE}`)
-    .children(groups.map((g, i) => raised(h_flex().h(28).min_w(0).px(4).items_center().rounded(14), C.chrome)
-      .when(i < groups.length - 1, el => el.w(PILL_PAD + ICON_W + g.rows.length * slot).flex_none())
+    .children(groups.map((g, i) => h_flex().h(34).min_w(0).px(6).items_center().rounded(10).bg(C.well)
+      .when(i < groups.length - 1, el => el.w(Math.floor(avail * weight(g) / total)).flex_none())
       .when(i === groups.length - 1, el => el.flex_1())
-      .hover(s => s.bg(raisedFill(C.surface)).shadow_md())
+      .hover(s => s.bg(C.raised))
       .child(h_flex().w(ICON_W).flex_none().items_center().child(toolIcon(g.tool, RING)))
       .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return h_flex().flex_1().min_w(RING).justify_center().child(ring(RING, r.week, r.five, wc, hc)); }))));
   if (!openState) return { head, panel: null };
-  const bar = (label, pct, reset) => h_flex().w_full().gap(6).items_center().font_family(MONO).text_size(11)
-    .child(div().w(18).flex_none().text_color(C.dim).child(label))
+  const bar = (label, pct, reset) => h_flex().w_full().gap(6).items_center().font_family(MONO).text_size(10.5)
+    .child(div().w(18).flex_none().text_color(C.muted).child(label))
     .child(div().flex_1().min_w(0).h(4).rounded(2).bg(C.raised).overflow_hidden()
       .when(pct != null, el => el.child(div().h(4).rounded(2).w(`${Math.max(2, Math.min(100, pct))}%`).bg(level(pct, label === "5h" ? C.teal : C.accent)))))
-    .child(div().w(28).flex_none().text_right().text_color(pct == null ? C.dim : level(pct, C.muted)).child(pct == null ? "–" : `${Math.round(pct)}%`))
-    .child(div().w(46).flex_none().text_right().whitespace_nowrap().text_color(C.dim).child(reset ?? ""));
+    .child(div().w(28).flex_none().text_right().text_color(pct == null ? C.muted : level(pct, C.muted)).child(pct == null ? "–" : `${Math.round(pct)}%`))
+    .child(div().w(46).flex_none().text_right().whitespace_nowrap().text_color(C.muted).child(reset ?? ""));
   const row = (r) => {
     const hot = (r.week ?? 0) >= 85 || (r.five ?? 0) >= 85;
     const [wc, hc] = ringColors(r);
-    return h_flex().w_full().h(UROW).flex_none().gap(10).px(6).items_center().rounded(12)
-      .bg(hot ? alpha(C.red, 0.1) : CLEAR).border(1).border_color(hot ? alpha(C.red, 0.4) : CLEAR)
+    return h_flex().w_full().h(UROW).flex_none().gap(10).px(8).items_center().rounded(10)
+      .bg(hot ? alpha(C.red, 0.16) : C.well)
       .child(ring(30, r.week, r.five, wc, hc))
       .child(v_flex().flex_1().min_w(0).gap(3)
         .child(h_flex().gap(6).items_center().child(toolIcon(r.tool, 12)).child(div().text_size(12).font_semibold().text_color(C.fg).child(r.name))
-          .child(div().font_family(MONO).text_size(11).text_color(C.dim).child(r.plan))
-          .when(!!r.saved, el => el.child(div().font_family(MONO).text_size(11).text_color(C.amber).child(`saved ${dur(Date.now() - r.saved * 1000)}`))))
+          .child(div().font_family(MONO).text_size(10.5).text_color(C.muted).child(r.plan))
+          .when(!!r.saved, el => el.child(div().font_family(MONO).text_size(10.5).text_color(C.amber).child(`saved ${dur(Date.now() - r.saved * 1000)}`))))
         .when(!!r.note, el => el.child(div().text_size(11).text_color(C.amber).truncate().child(r.note)))
         .when(!r.note, el => el.child(bar("wk", r.week, resetIn(r.weekAt))).child(bar("5h", r.five, resetIn(r.fiveAt)))));
   };
@@ -216,13 +220,13 @@ export function usageParts(view) {
   // and pushed the usage row and stats out of the widget box.
   const contentH = 16 + rows.length * UROW + 14 + (rows.length + 1) * 8;
   const panel = v_flex().id("tn-usage-panel").w_full().flex_none().h(Math.min(cap, contentH)).gap(8).overflow_y_scrollbar().opacity(u.stale ? 0.6 : 1)
-    .child(h_flex().w_full().h(16).flex_none().gap(12).items_center().text_size(11).text_color(C.dim)
-      .child(h_flex().gap(5).items_center().child(div().size(9).rounded(5).border(2).border_color(C.dim)).child(div().child("outer: week")))
-      .child(h_flex().gap(5).items_center().child(div().size(5).rounded(3).bg(C.dim)).child(div().child("inner: 5-hour")))
+    .child(h_flex().w_full().h(16).flex_none().gap(12).items_center().text_size(11).text_color(C.muted)
+      .child(h_flex().gap(5).items_center().child(div().size(9).rounded(5).border(2).border_color(C.accent)).child(div().child("outer: week")))
+      .child(h_flex().gap(5).items_center().child(div().size(5).rounded(3).bg(C.teal)).child(div().child("inner: 5-hour")))
       .child(div().flex_1())
-      .child(div().flex_none().font_family(MONO).text_color(C.dim).child(u.stale ? `stale · ${age}` : age)))
+      .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.muted).child(u.stale ? `stale · ${age}` : age)))
     .children(rows.map(row))
     .child(h_flex().id("tn-usage-fold").w_full().h(14).flex_none().justify_center().items_center().rounded(7).cursor_pointer()
-      .tooltip("Collapse").hover(s => s.bg(C.raised)).on_click(toggle).child(ico("chevron-down", 12, C.dim)));
+      .tooltip("Collapse").hover(s => s.bg(C.raised)).on_click(toggle).child(ico("chevron-down", 12, C.muted)));
   return { head, panel };
 }
