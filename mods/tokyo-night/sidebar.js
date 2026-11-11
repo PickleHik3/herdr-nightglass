@@ -69,11 +69,15 @@ function allLight(snap) {
 }
 
 // ---- capsules ----
-// A small × shown on hover; it stops the press so the row or capsule underneath isn't picked.
-const closeBtn = (id, tip, act) => h_flex().id(id).size(18).flex_none().justify_center().items_center().rounded(5)
-  .cursor_pointer().hover(s => s.bg(alpha(C.red, 0.25))).tooltip(tip)
-  .on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); act(); })
-  .child(ico("win-close", 9, C.muted));
+// Swipe-style close: a full-height strip on the right edge that slides open on hover (native width
+// and opacity transitions), pushing the content left. It stops the press so the row isn't picked.
+const closeSlot = (id, shown, radius, tip, act) => h_flex().id(id).h_full().flex_none().overflow_hidden()
+  .w(shown ? 30 : 0).opacity(shown ? 1 : 0)
+  .transition("width", { duration: 160, easing: "ease-out" }).transition("opacity", { duration: 160, easing: "ease-out" })
+  .child(h_flex().id(`${id}-btn`).w(30).h_full().flex_none().justify_center().items_center().rounded_r(radius)
+    .bg(alpha(C.red, 0.2)).hover(s => s.bg(alpha(C.red, 0.38))).cursor_pointer().tooltip(tip)
+    .on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); act(); })
+    .child(ico("win-close", 10, C.red)));
 
 function rowEl(view, r, compact, onPick) {
   const hover = view.hover === r.address;
@@ -82,8 +86,9 @@ function rowEl(view, r, compact, onPick) {
   const tint = r.focused ? alpha(mc, 0.16) : waiting ? alpha(C.red, 0.12) : CLEAR;
   const ring = r.focused ? alpha(mc, 0.5) : waiting ? alpha(C.red, 0.45) : CLEAR;
   const showNow = !compact && r.now && (hover || r.focused || waiting);
-  return v_flex().id(`tn-row-${r.address}`).w_full().min_w(0).flex_none().rounded(14).bg(tint).border(1).border_color(ring)
-    .pl(10).pr(5).py(3).gap(1).cursor_pointer().text_size(12).text_color(r.focused ? C.fg : C.muted)
+  const closable = !compact && r.kind !== "offline";
+  return h_flex().id(`tn-row-${r.address}`).w_full().min_w(0).flex_none().items_stretch().rounded(14).overflow_hidden()
+    .bg(tint).border(1).border_color(ring).cursor_pointer().text_size(12).text_color(r.focused ? C.fg : C.muted)
     .when(r.focused, el => el.shadow_md())
     .hover(s => s.bg(r.focused ? alpha(mc, 0.22) : waiting ? alpha(C.red, 0.18) : C.raised).shadow_md())
     .on_hover((h, cx) => { if (h) view.hover = r.address; else if (view.hover === r.address) view.hover = null; cx.notify(); })
@@ -92,16 +97,17 @@ function rowEl(view, r, compact, onPick) {
       cx.stop_propagation();
       openOverlay({ mod: "menu", kind: "popup", width: 220, height: 300, props: { tab: "pane", target: { pane: r.pane, terminal: r.address } } });
     })
+    .child(v_flex().flex_1().min_w(0).pl(10).pr(5).py(3).gap(1)
     .child(h_flex().w_full().h(18).gap(8).items_center()
       .child(mark(r.kind))
       .child(div().flex_1().min_w(0).truncate().font_medium().child(r.title))
       .child(div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(r.kind === "offline" ? "" : dur(r.ms)))
       .child(h_flex().flex_none().h(18).px(7).rounded(9).items_center().font_family(MONO).text_size(11)
-        .bg(r.focused ? mc : C.raised).text_color(r.focused ? C.onAccent : C.dim).child(r.short))
-      .when(hover && r.kind !== "offline", el => el.child(closeBtn(`tn-row-x-${r.address}`, "Close terminal",
-        () => r.pane ? run("pane.close", { pane: r.pane }) : run("terminal.kill", { terminal: r.address })))))
+        .bg(r.focused ? mc : C.raised).text_color(r.focused ? C.onAccent : C.dim).child(r.short)))
     .when(showNow, el => el.child(div().pl(18).w_full().min_w(0).truncate().font_family(MONO).text_size(11)
-      .text_color(waiting ? C.red : C.dim).child(r.now)));
+      .text_color(waiting ? C.red : C.dim).child(r.now))))
+    .when(closable, el => el.child(closeSlot(`tn-row-x-${r.address}`, hover, 13, "Close terminal",
+      () => r.pane ? run("pane.close", { pane: r.pane }) : run("terminal.kill", { terminal: r.address }))));
 }
 
 function capsule(view, sp, m, compact, onPick) {
@@ -110,8 +116,9 @@ function capsule(view, sp, m, compact, onPick) {
   const seenAt = lastSeen(m.key);
   const hover = view.spHover === sp.id;
   return raised(v_flex().id(`tn-sp-${sp.id}`).w_full().flex_none().rounded(16).p(5).gap(2), C.surface)
-    .on_hover((h, cx) => { const id = h ? sp.id : view.spHover === sp.id ? null : view.spHover; if (id !== view.spHover) { view.spHover = id; cx.notify(); } })
-    .child(h_flex().w_full().h(28).gap(8).pl(4).pr(hover && !m.offline ? 4 : 8).items_center()
+    .child(h_flex().id(`tn-sph-${sp.id}`).w_full().h(28).items_stretch().rounded(12).overflow_hidden()
+      .on_hover((h, cx) => { const id = h ? sp.id : view.spHover === sp.id ? null : view.spHover; if (id !== view.spHover) { view.spHover = id; cx.notify(); } })
+      .child(h_flex().flex_1().min_w(0).gap(8).pl(4).pr(8).items_center()
       .child(h_flex().size(20).flex_none().rounded(10).justify_center().items_center().bg(alpha(color, 0.2))
         .text_color(color).text_size(11).font_semibold().child(initial))
       .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(sp.name))
@@ -119,9 +126,9 @@ function capsule(view, sp, m, compact, onPick) {
         .child(ico("branch", 11, C.purple))
         .child(div().min_w(0).truncate().font_family(MONO).text_size(11).text_color(C.purple).child(sp.branch))))
       .when(m.offline, el => el.child(div().flex_none().font_family(MONO).text_size(11).text_color(C.amber).whitespace_nowrap()
-        .child(seenAt ? `last seen ${dur(Date.now() - seenAt)}` : "offline")))
+        .child(seenAt ? `last seen ${dur(Date.now() - seenAt)}` : "offline"))))
       // space.close asks first, so a stray click can't take a whole space.
-      .when(hover && !m.offline, el => el.child(closeBtn(`tn-sp-x-${sp.id}`, "Close space", () => run("space.close", { id: sp.id })))))
+      .when(!m.offline, el => el.child(closeSlot(`tn-sp-x-${sp.id}`, hover, 12, "Close space", () => run("space.close", { id: sp.id })))))
     .children(sp.rows.map(r => rowEl(view, r, compact, onPick)));
 }
 
@@ -149,8 +156,9 @@ function allGroups(view, snap, compact, onHead, onPick) {
         .when(!!onHead, el => el.cursor_pointer().hover(s => s.bg(alpha(color, 0.12))).on_click((_e, cx) => onHead(m, cx)))
         .on_mouse_down("right", pickColor(m))
         .child(machineIcon(m, 13, color))
-        .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name))
-        .child(div().flex_none().font_family(MONO).text_size(11).text_color(m.offline ? C.amber : m.count.waiting ? C.red : C.dim).child(m.summary)))
+        // The name keeps its width; a long summary is what gets cut.
+        .child(div().flex_none().max_w(140).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name))
+        .child(div().flex_1().min_w(0).truncate().text_right().font_family(MONO).text_size(11).text_color(m.offline ? C.amber : m.count.waiting ? C.red : C.dim).child(m.summary)))
       .children(m.spaces.map(sp => capsule(view, sp, m, compact, onPick)))
       .when(m.spaces.length === 0, el => el.child(div().px(8).py(2).text_size(11).text_color(C.dim).child("No spaces")))
       .child(newSpaceRow(`tn-all-new-${m.key}`, m, 28, "New space"));
