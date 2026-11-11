@@ -197,13 +197,24 @@ console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desk
   if (/Nothing needs you|QUIET/.test(mods["strip.js"])) bad("strip.js: the quiet capsule row is still there");
   if (!/CHIP = 28/.test(mods["strip.js"])) bad("strip.js: chips are 28 px");
   console.log("strip row absent without items: ok");
-  // top bar order and fit: app, search, flexible gap, stats, usage, toggle
+  // top bar order and spacing: app, search, finished count, stats, usage, toggle, with equal flexible gaps between them
   const top = mods["topbar.js"];
-  const pos = ["ico(\"logo\"", "id(\"tnp-search\")", "flex_1().min_w(0))", "id(\"tnp-stats\")", "id(\"tnp-rings\")", "id(\"tnp-menu\")"].map((s) => top.indexOf(s));
-  if (pos.some((p) => p < 0) || pos.some((p, i) => i && p <= pos[i - 1])) bad("topbar.js: order must be app, search, flexible gap, stats, usage, panel toggle");
-  const bw = 12 + 32 + 40 + 40 + 8 + 5 * 4 + 68 + 8; // fixed part of the bar, designed px (see topbar.js)
-  if (bw + 122 > 412) bad(`topbar: fixed part ${bw} leaves no room for usage wells in 412 px`);
-  console.log(`top bar order ok; fixed width ${bw} of 412 (usage wells and the gap take the rest)`);
+  const pos = ["ico(\"logo\"", "id(\"tnp-search\")", "id(\"tnp-done\")", "id(\"tnp-stats\")", "id(\"tnp-rings\")", "id(\"tnp-menu\")"].map((s) => top.indexOf(s));
+  if (pos.some((p) => p < 0) || pos.some((p, i) => i && p <= pos[i - 1])) bad("topbar.js: order must be app, search, finished count, stats, usage, panel toggle");
+  if (!/id\("tnp-top"\)\.size_full\(\)\.px\(12\)\.pt\(4\)\.items_center\(\)/.test(top)) bad("topbar.js: the bar must have equal side padding and no fixed gap");
+  if ((top.match(/\.child\(gap\(\)\)/g) ?? []).length < 4 || /\.gap\(4\)\.items_center\(\)\s*\n\s*\.on_size_change/.test(top)) bad("topbar.js: items must be separated by equal flexible gaps");
+  if (/ringIcon\("cpu"/.test(top) === false || !/ringIcon\("ram"/.test(top) || !/ringIcon\("disk"/.test(top)) bad("topbar.js: the stats rings carry cpu / ram / disk icons");
+  if (!/ico\(name, 12,/.test(top)) bad("topbar.js: ring icon must be >= 10 px");
+  // the same arithmetic as topbar.js: gap per neighbour at several window widths (all items shown, 5 usage rings in 2 groups)
+  const gapAt = (W, done) => {
+    const n = 5, G = 2, items = 5 + (done ? 1 : 0), gaps = items - 1;
+    const fixed = 32 + 40 + (done ? 40 : 0) + 92 + 40, wells = (r, ic) => G * 16 + n * r + (n - G) * 2 + (ic ? G * 18 : 0) + (G - 1) * 4;
+    const room = W - 24 - fixed - gaps * 6;
+    const ic = wells(16, true) <= room, ring = !ic && wells(16, false) > room ? 12 : 16;
+    return { gap: (W - 24 - fixed - wells(ring, ic)) / gaps, ring, ic };
+  };
+  for (const W of [412, 480]) { const g = gapAt(W, true); if (g.gap < 6) bad(`topbar: gap ${g.gap.toFixed(1)} px at ${W} with every item shown`); }
+  console.log(`top bar order ok; gaps at 360/412/480 (all items): ${[360, 412, 480].map((W) => gapAt(W, true).gap.toFixed(1)).join(" / ")} px (rule: equal gaps, widgets grow past 24)`);
 }
 
 console.log(fails ? `${fails} FAILURE(S)` : "ALL STATIC CHECKS PASSED");

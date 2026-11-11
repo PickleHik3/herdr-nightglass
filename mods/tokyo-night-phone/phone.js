@@ -102,3 +102,28 @@ export function setPanelFull(full) {
   if (full) for (const id of ["strip", "tabs", "term", "composer"]) run("layout.hide", { id });
   else restoreRows();
 }
+
+// ---- finished agents: a count in the top bar, a chip row on demand, dismissable ----
+// The data layer (data.js) has no "seen" mark, so dismissal is phone-only: { terminal address: time it was dismissed }.
+// A finished agent is dismissed while its finish time (now - r.ms) is not after that, so a LATER finish shows again.
+// Kept in shared state (all roles) and mirrored in localStorage (as the mod's other small state: "open", "visited").
+const DIS_KEY = "tokyo-night-phone.dismissed", OPEN_KEY = "tokyo-night-phone.finished-open";
+let disLocal = null;
+const disMap = () => {
+  const v = shared(DIS_KEY);
+  if (v) return v;
+  if (!disLocal) { try { disLocal = JSON.parse(localStorage.getItem("dismissed") ?? "{}") ?? {}; } catch { disLocal = {}; } }
+  return disLocal;
+};
+export const isDismissed = (r) => (disMap()[r.address] ?? 0) >= Date.now() - r.ms;
+export function dismissRows(rows) {
+  const cur = disMap(), next = { ...cur }, now = Date.now();
+  for (const r of rows) next[r.address] = now;
+  const keys = Object.keys(next);
+  if (keys.length > 200) for (const k of keys.sort((a, b) => next[a] - next[b]).slice(0, keys.length - 200)) delete next[k];
+  setShared(DIS_KEY, next);
+  try { localStorage.setItem("dismissed", JSON.stringify(next)); } catch { /* storage unavailable */ }
+}
+export const finishedRows = (snap) => snap.rows.filter(r => r.agent && r.kind === "done" && !isDismissed(r));
+export const finishedOpen = () => shared(OPEN_KEY) === true;
+export const setFinishedOpen = (open) => { setShared(OPEN_KEY, open); };

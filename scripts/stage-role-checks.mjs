@@ -28,11 +28,16 @@ const CASES = {
   topbar: { role: "topbar", scen: "normal" },
   "topbar-nousage": { role: "topbar", scen: "nousage" },
   "topbar-panel-open": { role: "topbar", scen: "panel-open" },     // toggle in its active look
+  "topbar-done0": { role: "topbar", scen: "done0" },               // finished count 0: the green button is absent
+  "topbar-done3": { role: "topbar", scen: "done3" },               // finished count 3
   "topbar-nostats": { role: "topbar", scen: "nostats" },           // stats rings empty
   "strip-many": { role: "strip", scen: "many" },                   // 5 chips: the row scrolls sideways
   strip: { role: "strip", scen: "normal" },                        // 2 chips (one waiting, one finished)
   "strip-one": { role: "strip", scen: "one" },
   "strip-none": { role: "strip", scen: "quiet" },                  // nothing waits: the block is hidden, the role renders an empty column
+  "strip-fin-both": { role: "strip", scen: "fin-both" },           // finished row open: Clear + waiting + finished chips (with x)
+  "strip-fin-only": { role: "strip", scen: "fin-only" },           // finished row open, nothing waiting
+  "strip-waiting-only": { role: "strip", scen: "one" },            // finished row closed, one waiting (same as strip-one)
   "strip-offline": { role: "strip", scen: "offline" },
   tabs: { role: "tabs", scen: "normal" },
   composer: { role: "composer", scen: "normal" },
@@ -68,10 +73,11 @@ const P = (pane, terminal, tabId, title, status, focused) => ({ pane, terminal, 
 const PANES = [
   P("p1", "t1", "tb1", "Herdr Dynamic Board", "idle", true),
   P("amal-build/p2", "amal-build/t15", "amal-build/tb2", "AI Architecture", "working", false),
-  P("amal-build/p3", "amal-build/t16", "amal-build/tb3", "Word Border", SCEN === "quiet" ? "working" : "blocked", false),
-  P("amal-build/p4", "amal-build/t14", "amal-build/tb4", "Issue #35", SCEN === "quiet" || SCEN === "one" ? "idle" : "done", false),
+  P("amal-build/p3", "amal-build/t16", "amal-build/tb3", "Word Border", SCEN === "quiet" || SCEN === "fin-only" ? "working" : "blocked", false),
+  P("amal-build/p4", "amal-build/t14", "amal-build/tb4", "Issue #35", SCEN === "quiet" || SCEN === "one" || SCEN === "done0" ? "idle" : "done", false),
   P("p5", "t9", "tb1", "zsh", null, false),
 ];
+if (SCEN === "done3") for (let i = 0; i < 2; i++) PANES.push(P("p" + (30 + i), "t" + (30 + i), "tb1", "Finished agent " + i, "done", false));
 if (SCEN === "many") for (let i = 0; i < 3; i++) PANES.push(P("p" + (20 + i), "t" + (20 + i), "tb1", "A long agent title number " + i, i === 1 ? "blocked" : "done", false));
 const USAGE = { at: Date.now() - 30000, stale: false, rows: [
   { tool: "claude", plan: "Max", name: "Account 1", five: 41, fiveAt: Date.now() / 1000 + 7800, week: 62, weekAt: Date.now() / 1000 + 86400, saved: null, note: "" },
@@ -86,6 +92,7 @@ const store = new Map([["tokyo-night.usage", SCEN === "nousage" ? undefined : US
   ["tokyo-night-phone.stats", SCEN === "nostats" ? undefined : STATS], ["tokyo-night-phone.stats-open", false],
   ["tokyo-night-phone.panel", SCEN === "panel-open" || SCEN === "kbd-open" || SCEN === "full" || SCEN === "full-kbd" || SCEN === "agents" || SCEN === "all"],
   ["tokyo-night-phone.changes", 3],
+  ["tokyo-night-phone.finished-open", SCEN === "fin-both" || SCEN === "fin-only"],
   ["tokyo-night-phone.panel-full", SCEN === "full" || SCEN === "full-kbd"],
   ["new-menu.agents", { "": [AG("claude", "Claude Code"), AG("codex", "Codex")], "amal-build": [AG("claude", "Claude Code")] }]]);
 const done = Promise.resolve({ code: 0, stdout: "", stderr: "" });

@@ -12,7 +12,7 @@ import { h_flex, v_flex } from "gpui-base";
 import { run, layout, setAgentOrder } from "herdr";
 import { C, MONO, CLEAR, alpha, dur, ico, mark, nodePx, findNode, machineColor } from "./lib.js";
 import { snapshot, lastSeen } from "./data.js";
-import { pico, swipeArea, swipeBody, watchScroll, tap, panelFull } from "./phone.js";
+import { pico, swipeArea, swipeBody, watchScroll, tap, panelFull, finishedRows, finishedOpen, setFinishedOpen, dismissRows } from "./phone.js";
 import { toggleComposer, composerOpen } from "./composer.js";
 
 const BANNER = 56, CHIP = 28, CHIP_MAX_W = 230, GAP = 6, MAX_CARDS = 8;
@@ -26,22 +26,27 @@ export function focusRow(r) {
 }
 
 function plan(snap) {
-  const att = snap.rows.filter(r => r.agent && (r.kind === "waiting" || r.kind === "done"))
-    .sort((a, b) => (a.kind === "waiting" ? 0 : 1) - (b.kind === "waiting" ? 0 : 1) || a.ms - b.ms)
-    .slice(0, MAX_CARDS);
+  // Waiting agents always show (red chips, they need action); finished ones only while the top bar's count button has the
+  // row open (waiting first, then finished), and never when dismissed (phone.js finishedRows).
+  const byAge = (a, b) => a.ms - b.ms;
+  const waiting = snap.rows.filter(r => r.agent && r.kind === "waiting").sort(byAge).slice(0, MAX_CARDS);
+  const fin = finishedOpen() ? finishedRows(snap).sort(byAge).slice(0, MAX_CARDS) : [];
+  const att = [...waiting, ...fin];
   const offline = snap.offline;
   const parts = [];
   if (offline.length) parts.push(BANNER);
   if (att.length) parts.push(CHIP);
   // px 0: nothing to show, the block is hidden.
-  return { att, offline, px: parts.length ? parts.reduce((s, n) => s + n, 0) + GAP * (parts.length - 1) : 0 };
+  return { att, fin, offline, px: parts.length ? parts.reduce((s, n) => s + n, 0) + GAP * (parts.length - 1) : 0 };
 }
 
 // Show / hide and size the strip block from what is on screen. Called by a timer (main.js, tabs role); a resize is
 // retried at most every 2 s. Writes nodes.strip.{hidden,size} to layouts/.state/tokyo-night-phone.json.
 export function stripSync(view) {
   if (panelFull()) return; // the panel covers the strip place: it stays hidden until the panel is normal again
-  const { px } = plan(snapshot());
+  const snap = snapshot();
+  if (finishedOpen() && finishedRows(snap).length === 0) setFinishedOpen(false); // nothing left to show: the row closes
+  const { px } = plan(snap);
   const hidden = !!findNode(layout(), "strip")?.hidden;
   if (px === 0) { if (!hidden) run("layout.hide", { id: "strip" }); return; }
   if (nodePx("strip") !== px) {
@@ -77,21 +82,30 @@ function chip(view, r) {
   return h_flex().id(`tnp-card-${r.address}`).h(CHIP).max_w(CHIP_MAX_W).flex_none().pl(9).pr(4).gap(6).items_center().rounded(14)
     .bg(alpha(tint, waiting ? 0.16 : 0.10)).border(1).border_color(alpha(tint, waiting ? 0.45 : 0.35))
     .cursor_pointer()
-    .on_click(tap(view, () => run("agent.focus", { terminal: r.address })))
+    .on_click(tap(view, () => { if (!waiting) dismissRows([r]); run("agent.focus", { terminal: r.address }); })) // opening a finished agent counts as seen
     .child(mark(r.kind))
     .child(div().min_w(0).flex_shrink(1).truncate().text_size(12).font_semibold().text_color(C.fg).child(r.title))
     .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.muted).child(dur(r.ms)))
     .child(div().flex_none().px(5).rounded(7).bg(waiting ? C.red : machineColor(r.machine)).font_family(MONO).text_size(10.5).font_medium()
-      .text_color(C.ink).child(r.short));
+      .text_color(C.ink).child(r.short))
+    // finished chips carry a small x that dismisses just this one
+    .when(!waiting, el => el.child(h_flex().id(`tnp-card-x-${r.address}`).size(20).flex_none().justify_center().items_center().rounded(10)
+      .bg(alpha(C.fg, 0.08)).cursor_pointer()
+      .on_click(tap(view, (_e, cx) => { cx.stop_propagation(); dismissRows([r]); cx.notify(); }))
+      .child(ico("win-close", 9, C.muted))));
 }
 
 export function renderStrip(view) {
   const snap = snapshot();
-  const { att, offline } = plan(snap);
+  const { att, fin, offline } = plan(snap);
   return v_flex().id("tnp-strip").size_full().gap(GAP).overflow_hidden()
     .when(offline.length > 0, el => el.child(h_flex().w_full().flex_none().px(8).child(div().flex_1().min_w(0).child(banner(offline)))))
     .when(att.length > 0, el => el.child(swipeArea(watchScroll(h_flex().id("tnp-cards").w_full().h(CHIP).flex_none().overflow_x_scroll(), view))
-      .child(swipeBody(h_flex().h_full().flex_none().px(8).gap(6).items_center()).children(att.map(r => chip(view, r))))));
+      .child(swipeBody(h_flex().h_full().flex_none().px(8).gap(6).items_center())
+        .when(fin.length > 0, el => el.child(h_flex().id("tnp-clear").h(CHIP).flex_none().px(10).items_center().rounded(14)
+          .bg(C.raised).text_size(12).font_semibold().text_color(C.fg).cursor_pointer()
+          .on_click(tap(view, (_e, cx) => { dismissRows(fin); cx.notify(); })).child("Clear")))
+        .children(att.map(r => chip(view, r))))));
 }
 
 // ---- tab pills: every agent across machines (plus the focused terminal when it isn't one) ----

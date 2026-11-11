@@ -6,12 +6,13 @@ import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, props, spaces, panes, machines, focused, shared, setShared, exec } from "herdr";
 import { C, MONO, CLEAR, alpha, dur, ico, ring, level } from "./lib.js";
 import { USAGE_MACHINE, parseUsageJson, snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
-import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, popupIsOpen, popupJustClosed, swipeArea, swipeBody, panelOpen, setPanel } from "./phone.js";
+import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, popupIsOpen, popupJustClosed, swipeArea, swipeBody, panelOpen, setPanel, finishedRows, finishedOpen, setFinishedOpen } from "./phone.js";
 
 const USAGE_KEY = "tokyo-night.usage";                   // the desktop mod's key: same data, same format
 const STATS_KEY = "tokyo-night-phone.stats";             // { key, name, at, data, fail, offline } of the machine in front
 // Stats popover: 10 pad, header 16, three 22 px rows, 8 gaps, 10 pad.
 const STATS_H = 20 + 16 + 3 * 22 + 3 * 8;
+const RS = 24; // stats ring size (icon 12 inside)
 const diskUsed = (data) => data.diskTotal > 0 ? Math.round(100 - data.diskFree / data.diskTotal * 100) : 0;
 const diskFreeText = (data) => `${data.diskFree >= 100 ? Math.round(data.diskFree) : data.diskFree.toFixed(1)} GB free`;
 // Popover (Glass usage panel, as the desktop's): 10 pad, legend 16, one 62 px well per account, 8 gaps, 10 pad.
@@ -126,43 +127,69 @@ export function renderTopbar(view) {
     if (popupIsOpen("stats") && view.statsId) { closeOverlay(view.statsId); return; }
     view.statsId = openOverlay({ mod: MOD, kind: "popup", frame: "none", width: (Wd - 16) / Wd, height: STATS_H, at: { x: Math.round(8 * z), y: Math.round(58 * z) }, props: { role: "stats", h: STATS_H } });
   };
-  // Bar widths (designed px): pl 12 + app 32 + search 40 + panel toggle 40 + pr 8 = 132, five gaps of 4 = 20, stats well
-  // 8 + 3 x 16 + 2 x 2 + 8 = 68, a gap of at least 8 where the flexible gap is. The usage wells (4 apart) take what is left;
-  // gaps shrink before any target (32 px least) does.
+  // Spacing rule: every item (app, search, finished count when shown, stats, usage wells, panel toggle) is followed by
+  // an equal flexible gap (equal flex_1 spacers), with equal 12 px side padding, so the gaps are the same at any window
+  // width. Items first (designed px): app 32, search 40, count 40, stats pill 2 x PAD + 3 x 24 + 2 x 2, usage wells
+  // (4 apart, each 2 x PAD + rings), toggle 40; the usage wells drop their tool icons, then shrink their rings 16 -> 12,
+  // while the gaps would be under 6. When the gap would exceed MAX_GAP (24) the stats pill and each usage well grow:
+  // the surplus beyond 24 per gap is added to their inner padding, split evenly over those pills.
+  const finished = finishedRows(snapshot()).length;
   const n = rows.length, G = groups.length;
   let RING = 16;
-  const wellsW = (size, icons) => G * 16 + n * size + (n - G) * 2 + (icons ? G * 18 : 0) + Math.max(0, G - 1) * 4;
-  const room = Wd - 132 - 20 - 68 - 8;
-  const showIcons = n > 0 && wellsW(RING, true) <= room;
-  if (n > 0 && !showIcons && wellsW(RING, false) > room) RING = 12;
+  const wellsW = (size, icons, pad) => G * 2 * pad + n * size + (n - G) * 2 + (icons ? G * 18 : 0) + Math.max(0, G - 1) * 4;
+  const items = 4 + (finished > 0 ? 1 : 0) + (n > 0 ? 1 : 0);      // app, search, stats, toggle (+ count, + usage)
+  const gaps = items - 1;
+  const statsW = 2 * 8 + 3 * RS + 2 * 2;
+  const fixed = 32 + 40 + (finished > 0 ? 40 : 0) + statsW + 40;
+  const room = Wd - 24 - fixed - gaps * 6;
+  const showIcons = n > 0 && wellsW(RING, true, 8) <= room;
+  if (n > 0 && !showIcons && wellsW(RING, false, 8) > room) RING = 12;
+  const used = fixed + (n > 0 ? wellsW(RING, showIcons, 8) : 0);
+  const surplus = Math.max(0, (Wd - 24 - used) - gaps * 24);
+  const pills = 1 + G;
+  const grow = Math.min(24, surplus / pills / 2);                   // extra padding per side, per pill
+  const padS = 8 + grow;
+  const gap = () => div().flex_1().min_w(0);
+  const ringIcon = (name, pct, color) => h_flex().relative().size(RS).flex_none()
+    .child(ringS(RS, pct, 0, color, C.teal))
+    .child(div().absolute().top((RS - 12) / 2).left((RS - 12) / 2).child(ico(name, 12, C.muted)));
   const open = panelOpen();
   const hasChanges = (view.changes ?? 0) > 0;
   const BTN = 40;
-  return h_flex().id("tnp-top").size_full().pl(12).pr(8).pt(4).gap(4).items_center()
+  return h_flex().id("tnp-top").size_full().px(12).pt(4).items_center()
     .on_size_change((size, cx) => { WIN.w = size.width; if (Math.abs((view.topW ?? 0) - size.width) >= 1) { view.topW = size.width; cx.notify(); } })
     // app button
     .child(h_flex().size(32).flex_none().rounded(8).bg(C.accent).justify_center().items_center().child(ico("logo", 16, C.onAccent)))
+    .child(gap())
     // search: a round button that opens the app's command palette (as the pill did; a text field cannot be hosted here)
     .child(h_flex().id("tnp-search").size(BTN).flex_none().justify_center().items_center().rounded(20)
       .bg(C.well).border(1).border_color(C.rim).cursor_pointer()
       .on_click(() => run("app.palette"))
       .child(ico("search", 16, C.muted)))
-    .child(div().flex_1().min_w(0))
-    // stats rings: one well, opens the popover
-    .child(h_flex().id("tnp-stats").h(BTN).flex_none().px(8).gap(2).items_center().rounded(20).cursor_pointer()
+    .child(gap())
+    // finished count: filled green, only while something finished and was not dismissed; toggles the chip row of finished agents
+    .when(finished > 0, el => el.child(h_flex().id("tnp-done").size(BTN).flex_none().justify_center().items_center().rounded(20)
+        .bg(C.green).border(2).border_color(finishedOpen() ? C.fg : C.green).cursor_pointer()
+        .on_click((_e, cx) => { setFinishedOpen(!finishedOpen()); cx.notify(); })
+        .child(div().font_family(MONO).text_size(15).font_semibold().text_color(C.ink).child(String(finished))))
+      .child(gap()))
+    // stats rings, each with its icon (cpu chip, ram module, disk): one well, opens the popover
+    .child(h_flex().id("tnp-stats").h(BTN).flex_none().px(padS).gap(2).items_center().rounded(20).cursor_pointer()
       .bg(statsOpen ? C.raised : C.well).border(1).border_color(C.rim).opacity(sdata && !sm?.offline ? 1 : 0.55)
       .on_click(openStats)
-      .child(ringS(16, sdata?.cpu, 0, level(sdata?.cpu ?? 0, C.accent), C.teal))
-      .child(ringS(16, sdata?.memPct, 0, level(sdata?.memPct ?? 0, C.teal), C.teal))
-      .child(ringS(16, sdata ? diskUsed(sdata) : 0, 0, level(sdata ? diskUsed(sdata) : 0, C.fg), C.teal)))
+      .child(ringIcon("cpu", sdata?.cpu, level(sdata?.cpu ?? 0, C.accent)))
+      .child(ringIcon("ram", sdata?.memPct, level(sdata?.memPct ?? 0, C.teal)))
+      .child(ringIcon("disk", sdata ? diskUsed(sdata) : 0, level(sdata ? diskUsed(sdata) : 0, C.fg))))
+    .child(gap())
     // usage rings: one well per tool; all of them open the popover
     .when(n > 0, el => el.child(h_flex().id("tnp-rings").flex_none().gap(4).items_center().cursor_pointer()
       .opacity(u?.stale ? 0.6 : 1)
       .on_click(openUsage)
-      .children(groups.map(g => h_flex().h(40).flex_none().px(8).gap(2).items_center().rounded(20)
+      .children(groups.map(g => h_flex().h(40).flex_none().px(padS).gap(2).items_center().rounded(20)
         .bg(usageOpen ? C.raised : C.well).border(1).border_color(C.rim)
         .when(showIcons, e => e.child(h_flex().w(18).flex_none().items_center().child(toolIcon(g.tool, 14))))
-        .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return ringS(RING, r.week, r.five, wc, hc); }))))))
+        .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return ringS(RING, r.week, r.five, wc, hc); })))))
+      .child(gap()))
     // panel toggle (machines, actions, agents under the bar), with the amber dot while the focused space has uncommitted
     // changes; active look (raised fill, accent rim, bright icon) while the panel is open
     .child(h_flex().id("tnp-menu").size(BTN).flex_none().relative().justify_center().items_center().rounded(20)
