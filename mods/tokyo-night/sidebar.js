@@ -59,7 +59,7 @@ const machineIcon = (m, size, color) => ico(m.key === LOCAL ? "monitor" : "serve
 // Right-click on a machine opens the color picker.
 const pickColor = (m) => (_e, cx) => {
   cx.stop_propagation();
-  openOverlay({ mod: MOD, kind: "popup", frame: "none", width: 220, height: 118, at: "pointer", props: { role: "colors", machine: m.key, name: m.name } });
+  openOverlay({ mod: MOD, kind: "popup", frame: "none", width: 220, height: 72, at: "pointer", props: { role: "colors", machine: m.key, name: m.name } });
 };
 // The most urgent light over all machines; offline only counts when every machine is offline.
 function allLight(snap) {
@@ -340,12 +340,10 @@ export function renderColorsPopup() {
     setShared(COLORS_KEY, next);
     closeOverlay(p.overlay);
   };
-  return v_flex().id("tn-colors").w_full().h(118).bg(C.surface).rounded(6).border(1).border_color(C.raised).overflow_hidden().p(10).gap(10)
+  return v_flex().id("tn-colors").w_full().h(72).bg(C.surface).rounded(6).border(1).border_color(C.raised).overflow_hidden().p(10).gap(10)
     .child(div().w_full().h(16).flex_none().truncate().text_size(11).font_semibold().text_color(C.dim).child(`THEME FOR ${String(p.name ?? p.machine).toUpperCase()}`))
     .child(h_flex().w_full().h(26).flex_none().gap(3).items_center()
       .children(SCHEMES.map(sc => h_flex().id(`tn-sw-${sc.color}`).size(22).flex_none().rounded(11).bg(sc.color).cursor_pointer()
         .border(2).border_color(cur[p.machine] === sc.color ? C.fg : CLEAR).tooltip(sc.label)
-        .on_click(() => set(sc.color)))))
-    .child(h_flex().id("tn-sw-default").w_full().h(24).flex_none().px(6).items_center().rounded(4).text_size(12).text_color(C.muted)
-      .cursor_pointer().hover(s => s.bg(C.raised)).on_click(() => set(null)).child("Default"));
+        .on_click(() => set(sc.color)))));
 }
