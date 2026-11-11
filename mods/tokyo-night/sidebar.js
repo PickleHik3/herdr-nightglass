@@ -111,7 +111,8 @@ function rowEl(view, r, compact, onPick) {
   const mc = machineColor(r.machine);
   const tint = r.focused ? alpha(mc, 0.16) : waiting ? alpha(C.red, 0.12) : CLEAR;
   const ring = r.focused ? alpha(mc, 0.5) : waiting ? alpha(C.red, 0.45) : CLEAR;
-  const showNow = !compact && r.now && (hover || r.focused || waiting);
+  const pinned = r.focused || waiting;
+  const showNow = !compact && !!r.now && (hover || pinned);
   const closable = !compact && r.kind !== "offline";
   return h_flex().id(`tn-row-${r.address}`).w_full().min_w(0).flex_none().items_stretch().rounded(14).overflow_hidden()
     .bg(tint).border(1).border_color(ring).cursor_pointer().text_size(12).text_color(r.focused ? C.fg : C.muted)
@@ -130,8 +131,12 @@ function rowEl(view, r, compact, onPick) {
       .child(div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(r.kind === "offline" ? "" : dur(r.ms)))
       .child(h_flex().flex_none().h(18).px(7).rounded(9).items_center().font_family(MONO).text_size(11)
         .bg(r.focused ? mc : C.raised).text_color(r.focused ? C.onAccent : C.dim).child(r.short)))
-    .when(showNow, el => el.child(div().pl(18).w_full().min_w(0).truncate().font_family(MONO).text_size(11)
-      .text_color(waiting ? C.red : C.dim).child(r.now))))
+    // The "now" line: always shown for the focused and waiting rows; on hover it grows in after the
+    // same delay as the close strip, so sweeping the pointer down the list doesn't make rows jump.
+    .when(!compact && !!r.now, el => el.child(div().id(`tn-now-${r.address}`).pl(18).w_full().min_w(0).overflow_hidden()
+      .h(showNow ? 16 : 0).opacity(showNow ? 1 : 0)
+      .transition("height", revealMotion(showNow && !pinned)).transition("opacity", revealMotion(showNow && !pinned))
+      .child(div().w_full().truncate().font_family(MONO).text_size(11).text_color(waiting ? C.red : C.dim).child(r.now)))))
     .when(closable, el => el.child(closeSlot(`tn-row-x-${r.address}`, hover, 13, "Close terminal",
       () => r.pane ? run("pane.close", { pane: r.pane }) : run("terminal.kill", { terminal: r.address }))));
 }
