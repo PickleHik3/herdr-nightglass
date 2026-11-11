@@ -158,7 +158,6 @@ export function usageCard(view) {
   const u = shared(USAGE_KEY);
   const rows = u?.rows ?? [];
   if (!rows.length || !machines().some(m => m.name === USAGE_MACHINE)) return null;
-  const snap = snapshot();
   const openState = view.usageOpen ?? (view.usageOpen = (() => { try { return localStorage.getItem("usageOpen") === "1"; } catch { return false; } })());
   const toggle = (_e, cx) => {
     view.usageOpen = !openState;
@@ -166,14 +165,9 @@ export function usageCard(view) {
     cx.notify();
   };
   const age = u.at ? (Date.now() - u.at < 60000 ? `${Math.max(1, Math.round((Date.now() - u.at) / 1000))}s ago` : `${dur(Date.now() - u.at)} ago`) : "";
-  const head = h_flex().id("tn-usage-head").w_full().h(18).flex_none().gap(7).items_center().cursor_pointer().on_click(toggle)
-    .child(ico("terminal", 12, C.muted))
-    .child(div().flex_none().text_size(12).font_semibold().text_color(C.fg).child("Claude usage"))
-    .child(div().flex_1().min_w(0))
-    .when(!openState, el => el.child(h_flex().flex_none().gap(2).items_center()
-      .children(rows.map(r => { const [wc, hc] = ringColors(r); return ring(18, r.week, r.five, wc, hc); }))))
-    .when(openState, el => el.child(div().flex_none().font_family(MONO).text_size(11).text_color(C.dim).child(u.stale ? `stale · ${age}` : age)))
-    .child(ico(openState ? "chevron-down" : "chevron-up", 12, C.dim));
+  // The head is just the rings, spread evenly; tapping anywhere on it opens or closes the card.
+  const head = h_flex().id("tn-usage-head").w_full().h(20).flex_none().justify_between().items_center().cursor_pointer().on_click(toggle)
+    .children(rows.map(r => { const [wc, hc] = ringColors(r); return ring(20, r.week, r.five, wc, hc); }));
   const card = v_flex().id("tn-usage").w_full().flex_none().bg(C.surface).rounded(16).px(12).pt(10).pb(11).gap(8)
     .opacity(u.stale ? 0.6 : 1).hover(s => s.bg(openState ? C.surface : C.raised))
     .tooltip(openState ? "" : `Claude usage · ${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage-tui on ${USAGE_MACHINE}`)
@@ -198,17 +192,11 @@ export function usageCard(view) {
         .when(!!r.note, el => el.child(div().text_size(11).text_color(C.amber).truncate().child(r.note)))
         .when(!r.note, el => el.child(bar("wk", r.week, resetIn(r.weekAt))).child(bar("5h", r.five, resetIn(r.fiveAt)))));
   };
-  const fs = snap.foc && snap.spaces.find(s => s.id === snap.foc.space);
-  const openTui = () => {
-    if (fs?.machine === USAGE_MACHINE) run("tab.new", { argv: ["ai-usage-tui"] });
-    else run("space.new", { machine: USAGE_MACHINE, name: "usage", argv: ["ai-usage-tui"] });
-  };
   return card
-    .child(h_flex().w_full().flex_none().gap(12).text_size(11).text_color(C.dim)
+    .child(h_flex().w_full().flex_none().gap(12).items_center().text_size(11).text_color(C.dim)
       .child(h_flex().gap(5).items_center().child(div().size(9).rounded(5).border(2).border_color(C.dim)).child(div().child("outer: week")))
-      .child(h_flex().gap(5).items_center().child(div().size(5).rounded(3).bg(C.dim)).child(div().child("inner: 5-hour"))))
-    .children(rows.map(row))
-    .child(h_flex().id("tn-usage-open").w_full().h(30).flex_none().gap(8).justify_center().items_center().rounded(15)
-      .bg(C.raised).text_size(12).font_medium().text_color(C.fg).cursor_pointer().hover(s => s.bg(C.input))
-      .on_click(openTui).child(ico("terminal", 13, C.cyan)).child(div().child("Open ai-usage-tui")));
+      .child(h_flex().gap(5).items_center().child(div().size(5).rounded(3).bg(C.dim)).child(div().child("inner: 5-hour")))
+      .child(div().flex_1())
+      .child(div().flex_none().font_family(MONO).text_color(C.dim).child(u.stale ? `stale · ${age}` : age)))
+    .children(rows.map(row));
 }
