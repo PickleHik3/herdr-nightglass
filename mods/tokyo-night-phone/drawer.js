@@ -192,7 +192,7 @@ export function renderColorsPopup() {
     setShared(COLORS_KEY, next);
     closeOverlay(p.overlay);
   };
-  return v_flex().id("tnp-colors").w_full().h(COLORS_H).bg(C.glass).rounded(12).border(1).border_color(C.rim).shadow_xl().overflow_hidden().p(10).gap(10)
+  return v_flex().id("tnp-colors").w_full().h(COLORS_H).bg(C.glassSolid).rounded(12).border(1).border_color(C.rim).shadow_xl().overflow_hidden().p(10).gap(10)
     .child(div().w_full().h(16).flex_none().truncate().text_size(11).font_semibold().text_color(C.muted).child(`Theme for ${String(p.name ?? p.machine)}`))
     .child(h_flex().w_full().h(32).flex_none().gap(4).items_center()
       .children(SCHEMES.map(sc => h_flex().id(`tnp-sw-${sc.color}`).size(32).flex_none().rounded(16).bg(sc.color).cursor_pointer()

@@ -3,15 +3,14 @@
 import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, props, spaces, panes, machines, focused, shared, setShared, exec } from "herdr";
-import { C, MONO, CLEAR, alpha, dur, ico, ring, level, setPressed, getPressed } from "./lib.js";
+import { C, MONO, CLEAR, alpha, dur, ico, ring, level } from "./lib.js";
 import { USAGE_MACHINE, parseUsageJson, snapshot } from "./data.js";
-import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, anchorBelowRight } from "./phone.js";
+import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS } from "./phone.js";
 import { menuHeight } from "./newmenu.js";
 
 const USAGE_KEY = "tokyo-night.usage";                   // the desktop mod's key: same data, same format
 const USAGE_OPEN = "tokyo-night-phone.usage-open";     // true while the popover is shown
 const USAGE_CLOSED = "tokyo-night-phone.usage-closed";  // ms when it last closed
-const MENU_W = 300;
 // Popover (Glass usage panel, as the desktop's): 10 pad, legend 16, one 62 px well per account, 8 gaps, 10 pad.
 const UROW = 62;
 const usageHeight = (n) => 20 + 16 + n * UROW + n * 8;
@@ -96,7 +95,10 @@ export function renderTopbar(view) {
   const room = Wd - 116 - SEARCH_MIN;
   const showIcons = n > 0 && wellsW(RING, true) <= room;
   if (n > 0 && !showIcons && wellsW(RING, false) > room) RING = 12;
-  const openMenu = () => openOverlay({ mod: MOD, kind: "popup", frame: "none", width: MENU_W, height: Math.min(menuHeight(snapshot()), Math.max(200, Hd - 58 - 12)), at: getPressed(), props: { role: "menu", changes: view.changes ?? 0 } });
+  // The menu is a sheet like the usage popover: full width minus 8 px margins, hanging under the bar (`at` in screen px).
+  const openMenu = () => openOverlay({ mod: MOD, kind: "popup", frame: "none", width: (Wd - 16) / Wd,
+    height: Math.min(menuHeight(snapshot()), Math.max(200, Hd - 58 - 12)), at: { x: Math.round(8 * z), y: Math.round(58 * z) },
+    props: { role: "menu", changes: view.changes ?? 0 } });
   return h_flex().id("tnp-top").size_full().pl(14).pr(8).pt(4).gap(6).items_center()
     .on_size_change((size, cx) => { WIN.w = size.width; if (Math.abs((view.topW ?? 0) - size.width) >= 1) { view.topW = size.width; cx.notify(); } })
     // app button
@@ -117,7 +119,6 @@ export function renderTopbar(view) {
         .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return ringS(RING, r.week, r.five, wc, hc); }))))))
     // menu, with the amber dot while the focused space has uncommitted changes
     .child(h_flex().id("tnp-menu").size(44).flex_none().relative().justify_center().items_center().rounded(8).cursor_pointer()
-      .on_mouse_down("left", (e, cx) => { cx.stop_propagation(); setPressed(anchorBelowRight(e, MENU_W, view.topW || WIN.w)); })
       .on_click(openMenu)
       .child(pico("menu", 18, C.muted))
       .when((view.changes ?? 0) > 0, el => el.child(div().absolute().top(7).right(6).size(11).rounded(6).bg(C.amber).border(2).border_color(C.glassSolid))));
@@ -152,8 +153,9 @@ export function renderUsage() {
         .when(!!r.note, el => el.child(div().text_size(11).text_color(C.amber).truncate().child(r.note)))
         .when(!r.note, el => el.child(bar("wk", r.week, resetIn(r.weekAt))).child(bar("5h", r.five, resetIn(r.fiveAt)))));
   };
-  // Glass popup: glass fill, rim, shadow_xl, radius 12. The rows scroll inside; the popover is a max height.
-  return v_flex().id("tnp-usage").w_full().max_h(p.h ?? usageHeight(rows.length)).min_h(0).bg(C.glass).rounded(12).border(1).border_color(C.rim)
+  // Glass popup: an overlay gets no backdrop blur, so its fill is the opaque glass base (C.glassSolid, as the desktop's pane header
+  // and empty view), with rim, shadow_xl, radius 12. The rows scroll inside; the popover is a max height.
+  return v_flex().id("tnp-usage").w_full().max_h(p.h ?? usageHeight(rows.length)).min_h(0).bg(C.glassSolid).rounded(12).border(1).border_color(C.rim)
     .shadow_xl().overflow_hidden().p(10).gap(8).opacity(u?.stale ? 0.6 : 1)
     .child(h_flex().w_full().h(16).flex_none().gap(12).items_center().text_size(11).text_color(C.muted)
       .child(h_flex().gap(5).items_center().child(div().size(9).rounded(5).border(2).border_color(C.accent)).child(div().child("outer: week")))

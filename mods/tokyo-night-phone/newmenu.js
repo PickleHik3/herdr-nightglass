@@ -8,7 +8,7 @@ import { run, closeOverlay, props, shared, setShared, knownAgents } from "herdr"
 import { C, MONO, ico, prog, machineColor } from "./lib.js";
 import { snapshot, LOCAL, mArg, onArg } from "./data.js";
 
-const ROW = 44, HEAD = 30, PAD = 12, SEP = 9;
+const ROW = 44, HEAD = 34, PAD = 12, SEP = 13;
 
 // ---- agents a machine can start (as the desktop sidebar does) ----
 const agentCache = new Map();
@@ -44,14 +44,14 @@ function targetSpace(snap, key) {
 export function menuHeight(snap) {
   const ms = menuMachines(snap);
   const rows = ms.reduce((n, m) => n + 2 + (targetSpace(snap, m.key) ? 1 : 0), 0);
-  return PAD + ms.length * HEAD + rows * ROW + Math.max(0, ms.length - 1) * SEP + SEP + 3 * ROW + 4 * ROW;
+  return PAD + ms.length * (HEAD + 4) + rows * ROW + Math.max(0, ms.length - 1) * SEP + SEP + 3 * ROW + 4 * ROW;
 }
 
 const popRow = (id, lead, label, trail, onPick) => h_flex().id(id).w_full().h(ROW).flex_none().px(10).gap(10).items_center().rounded(8)
   .text_size(13).text_color(C.fg).cursor_pointer()
   .on_click(onPick).child(lead).child(div().flex_1().min_w(0).truncate().child(label)).when(!!trail, el => el.child(trail));
 const dimText = (t) => div().px(10).py(8).text_size(12).text_color(C.muted).child(t);
-const sep = () => div().w_full().h(1).flex_none().mx(2).my(4).bg(C.rim);
+const sep = () => div().w_full().h(1).flex_none().mx(2).my(6).bg(C.rim);
 
 export function renderNewMenu(view) {
   const p = props();
@@ -70,7 +70,7 @@ export function renderNewMenu(view) {
     const list = cachedAgents(m.key).filter(a => a.installed);
     return v_flex().w_full().flex_none()
       .when(i > 0, el => el.child(sep()))
-      .child(h_flex().w_full().h(HEAD).flex_none().px(10).gap(6).items_center()
+      .child(h_flex().w_full().h(HEAD).flex_none().px(10).mb(4).gap(6).items_center()
         .child(ico(m.key === LOCAL ? "monitor" : "server", 12, machineColor(m.key)))
         .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.muted).child(m.name)))
       .child(popRow(`nm-space-${m.key}`, ico("folder", 14, C.muted), "New space", null, pick(() => run("space.new", { machine: mArg(m.key) }))))
@@ -81,7 +81,7 @@ export function renderNewMenu(view) {
         pick(() => target ? run("tab.new", { space: target, argv: a.run }) : run("space.new", { machine: mArg(m.key), argv: a.run }))))))
       .when(open && list.length === 0, el => el.child(dimText(view.agentsFailed ? `Couldn't check ${m.name}` : "Looking for agents…")));
   });
-  return v_flex().id("tnp-menu-pop").w_full().max_h(p.h ?? menuHeight(snap)).min_h(0).bg(C.glass).rounded(12).border(1).border_color(C.rim).shadow_xl().p(6)
+  return v_flex().id("tnp-menu-pop").w_full().max_h(p.h ?? menuHeight(snap)).min_h(0).bg(C.glassSolid).rounded(12).border(1).border_color(C.rim).shadow_xl().p(6)
     .child(v_flex().id("tnp-menu-list").w_full().flex_1().min_h(0).overflow_y_scroll()
       .children(sections)
       .when(ms.length === 0, el => el.child(dimText("No machines connected")))
