@@ -204,8 +204,8 @@ export function usageParts(view) {
         .when(!!r.note, el => el.child(div().text_size(11).text_color(C.amber).truncate().child(r.note)))
         .when(!r.note, el => el.child(bar("wk", r.week, resetIn(r.weekAt))).child(bar("5h", r.five, resetIn(r.fiveAt)))));
   };
-  // The scroll area is capped by the sidebar (view.height); the dock grows upward over the list.
-  const cap = Math.max(120, Math.round((view.height ?? 600) * 0.7) - 28 - 110);
+  // The floating list is capped by the sidebar (view.height) and scrolls past that.
+  const cap = Math.max(120, Math.round((view.height ?? 600) * 0.7) - (view.dockH ?? 150));
   const panel = v_flex().id("tn-usage-panel").w_full().flex_none().max_h(cap).gap(8).overflow_y_scrollbar().opacity(u.stale ? 0.6 : 1)
     .child(h_flex().w_full().flex_none().gap(12).items_center().text_size(11).text_color(C.dim)
       .child(h_flex().gap(5).items_center().child(div().size(9).rounded(5).border(2).border_color(C.dim)).child(div().child("outer: week")))

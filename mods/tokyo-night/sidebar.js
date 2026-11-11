@@ -174,20 +174,23 @@ const DOCK_FALLBACK = 150;
 
 // One inset well flush with the sidebar's bottom and sides, floating over the list. Collapsed it is
 // the usage pills + stats; expanded, the usage panel stacks above the pills and the dock grows upward.
+// The dock (usage row + stats) stays in the sidebar's flow at the bottom, a fixed size; only the
+// expanded usage list floats, absolutely placed just above the dock and over the space list.
 function dock(view, usage, stats) {
-  const open = !!usage?.panel;
-  return v_flex().id("tn-dock").absolute().bottom(0).left(0).right(0)
-    .on_size_change((size, cx) => {
-      if (!open && Math.abs((view.dockH ?? 0) - size.height) >= 1) { view.dockH = size.height; cx.notify(); }
-    })
+  return v_flex().id("tn-dock").w_full().flex_none()
+    .on_size_change((size, cx) => { if (Math.abs((view.dockH ?? 0) - size.height) >= 1) { view.dockH = size.height; cx.notify(); } })
     .child(fade(7, "#000000"))
     .child(v_flex().w_full().flex_none().rounded_b(6).overflow_hidden().px(8).py(6).gap(6)
       .bg(mix("#000000", C.chrome, 0.18)).border_t(1).border_color(alpha(C.fg, 0.07))
-      .when(open, el => el.shadow_2xl())
-      .when(open, el => el.child(usage.panel).child(hairline()))
       .when(!!usage, el => el.child(usage.head))
       .when(!!usage && !!stats, el => el.child(hairline()))
       .when(!!stats, el => el.child(stats)));
+}
+function usageOverlay(view, panel) {
+  return v_flex().id("tn-usage-float").absolute().left(0).right(0).bottom(Math.max(0, (view.dockH ?? DOCK_FALLBACK) - 7))
+    .px(8).pt(8).pb(6).rounded_t(10).bg(mix("#000000", C.chrome, 0.18))
+    .border(1).border_color(alpha(C.fg, 0.07)).shadow_2xl()
+    .child(panel);
 }
 
 // Disk as text: what's free matters more than a bar. Amber under 15% free, red under 5%.
@@ -251,10 +254,9 @@ function full(base, view, snap, open, w) {
   const tileW = Math.max(40, Math.floor((w - 20 - 12) / 3));
   const usage = usageParts(view);
   const stats = sm ? statsBlock(view, sm) : null;
-  // The dock floats over the list, so the list ends in a spacer as tall as the collapsed dock.
-  const spacer = div().w_full().h(view.dockH ?? DOCK_FALLBACK).flex_none();
+  const spacer = div().w_full().h(4).flex_none();
   return base.relative()
-    .child(v_flex().size_full().px(10).pt(10).gap(14)
+    .child(v_flex().w_full().flex_1().min_h(0).px(10).pt(10).gap(14)
       .child(brand(snap, open))
       .child(h_flex().w_full().flex_none().flex_wrap().gap(6).child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW))))
       .when(all, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
@@ -266,7 +268,8 @@ function full(base, view, snap, open, w) {
         .child(newSpaceRow("tn-newspace", m, 34, `New space on ${m.name}`))
         .child(spacer)))
       .when(!m && !all, el => el.child(div().flex_1())))
-    .when(!!usage || !!stats, el => el.child(dock(view, usage, stats)));
+    .when(!!usage || !!stats, el => el.child(dock(view, usage, stats)))
+    .when(!!usage?.panel, el => el.child(usageOverlay(view, usage.panel)));
 }
 
 // ---- rail ----
