@@ -97,13 +97,14 @@ function allLight(snap) {
 // ---- capsules ----
 // Swipe-style close: a full-height strip on the right edge that slides open on hover (native width
 // and opacity transitions), pushing the content left. It stops the press so the row isn't picked.
+// White mark on a strong red fill: a red mark on a faint red fill vanished on a red-tinted row.
 const closeSlot = (id, shown, radius, tip, act) => h_flex().id(id).h_full().flex_none().overflow_hidden()
   .w(shown ? 30 : 0).opacity(shown ? 1 : 0)
   .transition("width", revealMotion(shown)).transition("opacity", revealMotion(shown))
   .child(h_flex().id(`${id}-btn`).w(30).h_full().flex_none().justify_center().items_center().rounded_r(radius)
-    .bg(alpha(C.red, 0.2)).hover(s => s.bg(alpha(C.red, 0.34))).cursor_pointer().tooltip(tip)
+    .bg(alpha(C.red, 0.62)).hover(s => s.bg(alpha(C.red, 0.85))).cursor_pointer().tooltip(tip)
     .on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); act(); })
-    .child(ico("win-close", 10, C.red)));
+    .child(ico("win-close", 10, "#ffffff")));
 
 function rowEl(view, r, compact, onPick) {
   const hover = view.hover === r.address;
