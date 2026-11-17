@@ -22,7 +22,7 @@ To install by hand, copy the `layouts/`, `mods/` and `themes/` folders from `nig
 
 ## On your phone
 
-The phone layout was designed for [Termux Launcher](https://github.com/PickleHik3/termux-launcher). It's built for an upright phone screen, and the launcher's store has the Herdr desktop app and Nightglass ready to install:
+The phone layout was designed specifically for [Termux Launcher](https://github.com/PickleHik3/termux-launcher). Termux Launcher is based on Termux and has a built-in X11 display, which is where the Herdr desktop app's window shows up. Install the app and both layouts with [tlstore](https://github.com/PickleHik3/tlstore):
 
 ```sh
 tlstore install herdr-gui herdr-nightglass
