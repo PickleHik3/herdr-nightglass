@@ -222,7 +222,7 @@ function statsBlock(view, m) {
       .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name))
       .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(m.offline ? C.amber : C.muted).child(meta)))
     .when(!!data, el => el
-      .child(bar("cpu", data.cpu, `${data.cpu}% · ${data.cores}c`))
+      .child(bar("cpu", data.cpu ?? 0, `${data.cpu == null ? "–" : `${data.cpu}%`} · ${data.cores}c`)) // cpu null: /proc/stat unreadable (Android)
       .child(bar("ram", data.memPct, data.memText))
       .child(bar("disk", diskUsed(data), diskFreeText(data))))
     .when(!data, el => el.child(div().font_family(MONO).text_size(10.5).text_color(C.muted)

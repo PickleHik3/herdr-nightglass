@@ -2,7 +2,7 @@
 // (replaceable: herdr.d.ts `notify`: "Shown by the `toast` mod (replaceable), which runs `action` when clicked").
 // The app fixes the box: 340 x 72 designed px, stacked upward from the window's bottom right (16 px in, 16 px up,
 // 8 px between, 5 s / 8 s for warnings and errors unless `timeout`); neither this mod nor a layout can move it.
-// So on the phone layout (it has the "drawer" node) the toast is a one-line 32 px capsule at the TOP of that box
+// So on the phone layout (it has the "inbox" node) the toast is a one-line 32 px capsule at the TOP of that box
 // (opaque glass, rim, a dot tinted by kind), the rest of the box transparent; elsewhere it is the stock look.
 // lib.js is the desktop mod's, verbatim.
 import { View, div, image } from "gpui-kit";
@@ -19,7 +19,7 @@ export default class Toast extends View {
       if (p.action?.name) run(p.action.name, p.action.args ?? {});
       closeOverlay(p.overlay);
     };
-    if (findNode(layout(), "drawer")) return this.capsule(p, act);
+    if (findNode(layout(), "inbox")) return this.capsule(p, act);
     return this.stock(p, act);
   }
 
