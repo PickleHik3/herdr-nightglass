@@ -37,16 +37,28 @@ To show Claude and Codex usage rings above the machine stats, name the machine t
 
 Without that prop, nothing is polled.
 
+## Nightglass Phone
+
+The same glass look for Herdr on a portrait phone screen (designed for 412 px wide, tested on herdr-app 0.1.13 in Termux). It opens on an inbox of the agents that need you.
+
+- **One header row.** Herdr's logo, Claude and Codex usage rings in rounded pills (optional, see below), search and `+`.
+- **Machine tiles.** A sideways row: **All machines**, then one tile per machine tinted in its colour, with its glyph and CPU, RAM and disk rings. Tap a tile to filter; tap the selected tile again to pick its colour.
+- **Needs you / All agents.** Two tabs. Needs you lists every waiting agent as a card. The one you tap expands, the rest collapse to one line. Each card starts with a status dot (red: waiting, green: finished), then the machine, space, age and terminal number.
+- **Answer from the card.** Yes / Always / No prompts get one-tap buttons. A question shows its full text and each option's description, with a numbered row per option. **Open** shows the terminal full screen with a message box and a Files / Changes sheet.
+- **Nothing needs you** shows the real counts, like "3 working · 1 idle".
+
+Install it next to the desktop layout (it uses `mods/nightglass/` for icons, rings and the wallpaper): copy `layouts/nightglass-phone.json`, `mods/nightglass-phone/`, `mods/nightglass/`, `mods/nightglass-toast/` and `themes/` into `~/.config/herdr-app/`. For usage rings add `"usage": "<machine>"` (or `true`) to the inbox block's props. On Android, CPU stays blank: apps can't read `/proc/stat`.
+
 ## Also in this repo
 
-- **Nightglass Phone** (`layouts/nightglass-phone.json`, `mods/nightglass-phone/`): the same look on a portrait phone screen running Herdr. It is being reworked and isn't in the gallery yet. It needs the desktop `mods/nightglass/` installed too.
+- **Nightglass Phone** (`layouts/nightglass-phone.json`, `mods/nightglass-phone/`): described above; not in the gallery yet.
 - **Layout cycle** (`mods/layout-cycle/`): `ctrl-shift-l` switches between `nightglass`, `nightglass-phone` and Herdr's `main` only. Bind it in `keys.json` with `"ctrl-shift-l": "mod.open:layout-cycle"`.
 
 ## Working on it
 
 - The root `layouts/`, `mods/` and `themes/` folders hold the source. `nightglass/` is the gallery copy: after changing the desktop files, run `scripts/sync-gallery.sh` (`--check` reports drift), and update `nightglass/RECIPE.md` when the behaviour changes.
 - The phone mod keeps verbatim copies of `mods/nightglass/{lib,data}.js`. `node scripts/check-phone.mjs` fails when they drift.
-- Design sources are in `design/`: `Main.dc.html` (desktop), `Phone.dc.html` and `GLASS.md`.
+- Design sources are in `design/`: `Main.dc.html` (desktop), `Phone.dc.html`, `PhoneConcepts.html` (the three phone concepts; the Inbox is concept B) and `GLASS.md`.
 
 ## Licence
 
