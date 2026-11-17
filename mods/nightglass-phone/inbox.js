@@ -1,7 +1,7 @@
 // nightglass-phone: the inbox (Concept B "Inbox", design/PhoneConcepts.html; look: Glass, design/GLASS.md). The home view,
 // one block that takes the whole column (layout node "inbox"), top to bottom:
 //   header   glass box: "herdr", "n waiting · n finished", search (app.palette), "+" (newmenu.js action rows, in flow);
-//            under it the AI usage row (one double ring per account), only with the block prop "usage": true
+//            under it the AI usage row (one well per tool, a small double ring per account), only with the block prop "usage"
 //   machines a sideways-scrolling row of cards: "All machines" + one per machine (tint dot, name, cpu / ram / disk);
 //            the cards are the machine filter; tapping the selected machine's card again picks its scheme (colors popup)
 //   tabs     "Needs you (n)" | "All agents (n)"
@@ -15,7 +15,7 @@ import { run, props, shared, setShared, openOverlay, closeOverlay, setAgentOrder
 import { C, MONO, CLEAR, SCHEMES, COLORS_KEY, alpha, mix, dur, ico, mark, ring, level, machineColor, nearBlack, darkOf, lightOf, anchorBelow } from "./lib.js";
 import { snapshot, LOCAL, ALL, mArg, lastSeen, statsMachine } from "./data.js";
 import { MOD, WIN, DESIGN_W, zoom, dsg, pico, popupIsOpen, popupJustClosed, swipeArea, swipeBody, watchScroll, tap, needsRows, finishedRows, isDismissed, dismissRows } from "./phone.js";
-import { USAGE_KEY, STATS_KEY, PREVIEW_KEY, diskUsed, usageHeight, dialogChoices, choiceLabel, ringColors } from "./polls.js";
+import { USAGE_KEY, STATS_KEY, PREVIEW_KEY, diskUsed, usageHeight, dialogChoices, choiceLabel, ringColors, toolIcon } from "./polls.js";
 import { actionRows } from "./newmenu.js";
 import { openDetail } from "./detail.js";
 
@@ -54,24 +54,29 @@ function header(view, snap, filter, usageRows) {
     .when(!!view.plus, el => el.child(v_flex().id("tnp-actions").w_full().flex_none().pr(8).gap(6)
       .children(actionRows(view, snap, m, (cx) => { close(); view.tab = "all"; cx?.notify(); }, shared("nightglass-phone.changes") ?? 0, false))));
   if (!usageRows.length) return body;
-  // The usage row: three accounts per line, each a 36 px double ring (outer week, inner 5 h) and "Tool · account / w% · h%".
+  // The usage row, as the desktop sidebar's usage head (mods/nightglass/header.js usageParts): ONE row, one well per tool,
+  // the tool icon then one small double ring per account (outer week, inner 5 h), no labels (the popover has the details).
+  // Laid out by flex alone: a tool with one account gets a well as wide as its icon and ring; tools with several share the
+  // rest, their rings in centered slots no wider than RING + 8, so they stay close at any width.
   const u = shared(USAGE_KEY);
-  const item = (r) => {
-    const [wc, hc] = ringColors(r);
-    const tool = r.tool === "codex" ? "Codex" : "Claude";
-    const pct = (p) => p == null ? "–" : `${Math.round(p)}%`;
-    return h_flex().flex_1().min_w(0).gap(8).items_center()
-      .child(ring(36, r.week, r.five, wc, hc))
-      .child(v_flex().flex_1().min_w(0)
-        .child(div().truncate().text_size(12).font_semibold().text_color(C.fg).child(`${tool} · ${r.name}`))
-        .child(div().whitespace_nowrap().font_family(MONO).text_size(10.5).text_color(r.note ? C.amber : C.muted).child(r.note ? r.note : `${pct(r.week)} · ${pct(r.five)}`)));
-  };
-  const lines = [];
-  for (let i = 0; i < usageRows.length; i += 3) lines.push(usageRows.slice(i, i + 3));
-  return body.child(v_flex().id("tnp-usage-row").w_full().flex_none().pr(8).gap(6).cursor_pointer().opacity(u?.stale ? 0.6 : 1)
+  const groups = [];
+  for (const r of usageRows) {
+    const tool = r.tool === "codex" ? "codex" : "claude";
+    const g = groups.find(x => x.tool === tool) ?? (groups.push({ tool, rows: [] }), groups[groups.length - 1]);
+    g.rows.push(r);
+  }
+  const RING = 22, SLOT_MAX = RING + 8;
+  const fit = groups.every(g => g.rows.length === 1) ? [] : groups.filter(g => g.rows.length === 1);
+  const ringOf = (r) => { const [wc, hc] = ringColors(r); return ring(RING, r.week, r.five, wc, hc); };
+  return body.child(h_flex().id("tnp-usage-row").w_full().h(40).flex_none().pr(8).gap(6).items_center().cursor_pointer().opacity(u?.stale ? 0.6 : 1)
     .on_click(() => openUsage(view, usageRows.length))
-    .children(lines.map(l => h_flex().w_full().gap(6).items_center().children(l.map(item))
-      .when(l.length < 3, el => el.children(Array.from({ length: 3 - l.length }, () => div().flex_1()))))));
+    .children(groups.map(g => h_flex().h(40).px(8).gap(6).items_center().rounded(12).bg(C.well)
+      .when(fit.includes(g), el => el.flex_none())
+      .when(!fit.includes(g), el => el.flex_1().min_w(0))
+      .child(toolIcon(g.tool, RING))
+      .when(fit.includes(g), el => el.child(ringOf(g.rows[0])))
+      .when(!fit.includes(g), el => el.child(h_flex().flex_1().min_w(0).justify_center().items_center()
+        .children(g.rows.map(r => h_flex().flex_1().min_w(RING).max_w(SLOT_MAX).justify_center().child(ringOf(r)))))))));
 }
 function openUsage(view, n) {
   // A press outside the popover closes it first; don't reopen it with the click that follows (phone.js popup toggles).
@@ -302,7 +307,7 @@ export function renderInbox(view) {
   const nAll = mine.filter(r => r.agent).length;
   const Hd = WIN.h > 0 ? dsg(WIN.h) : 860;
   // the excerpt gets what the rest of the column leaves (header, usage lines, "+" rows, cards, tabs, card chrome, pager)
-  const usageH = usageRows.length ? Math.ceil(usageRows.length / 3) * 42 : 0;
+  const usageH = usageRows.length ? 48 : 0;
   const plusH = view.plus ? 46 + (view.agentOpen ? 46 : 0) : 0;
   const exH = Math.round(Math.max(EX_MIN, Math.min(EX_MAX, Hd - 530 - usageH - plusH)));
   const body = [];
