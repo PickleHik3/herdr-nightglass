@@ -25,36 +25,29 @@ themeColors.ansi0 = theme.ansi[0];
 
 // name -> { role, scenario, props }
 const CASES = {
-  topbar: { role: "topbar", scen: "normal" },                      // default: usage off
-  "topbar-usage": { role: "topbar", scen: "usage" },               // usage widget on (prop usage: true)
-  "topbar-panel-open": { role: "topbar", scen: "panel-open" },     // toggle in its active look
-  "topbar-done0": { role: "topbar", scen: "done0" },               // finished count 0: the green button is absent
-  "topbar-done3": { role: "topbar", scen: "done3" },               // finished count 3
-  "topbar-nostats": { role: "topbar", scen: "nostats" },           // stats rings empty
-  "strip-many": { role: "strip", scen: "many" },                   // 5 chips: the row scrolls sideways
-  strip: { role: "strip", scen: "normal" },                        // 2 chips (one waiting, one finished)
-  "strip-one": { role: "strip", scen: "one" },
-  "strip-none": { role: "strip", scen: "quiet" },                  // nothing waits: the block is hidden, the role renders an empty column
-  "strip-fin-both": { role: "strip", scen: "fin-both" },           // finished row open: Clear + waiting + finished chips (with x)
-  "strip-fin-only": { role: "strip", scen: "fin-only" },           // finished row open, nothing waiting
-  "strip-waiting-only": { role: "strip", scen: "one" },            // finished row closed, one waiting (same as strip-one)
-  "strip-offline": { role: "strip", scen: "offline" },
-  tabs: { role: "tabs", scen: "normal" },                          // composer button: keyboard glyph
-  "tabs-asks": { role: "tabs", scen: "asks" },                     // front terminal waiting: red chat bubble
+  inbox: { role: "inbox", scen: "normal" },                        // Needs you: the waiting card with screen lines and 1/2/3 answers
+  "inbox-usage": { role: "inbox", scen: "usage" },                 // usage row on (prop usage: true), 5 accounts: two lines
+  "inbox-plus": { role: "inbox", scen: "plus" },                   // "+" open: action rows
+  "inbox-plus-agents": { role: "inbox", scen: "agents" },          // "+" open with the Agent list
+  "inbox-nopreview": { role: "inbox", scen: "nopreview" },         // no screen text yet: the agent's line, "reading…", Open only
+  "inbox-noprompt": { role: "inbox", scen: "noprompt" },           // screen text without numbered choices: Open only
+  "inbox-finished": { role: "inbox", scen: "fin-only" },           // the queue holds only a finished agent: Dismiss / Open terminal
+  "inbox-many": { role: "inbox", scen: "many" },                   // a longer queue: pager dots
+  "inbox-quiet": { role: "inbox", scen: "quiet" },                 // nothing needs you: empty state + the finished ones already seen
+  "inbox-all": { role: "inbox", scen: "all-tab" },                 // All agents, every machine
+  "inbox-machine": { role: "inbox", scen: "machine" },             // All agents, filtered to one machine (selected card)
+  "inbox-machine-needs": { role: "inbox", scen: "machine-needs" }, // Needs you, filtered to one machine
+  "inbox-offline": { role: "inbox", scen: "offline" },             // a machine unreachable: its card says offline
+  "inbox-nostats": { role: "inbox", scen: "nostats" },             // no stats yet: dashes
+  dbar: { role: "dbar", scen: "detail" },
+  "dbar-files": { role: "dbar", scen: "sheet-files" },             // the Files sheet open (button in its active look)
+  "dbar-none": { role: "dbar", scen: "normal" },                   // no opened address: falls back to the terminal in front
+  "dbar-gone": { role: "dbar", scen: "gone" },                     // the opened terminal is gone
+  sheet: { role: "sheet", scen: "sheet-files" },
+  "sheet-changes": { role: "sheet", scen: "sheet-changes" },
   composer: { role: "composer", scen: "normal" },
   "composer-open": { role: "composer", scen: "composer-open" },
   "composer-moved": { role: "composer", scen: "composer-moved" },
-  "drawer-closed": { role: "drawer", scen: "panel-closed" },      // the block is hidden; the role still renders (timers)
-  drawer: { role: "drawer", scen: "panel-open" },                  // panel open
-  "drawer-kbd-open": { role: "drawer", scen: "kbd-open" },         // keyboard up (540 px window) + panel open
-  "drawer-full": { role: "drawer", scen: "full" },                 // handle tapped: panel full (grip accent)
-  "drawer-full-kbd": { role: "drawer", scen: "full-kbd" },         // full with the keyboard up (window 540 px)
-  "drawer-agents": { role: "drawer", scen: "agents" },             // actions row with the Agent list open
-  "drawer-all": { role: "drawer", scen: "all" },
-  "drawer-offline": { role: "drawer", scen: "offline" },
-  watch: { role: "watch", scen: "normal" },
-  stats: { role: "stats", scen: "normal" },                        // stats popover
-  "stats-nodata": { role: "stats", scen: "nostats" },
   usage: { role: "usage", scen: "normal" },
   colors: { role: "colors", scen: "normal" },
 };
@@ -72,13 +65,12 @@ const SPACES = [
 ];
 const P = (pane, terminal, tabId, title, status, focused) => ({ pane, terminal, tab: tabId, title, cwd: "/home/u/x", branch: "main", status, app: status ? "claude-code" : null, program: prog(status ? "claude" : "shell", status ? "Claude Code" : "zsh", !!status), focused, zoomed: false, movable: false });
 const PANES = [
-  P("p1", "t1", "tb1", "Herdr Dynamic Board", SCEN === "asks" ? "blocked" : "idle", true),
+  P("p1", "t1", "tb1", "Herdr Dynamic Board", "idle", true),
   P("amal-build/p2", "amal-build/t15", "amal-build/tb2", "AI Architecture", "working", false),
   P("amal-build/p3", "amal-build/t16", "amal-build/tb3", "Word Border", SCEN === "quiet" || SCEN === "fin-only" ? "working" : "blocked", false),
-  P("amal-build/p4", "amal-build/t14", "amal-build/tb4", "Issue #35", SCEN === "quiet" || SCEN === "one" || SCEN === "done0" ? "idle" : "done", false),
+  P("amal-build/p4", "amal-build/t14", "amal-build/tb4", "Issue #35", "done", false),
   P("p5", "t9", "tb1", "zsh", null, false),
 ];
-if (SCEN === "done3") for (let i = 0; i < 2; i++) PANES.push(P("p" + (30 + i), "t" + (30 + i), "tb1", "Finished agent " + i, "done", false));
 if (SCEN === "many") for (let i = 0; i < 3; i++) PANES.push(P("p" + (20 + i), "t" + (20 + i), "tb1", "A long agent title number " + i, i === 1 ? "blocked" : "done", false));
 const USAGE = { at: Date.now() - 30000, stale: false, rows: [
   { tool: "claude", plan: "Max", name: "Account 1", five: 41, fiveAt: Date.now() / 1000 + 7800, week: 62, weekAt: Date.now() / 1000 + 86400, saved: null, note: "" },
@@ -88,30 +80,39 @@ const USAGE = { at: Date.now() - 30000, stale: false, rows: [
   { tool: "codex", plan: "", name: "Account 5", five: null, fiveAt: null, week: null, weekAt: null, saved: null, note: "no data" },
 ] };
 const AG = (key, name) => ({ key, name, icon: null, tint: false, tile: null, color: null, shell: false, agent: true, run: [key], installed: true });
-const STATS = { key: "@local", name: "amalv", at: Date.now() - 4000, fail: false, data: { cpu: 37, memPct: 62, memText: "9.9/16 GB", diskFree: 120.5, diskTotal: 512 } };
-const store = new Map([["nightglass.usage", SCEN === "nousage" ? undefined : USAGE], ["nightglass-phone.usage-open", false],
-  ["nightglass-phone.stats", SCEN === "nostats" ? undefined : STATS], ["nightglass-phone.stats-open", false],
-  ["nightglass-phone.panel", SCEN === "panel-open" || SCEN === "kbd-open" || SCEN === "full" || SCEN === "full-kbd" || SCEN === "agents" || SCEN === "all"],
+const SD = (cpu, mem) => ({ at: Date.now() - 4000, fail: false, data: { cpu, memPct: mem, memText: "9.9/16 GB", diskFree: 120.5, diskTotal: 512 } });
+const STATS = { "@local": SD(37, 62), "amal-build": SD(91, 70) };
+const SCREEN = ["● Bash(git push origin integration/v1)", "", "╭──────────────────────────────────────╮", "│ Bash command                         │", "│   git push origin integration/v1     │", "│ Do you want to proceed?              │", "│ ❯ 1. Yes                             │", "│   2. Yes, and don't ask again for git push commands │", "│   3. No, and tell Claude what to do differently (esc) │", "╰──────────────────────────────────────╯"];
+const PREVIEW = SCEN === "nopreview" ? undefined : { address: "amal-build/t16", at: Date.now() - 1000, fail: false, lines: SCEN === "noprompt" ? SCREEN.slice(0, 2) : SCREEN };
+const DETAIL = SCEN === "detail" || SCEN === "sheet-files" ? { view: "detail", address: "amal-build/t16" } : SCEN === "gone" ? { view: "detail", address: "zz/t99" } : { view: "inbox", address: null };
+const SHEET = SCEN === "sheet-files" ? "files" : SCEN === "sheet-changes" ? "changes" : null;
+const store = new Map([["nightglass.usage", USAGE], ["nightglass-phone.usage-open", false],
+  ["nightglass-phone.stats-all", SCEN === "nostats" ? undefined : STATS],
+  ["nightglass-phone.preview", PREVIEW],
   ["nightglass-phone.changes", 3],
-  ["nightglass-phone.finished-open", SCEN === "fin-both" || SCEN === "fin-only"],
-  ["nightglass-phone.panel-full", SCEN === "full" || SCEN === "full-kbd"],
+  // quiet: the finished agent was seen already (it shows under "Finished" in the empty state)
+  ["nightglass-phone.dismissed", SCEN === "quiet" ? { "amal-build/t14": Date.now() } : {}],
   ["new-menu.agents", { "": [AG("claude", "Claude Code"), AG("codex", "Codex")], "amal-build": [AG("claude", "Claude Code")] }]]);
 const done = Promise.resolve({ code: 0, stdout: "", stderr: "" });
-if (SCEN === "all") { try { localStorage.setItem("open", JSON.stringify({ set: true, key: "@all" })); } catch {} }
+try { localStorage.setItem("open", JSON.stringify({ set: true, key: SCEN === "machine" || SCEN === "machine-needs" ? "amal-build" : "@all" })); } catch {}
 
-export const props = () => ({ role: ROLE, fit_zoom: true, usage: SCEN === "usage" ? true : undefined, openAgents: SCEN === "agents" ? "@local" : null, overlay: "ov1", changes: 3, h: 428, machine: "amal-build", name: "amal-build" });
+export const props = () => ({ role: ROLE, fit_zoom: true, usage: SCEN === "usage" ? true : undefined, plus: SCEN === "plus" || SCEN === "agents", openAgents: SCEN === "agents" ? "@local" : null, tab: SCEN === "all-tab" || SCEN === "machine" ? "all" : undefined, overlay: "ov1", h: 428, machine: "amal-build", name: "amal-build" });
 export const theme = () => THEME;
 export const settings = () => ({ zoom: 2.5 });
 export const keys = () => [];
 export const window = () => ({ platform: "linux", titlebar: "none", buttons: false, maximized: false, fullscreen: false, active: true });
-export const layout = () => ({ id: "root", type: "row", children: [{ id: "phone", type: "column", children: [{ id: "core", type: "column", children: [{ id: "drawer", type: "block", size: { px: 240 }, hidden: SCEN === "panel-closed" }, { id: "strip", type: "block", size: { px: 28 }, hidden: SCEN === "quiet" }] }] }] });
+export const layout = () => ({ id: "root", type: "row", children: [{ id: "phone", type: "column", children: [{ id: "core", type: "column", children: [{ id: "inbox", type: "block" }, { id: "dbar", type: "block", size: { px: 60 }, hidden: DETAIL.view !== "detail" }] }] }] });
 export const shared = (k) => store.get(k);
 // The composer scenarios pin the composer state (the mod resets it in init, which would hide the row being checked).
 if (SCEN === "composer-open") store.set("nightglass-phone.composer", { open: true, target: "t1", ctx: "s1|tb1|t1" });
 if (SCEN === "composer-moved") store.set("nightglass-phone.composer", { open: true, target: "t1", ctx: "s1|tb1|t1", moved: "t9" });
-export const setShared = (k, v) => { if (!(SCEN.startsWith("composer-") && k === "nightglass-phone.composer")) store.set(k, v); return null; };
+// The detail scenarios pin the view / sheet state the same way.
+store.set("nightglass-phone.view", DETAIL);
+store.set("nightglass-phone.sheet", SHEET);
+const PINNED = new Set(["nightglass-phone.view", "nightglass-phone.sheet"]);
+export const setShared = (k, v) => { if (!(SCEN.startsWith("composer-") && k === "nightglass-phone.composer") && !(ROLE !== "inbox" && PINNED.has(k))) store.set(k, v); return null; };
 export const spaces = () => SPACES;
-export const machines = () => [{ name: null, layout: "ready" }, { name: "amal-build", layout: SCEN === "offline" ? "unavailable" : "ready" }, ...(SCEN === "all" ? [{ name: "pong", layout: "ready" }] : [])];
+export const machines = () => [{ name: null, layout: "ready" }, { name: "amal-build", layout: SCEN === "offline" ? "unavailable" : "ready" }, ...(SCEN === "all-tab" ? [{ name: "pong", layout: "ready" }] : [])];
 export const panes = () => PANES;
 export const agents = () => PANES.filter((p) => p.status).map((p) => ({ address: p.terminal, pane: p.pane, space: "s1", space_name: "x", tab: p.tab, tab_index: 1, tab_name: "1", status: p.status, app: p.app, program: p.program, title: p.title, seq: 1, pinned: false, focused: p.focused }));
 export const terminals = () => PANES.map((p) => ({ address: p.terminal, status: p.status, report: p.status === "blocked" ? "Wants to run: git push origin integration/v1" : null }));

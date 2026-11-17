@@ -25,7 +25,9 @@ const kit = readFileSync(process.env.GPUI_KIT_DTS ?? join(DESK, "gpui-kit.d.ts")
 const ABSENT_013 = new Set(["ScrollHandle", "scroll_to_item"]);
 // Used by the phone mod, not by the desktop mod, and built without error by `herdr-app check` on 0.1.13
 // (14 staged role checks, scripts/stage-role-checks.mjs: they run init() and render() with fixtures).
-const PROVEN = new Set(["mb", "max_h", "settings", "Input", "InputState", "new", "on", "overflow_x_scroll", "overflow_y_scroll", "line_height", "self_center"]);
+const PROVEN = new Set(["mb", "max_h", "settings", "Input", "InputState", "new", "on", "overflow_x_scroll", "overflow_y_scroll", "line_height", "self_center",
+  // Concept B "Inbox" round: 25 staged role checks passed on 0.1.13 (a bogus .justify_endx() in the same path failed it)
+  "font_bold", "justify_end"]);
 // Phone-only, but only reached inside event handlers / timers, which `check` does not run. Taken from the
 // 0.1.13 typings instead (gpui-kit.d.ts InputState: set_value, value, release; herdr.d.ts: hc).
 // Round 8 (no phone available): on_scroll_wheel (rendered, but not yet run through `check`), focus (timer only).
@@ -65,8 +67,8 @@ for (const [f, src] of Object.entries(mods)) {
 }
 console.log(`imports checked: ${nImports}${skipped ? ` (${skipped} from "herdr" skipped: set HERDR_DTS)` : ""}`);
 
-const JS = new Set(["map", "filter", "find", "findIndex", "some", "every", "slice", "join", "split", "push", "pop", "sort", "reduce", "test", "trim", "toString", "toFixed", "replace", "padStart", "startsWith", "includes", "get", "set", "has", "then", "catch", "now", "abs", "min", "max", "round", "floor", "sin", "cos", "keys", "entries", "parse", "stringify", "toUpperCase", "forEach", "indexOf", "getItem", "setItem", "from", "sort", "localeCompare", "charCodeAt", "slice", "matchAll", "all", "add", "delete"]);
-const local = new Set(["openKey", "setOpen", "goMachine", "lastSpaces", "watchFocus", "applyScheme", "pollStats", "renderRole", "renderWatch", "init", "close", "render"]);
+const JS = new Set(["map", "filter", "find", "findIndex", "some", "every", "slice", "join", "split", "push", "pop", "sort", "reduce", "test", "trim", "toString", "toFixed", "replace", "padStart", "startsWith", "includes", "get", "set", "has", "then", "catch", "now", "abs", "min", "max", "round", "floor", "sin", "cos", "keys", "entries", "parse", "stringify", "toUpperCase", "forEach", "indexOf", "getItem", "setItem", "from", "sort", "localeCompare", "charCodeAt", "slice", "matchAll", "all", "add", "delete", "ceil", "exec", "pop"]);
+const local = new Set(["openKey", "setOpen", "lastSpaces", "watchFocus", "applyScheme", "previewTick", "fitZoom", "renderRole", "init", "close", "render"]);
 const text = kit + (herdr ?? "");
 const used = new Map();
 const exportsAll = new Set(Object.values(mods).flatMap((src) => [...exportsOf(src)]));
@@ -127,15 +129,21 @@ console.log("layout JSON: valid");
 const roles = new Set(), ids = [];
 const walk = (n) => {
   ids.push(n.id);
-  if (n.content?.mod) { if (n.content.mod !== "nightglass-phone") bad(`layout names mod ${n.content.mod}`); roles.add(n.content.props?.role); }
+  if (n.content?.mod) {
+    if (["files", "changes"].includes(n.content.mod)) { if (n.id !== n.content.mod) bad(`the app's ${n.content.mod} block must have id ${n.content.mod}`); }
+    else if (n.content.mod !== "nightglass-phone") bad(`layout names mod ${n.content.mod}`);
+    else roles.add(n.content.props?.role);
+  }
   (n.children ?? []).forEach(walk);
 };
 walk(layout);
 for (const r of roles) if (!new RegExp(`case "${r}"`).test(mods["main.js"])) bad(`role ${r} has no case in main.js`);
-for (const r of ["usage", "stats", "colors"]) if (!new RegExp(`case "${r}"`).test(mods["main.js"])) bad(`popup role ${r} has no case`);
+for (const r of ["usage", "colors"]) if (!new RegExp(`case "${r}"`).test(mods["main.js"])) bad(`popup role ${r} has no case`);
 if (new Set(ids).size !== ids.length) bad("duplicate node ids");
 const refs = new Set();
-for (const src of Object.values(mods)) for (const m of src.matchAll(/(?:\{\s*id:\s*"([^"]+)"|nodePx\("([^"]+)"\)|findNode\([^,]+,\s*"([^"]+)"\))/g)) refs.add(m[1] ?? m[2] ?? m[3]);
+for (const src of Object.values(mods)) for (const m of src.matchAll(/(?:\{\s*id:\s*"([^"]+)"|nodePx\("([^"]+)"\)|findNode\([^,]+,\s*"([^"]+)"\)|stack:\s*"([^"]+)")/g)) refs.add(m[1] ?? m[2] ?? m[3] ?? m[4]);
+// ids shown / hidden through a list (phone.js DETAIL_IDS)
+for (const m of (mods["phone.js"] ?? "").matchAll(/DETAIL_IDS = \[([^\]]*)\]/g)) for (const k of m[1].matchAll(/"([^"]+)"/g)) refs.add(k[1]);
 for (const r of refs) if (!ids.includes(r)) bad(`mod references layout node ${r}, not in the layout`);
 for (const old of ["sidebar", "panel", "panel-body", "work-body", "main-stack"]) {
   for (const [f, src] of Object.entries(mods)) if (new RegExp(`["'\`]${old}["'\`]`).test(src) && !["lib.js", "data.js"].includes(f)) bad(`${f} names desktop node ${old}`);
@@ -157,84 +165,52 @@ for (const k of ["w", "h"]) for (let p = 5; p <= 100; p += 5) {
 }
 if (!existsSync(join(PHONE, "ring-s-track.svg")) || !existsSync(join(DESK, "ring-track.svg"))) bad("ring track missing");
 console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desktop ring-*`);
-// --- structure (round 9: compact strip, stats widget in the bar, toggled panel, no popup menu) ---
+// --- structure (Concept B "Inbox", design/PhoneConcepts.html) ---
 {
   const all = Object.entries(mods).filter(([f]) => !["lib.js", "data.js"].includes(f));
   const flat = []; const order = (n) => { flat.push(n); (n.children ?? []).forEach(order); }; order(layout);
   const idx = (id) => flat.findIndex((n) => n.id === id);
   const node = (id) => flat[idx(id)];
-  // no stats row at the bottom: the panel sits under the top bar, nothing of the mod follows the composer, no bottom stats box
-  if (!(idx("topbar") < idx("drawer") && idx("drawer") < idx("strip") && idx("strip") < idx("tabs") && idx("tabs") < idx("term") && idx("term") < idx("composer"))) bad("rows must run topbar, panel (drawer), strip, tabs, term, composer");
-  if (idx("composer") !== flat.findLastIndex((n) => n.content?.mod && n.id !== "watch")) bad("a mod block follows the composer: no bottom row is allowed");
-  if (/id\("tnp-stats"\)/.test(mods["drawer.js"]) || /diskFreeText|STATS_SCRIPT/.test(mods["drawer.js"])) bad("drawer.js still draws a stats row");
-  console.log("no stats row at the bottom: ok");
-  // no popup menu
-  for (const [f, src] of all) if (/role:\s*"menu"|case "menu"|renderNewMenu|menuHeight|nm-space|tnp-menu-pop/.test(src)) bad(`${f}: popup menu code is still there`);
-  if (roles.has("menu")) bad("layout has a menu role");
-  if (/closeOverlay|openOverlay/.test(mods["newmenu.js"])) bad("newmenu.js opens or closes overlays: its actions are in-flow");
-  console.log("no popup menu: ok");
-  // panel: hidden by default, closed at load, never hidden for the keyboard
-  if (node("drawer")?.hidden !== true) bad("layout: the panel (drawer) must be hidden by default");
-  if (!/setPanel\(false, true\)/.test(mods["main.js"])) bad("main.js: the top bar must close the panel at load");
-  for (const [f, src] of all) if (/HIDE_BELOW|SHOW_AT|evalDrawer|WIN\.dropped/.test(src)) bad(`${f}: keyboard-up hiding of the panel is still there`);
-  for (const [f, src] of all) if (f !== "phone.js" && /layout\.(hide|show)["'`]?\s*:|"layout\.(hide|show)"|\? "layout\.show" : "layout\.hide"/.test(src.replace(/\/\/.*$/gm, "")) && /id:\s*"drawer"/.test(src)) bad(`${f}: shows / hides the panel outside setPanel`);
-  console.log("panel hidden by default, present with the keyboard up (no window-height hiding): ok");
-  // handle (round 10): last row of the panel, only while it is open; a tap toggles normal / full; closing / opening resets to normal
-  {
-    const d = mods["drawer.js"], ph = mods["phone.js"];
-    if (!/\.when\(panelOpen\(\), el => el\.child\(h_flex\(\)\.id\("tnp-handle"\)/.test(d)) bad("drawer.js: the handle must be drawn only while the panel is open");
-    if (d.indexOf("tnp-handle") < d.indexOf("tnp-spaces")) bad("drawer.js: the handle must come after the list (last row)");
-    if (!/setPanelFull\(!panelFull\(\)\)/.test(d)) bad("drawer.js: a tap on the handle must toggle full");
-    if (!/for \(const id of \["strip", "tabs", "term", "composer"\]\) run\("layout\.hide"/.test(ph)) bad("phone.js: full must hide strip, tabs, term and composer");
-    if (!/setShared\(FULL_KEY, false\);\s*\n\s*if \(wasFull \|\| init\) restoreRows/.test(ph)) bad("phone.js: setPanel must return to normal size and restore the rows");
-    if (!/panelFull\(\)\) return;/.test(mods["strip.js"])) bad("strip.js: stripSync must not re-show the strip while the panel is full");
-    if (/on_mouse_up|on_drag/.test(d)) bad("drawer.js: drag is not used (tap only)");
-    console.log("panel handle: present only while open, tap toggles full, closing restores rows: ok");
-  }
-  // finished agents (round 11): count button in the bar, chip row on demand, dismissable; waiting chips unchanged
-  {
-    const st = mods["strip.js"], tb = mods["topbar.js"];
-    if (!/\.when\(finished > 0, el => el\.child\(h_flex\(\)\.id\("tnp-done"\)/.test(tb)) bad("topbar.js: the finished count button must show only while the count is above 0");
-    if (!/finishedOpen\(\) \? finishedRows\(snap\)/.test(st)) bad("strip.js: finished chips must show only while the row is open");
-    if (!/id\("tnp-clear"\)/.test(st) || !/tnp-card-x-/.test(st)) bad("strip.js: Clear chip and per-chip dismiss are missing");
-    if (!/finishedRows\(snap\)\.length === 0\) setFinishedOpen\(false\)/.test(st)) bad("strip.js: the row must close when the count reaches 0");
-    console.log("finished count button, on-demand finished chips with dismiss and Clear: ok");
-  }
-  // strip: hidden by default and hidden whenever there is nothing to show; no quiet capsule row
-  if (node("strip")?.hidden !== true) bad("layout: the strip must be hidden by default");
-  if (!/px === 0\) \{ if \(!hidden\) run\("layout\.hide", \{ id: "strip" \}\)/.test(mods["strip.js"])) bad("strip.js: stripSync must hide the block when there is nothing to show");
-  if (/Nothing needs you|QUIET/.test(mods["strip.js"])) bad("strip.js: the quiet capsule row is still there");
-  if (!/CHIP = 28/.test(mods["strip.js"])) bad("strip.js: chips are 28 px");
-  console.log("strip row absent without items: ok");
-  // top bar order and spacing: app, search, finished count, stats, usage, toggle, with equal flexible gaps between them
-  const top = mods["topbar.js"];
-  const pos = ["id(\"tnp-search\")", "id(\"tnp-done\")", "id(\"tnp-stats\")", "id(\"tnp-rings\")", "id(\"tnp-menu\")"].map((s) => top.indexOf(s));
-  if (pos.some((p) => p < 0) || pos.some((p, i) => i && p <= pos[i - 1])) bad("topbar.js: order must be search, finished count, stats, usage, panel toggle");
-  if (!/id\("tnp-top"\)\.size_full\(\)\.px\(12\)\.pt\(4\)\.items_center\(\)\.justify_between\(\)/.test(top)) bad("topbar.js: the bar must be a justify_between row with equal side padding and no fixed gap");
-  if (/\.child\(gap\(\)\)/.test(top)) bad("topbar.js: spacer divs are gone, the row uses justify_between (the usage wells are one item)");
-  if (!/id\("tnp-done"\)\.h\(DONE_H\)/.test(top) || !/DONE_H = 30/.test(top)) bad("topbar.js: the finished count is a 30 px pill");
-  if (/ringIcon\("cpu"/.test(top) === false || !/ringIcon\("ram"/.test(top) || !/ringIcon\("disk"/.test(top)) bad("topbar.js: the stats rings carry cpu / ram / disk icons");
-  if (!/ico\(name, ICO,/.test(top) || !/ICO = RS >= 28 \? 14 : 12/.test(top)) bad("topbar.js: ring icon must be >= 10 px");
-  // the same arithmetic as topbar.js, for the default bar (usage off) with and without the count button, and with usage on
-  const barAt = (W, done, usage) => {
-    const n = usage ? 5 : 0, G = usage ? 2 : 0, items = 3 + (done ? 1 : 0) + (usage ? 1 : 0), gaps = items - 1;
-    const variants = usage ? [{ rs: 24, txt: false }] : [{ rs: 28, txt: true }, { rs: 24, txt: true }, { rs: 24, txt: false }];
-    const pillW = (v, pad) => 2 * pad + 3 * (v.rs + (v.txt ? 34 : 0)) + 2 * (v.txt ? 6 : 2);
-    const wells = (r, ic, pad) => G * 2 * pad + n * r + (n - G) * 2 + (ic ? G * 18 : 0) + Math.max(0, G - 1) * 4;
-    const rest = 40 + (done ? 30 : 0) + 40;
-    const sv = variants.find((v) => W - 24 - rest - gaps * 6 - pillW(v, 8) - (usage ? wells(12, false, 8) : 0) >= 0) ?? variants[variants.length - 1];
-    const room = W - 24 - rest - pillW(sv, 8) - gaps * 6;
-    const ic = usage && wells(16, true, 8) <= room, ring = usage && !ic && wells(16, false, 8) > room ? 12 : 16;
-    const used = rest + pillW(sv, 8) + (usage ? wells(ring, ic, 8) : 0);
-    const surplus = Math.max(0, W - 24 - used - gaps * 24), grow = Math.min(usage ? 24 : 40, surplus / (1 + G) / 2);
-    const pillNow = pillW(sv, 8 + grow), total = rest + pillNow + (usage ? wells(ring, ic, 8 + grow) : 0);
-    return { gap: (W - 24 - total) / gaps, rs: sv.rs, txt: sv.txt, pill: pillNow };
-  };
-  for (const W of [412, 480]) for (const [d, u] of [[true, true], [false, false], [true, false]]) { const g = barAt(W, d, u); if (g.gap < 6) bad(`topbar: gap ${g.gap.toFixed(1)} px at ${W} (count ${d}, usage ${u})`); }
-  const fmt = (W, d, u) => { const g = barAt(W, d, u); return `${g.gap.toFixed(1)} px gaps, rings ${g.rs}${g.txt ? "+%" : ""}, pill ${Math.round(g.pill)}`; };
-  if (!/props\(\)\?\.usage === true/.test(top) || !/props\(\)\?\.usage === true\) \{/.test(mods["main.js"])) bad("usage widget and polling must be opt-in through the topbar prop usage: true");
+  // rows: the inbox (home view), then the detail view's bar, terminal, sheet and composer
+  if (!(idx("inbox") < idx("dbar") && idx("dbar") < idx("term") && idx("term") < idx("sheet") && idx("sheet") < idx("composer"))) bad("rows must run inbox, dbar, term, sheet, composer");
+  if (node("inbox")?.hidden || node("inbox")?.size) bad("layout: the inbox is shown by default and takes the free height (no size)");
+  for (const id of ["dbar", "term", "sheet", "composer"]) if (node(id)?.hidden !== true) bad(`layout: ${id} must be hidden by default (detail view)`);
+  if (node("main")?.content?.tab !== "active") bad("layout: the terminal block shows the active tab");
+  if (node("sheet-body")?.type !== "stack" || !node("files") || !node("changes")) bad("layout: the sheet is a stack of the app's files and changes blocks");
+  for (const old of ["topbar", "drawer", "strip", "tabs", "watch"]) if (idx(old) >= 0) bad(`layout: retired node ${old} is still there`);
+  for (const old of ["topbar", "strip", "tabs", "drawer", "watch", "stats"]) if (new RegExp(`case "${old}"`).test(mods["main.js"])) bad(`main.js: retired role ${old} still has a case`);
+  for (const f of ["topbar.js", "strip.js", "drawer.js"]) if (mods[f]) bad(`${f} is retired`);
+  console.log("layout rows inbox / dbar / term / sheet / composer, detail blocks hidden by default: ok");
+  // the view switch: reset at load, Open / Back swap the blocks
+  if (!/showInbox\(true\)/.test(mods["main.js"])) bad("main.js: the inbox role must reset to the inbox view at load");
+  const d = mods["detail.js"] ?? "";
+  if (!/for \(const id of DETAIL_IDS\) run\("layout\.show", \{ id \}\);\s*\n\s*run\("layout\.hide", \{ id: "inbox" \}\);/.test(d)) bad("detail.js: Open must show the detail blocks, then hide the inbox");
+  if (!/run\("layout\.show", \{ id: "inbox" \}\);\s*\n\s*for \(const id of DETAIL_IDS\) run\("layout\.hide", \{ id \}\);/.test(d)) bad("detail.js: Back must show the inbox and hide the detail blocks");
+  if (!/openComposer\(r\.address\)/.test(d)) bad("detail.js: the composer is bound to the opened terminal");
+  for (const [f, src] of all) if (f !== "detail.js" && f !== "phone.js" && /"layout\.(show|hide)"/.test(src.replace(/\/\/.*$/gm, ""))) bad(`${f}: shows / hides blocks outside detail.js / phone.js`);
+  console.log("view switch (inbox <-> detail) only in detail.js, reset at load: ok");
+  // composer: the send-target rule is kept
+  const cp = mods["composer.js"];
+  if (!/if \(front !== bound\) \{ setShared\(KEY, \{ \.\.\.st, moved: front \?\? "none" \}\)/.test(cp)) bad("composer.js: the send-time target check is gone");
+  if (!/hc\(\["send", bound, text\]\)/.test(cp)) bad("composer.js: sends with hc send to the bound terminal only");
+  console.log("composer: bound target, send-time check, hc send: ok");
+  // inbox: header (search, +), usage opt-in, machine cards as the filter, two tabs, card + pager, answers through hc keys
+  const ib = mods["inbox.js"] ?? "";
+  for (const id of ["tnp-search", "tnp-plus", "tnp-m-all", "tnp-tabs", "tnp-tab-needs", "tnp-tab-all", "tnp-pager", "tnp-prev", "tnp-next", "tnp-open", "tnp-empty"]) if (!ib.includes(`"${id}"`)) bad(`inbox.js: ${id} is missing`);
+  if (!/run\("app\.palette"\)/.test(ib)) bad("inbox.js: search opens the command palette");
+  if (!/actionRows\(view, snap, m,/.test(ib)) bad("inbox.js: '+' opens the newmenu.js action rows");
+  if (!/hc\(\["keys", r\.address, String\(n\)\]\)/.test(ib)) bad("inbox.js: answers press the digit with hc keys");
+  if (!/dialogChoices\(mine\.lines\)/.test(ib)) bad("inbox.js: answer buttons only for numbered choices read from the screen");
+  if (!/hc\(\["read", address\]\)/.test(mods["polls.js"] ?? "")) bad("polls.js: the card's lines come from hc read");
+  if (!/Nothing needs you/.test(ib)) bad("inbox.js: empty state text");
+  if (!/props\(\)\?\.usage === true/.test(ib) || !/props\(\)\?\.usage === true\) \{/.test(mods["main.js"])) bad("usage row and polling must be opt-in through the inbox prop usage: true");
   if (JSON.stringify(layout).includes('"usage"')) bad("layout: the usage prop must be absent in the shipped layout");
-  console.log(`top bar (usage off, the default) at 412: with count ${fmt(412, true, false)}; without ${fmt(412, false, false)}; usage on + count ${fmt(412, true, true)}`);
+  if (!/fit_zoom/.test(JSON.stringify(node("inbox")))) bad("layout: fit_zoom stays on (inbox block)");
+  console.log("inbox: header, opt-in usage row, machine filter cards, tabs, card + pager, hc keys answers, hc read lines: ok");
+  // touch targets: every fixed control height in the mod's own files is >= 40 designed px (cards 60, tabs 40, chips 40)
+  for (const [f, src] of all) for (const m of src.matchAll(/\.id\([^)]*\)[^;\n]*?\.(?:h|size)\((\d+)\)[^;\n]*?\.cursor_pointer\(\)/g)) if (Number(m[1]) < 40 && !/tnp-sw-/.test(m[0])) bad(`${f}: a control is ${m[1]} px (< 40): ${m[0].slice(0, 60)}`);
+  if (!/ACT_H = 40/.test(mods["newmenu.js"])) bad("newmenu.js: action chips are 40 px");
+  console.log("touch targets >= 40 px: ok");
 }
 
 // --- toast mod (round 13): replaces the app's `toast` mod; lib.js verbatim; phone capsule only on the phone layout ---
@@ -244,17 +220,8 @@ console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desk
   const r = spawnSync(process.execPath, ["--input-type=module", "--check"], { input: src, encoding: "utf8" });
   if (r.status !== 0) bad(`nightglass-toast/main.js: syntax: ${r.stderr}`);
   if (readFileSync(join(T, "lib.js"), "utf8") !== readFileSync(join(DESK, "lib.js"), "utf8")) bad("mods/nightglass-toast/lib.js differs from the desktop copy");
-  if (!/findNode\(layout\(\), "drawer"\)/.test(src) || !/glassSolid/.test(src) || !/\.h\(32\)/.test(src) || !/closeOverlay\(p\.overlay\)/.test(src)) bad("nightglass-toast/main.js: phone capsule (32 px, glassSolid, tap closes) or the phone-layout switch is missing");
-  console.log("toast mod: syntax ok, lib.js identical, phone capsule only when the layout has the drawer node");
-}
-
-// --- device round (round 14): compact empty machines, list to the grip, icon-only chips, teal wide grip ---
-{
-  const d = mods["drawer.js"], nm = mods["newmenu.js"];
-  if (!/COMPACT_H = 36/.test(d) || !/m\.spaces\.length === 0\) \{\s*\n\s*return h_flex\(\)\.id\(`tnp-all-\$\{m\.key\}`\)/.test(d) || !/filter\(m => m\.spaces\.length === 0\)\]/.test(d)) bad("drawer.js: machines without terminals must be one compact line, sorted last");
-  if (!/C\.teal/.test(d) || !/w\(72\)/.test(d)) bad("drawer.js: the full grip must be wide and teal");
-  if ((nm.match(/ico\("(file|changes|settings)", 13, C\.muted\), null/g) ?? []).length !== 3) bad("newmenu.js: Files / Changes / Settings are icon-only chips");
-  console.log("compact empty machines, wide teal grip, icon-only chips: ok");
+  if (!/findNode\(layout\(\), "inbox"\)/.test(src) || !/glassSolid/.test(src) || !/\.h\(32\)/.test(src) || !/closeOverlay\(p\.overlay\)/.test(src)) bad("nightglass-toast/main.js: phone capsule (32 px, glassSolid, tap closes) or the phone-layout switch (inbox node) is missing");
+  console.log("toast mod: syntax ok, lib.js identical, phone capsule only when the layout has the inbox node");
 }
 
 console.log(fails ? `${fails} FAILURE(S)` : "ALL STATIC CHECKS PASSED");
