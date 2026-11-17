@@ -252,10 +252,12 @@ const diskUsed = (data) => data.diskTotal > 0 ? Math.round(100 - data.diskFree /
 const diskFreeText = (data) => `${data.diskFree >= 100 ? Math.round(data.diskFree) : data.diskFree.toFixed(1)} GB free`;
 
 // ---- tiles ----
-function tile(view, m, open, w) {
+// Tiles fill their row (flex), so they never depend on a measured width: the measured width can
+// disagree with the laid-out one (zoom), which left a gap at the right or wrapped too early.
+function tile(view, m, open) {
   const sel = open === m.key;
   const mc = machineColor(m.key);
-  return v_flex().id(`tn-m-${m.key}`).w(w).h(58).flex_none().relative().items_center().justify_center().gap(5).px(6).rounded(10)
+  return v_flex().id(`tn-m-${m.key}`).flex_1().min_w(0).h(58).relative().items_center().justify_center().gap(5).px(6).rounded(10)
     .bg(sel ? C.raisedHi : C.raised).border(1).border_color(sel ? alpha(mc, 0.55) : CLEAR)
     .when(sel, el => el.shadow_md())
     .opacity(m.offline ? 0.62 : 1).cursor_pointer().tooltip(`${m.name} · ${m.summary}`)
@@ -264,24 +266,24 @@ function tile(view, m, open, w) {
     .on_mouse_down("right", pickColor(m))
     .child(h_flex().size(24).rounded(7).justify_center().items_center().bg(alpha(mc, 0.16))
       .child(machineIcon(m, 14, mc)))
-    .child(div().max_w(Math.max(20, w - 14)).truncate().text_size(11).font_medium().text_color(sel ? C.fg : C.muted).child(m.name))
+    .child(div().max_w_full().truncate().text_size(11).font_medium().text_color(sel ? C.fg : C.muted).child(m.name))
     .when(!!m.light, el => el.child(light(m, 6, 6)));
 }
 // The All tile: no machine, so no color to pick; clicking it only changes what the sidebar lists.
 // Herdr's ram ("sheep") tile, full color: the All tile's icon.
 const sheep = (size) => image(`${M}/herdr.png`).size(size).rounded(Math.round(size / 4)).flex_none();
 
-function allTile(view, snap, open, w) {
+function allTile(view, snap, open) {
   const sel = open === ALL;
   const l = allLight(snap);
-  return v_flex().id("tn-m-all").w(w).h(58).flex_none().relative().items_center().justify_center().gap(5).px(6).rounded(10)
+  return v_flex().id("tn-m-all").flex_1().min_w(0).h(58).relative().items_center().justify_center().gap(5).px(6).rounded(10)
     .bg(sel ? C.raisedHi : C.raised).border(1).border_color(sel ? alpha("#ffffff", 0.4) : CLEAR)
     .when(sel, el => el.shadow_md())
     .cursor_pointer().tooltip("All machines")
     .hover(s => s.bg(C.raisedHi))
     .on_click((_e, cx) => { view.setOpen(ALL); view.pollStats(cx, true); cx.notify(); })
     .child(sheep(24))
-    .child(div().max_w(Math.max(20, w - 14)).truncate().text_size(11).font_medium().text_color(sel ? C.fg : C.muted).child("All"))
+    .child(div().max_w_full().truncate().text_size(11).font_medium().text_color(sel ? C.fg : C.muted).child("All"))
     .when(!!l, el => el.child(light({ light: l }, 6, 6)));
 }
 
@@ -298,14 +300,18 @@ function full(base, view, snap, open, w) {
   const all = open === ALL;
   const m = open && !all ? snap.mBy.get(open) : null;
   const sm = all ? statsMachine(snap, open) : m;
-  const tileW = Math.max(40, Math.floor((w - 20 - 12) / 3));
+  // At most 3 per row, as few rows as that allows, spread evenly (4 tiles: 2 x 2); each row fills the width.
+  const tiles = [allTile(view, snap, open), ...snap.machines.map(mm => tile(view, mm, open))];
+  const cols = Math.ceil(tiles.length / Math.ceil(tiles.length / 3));
+  const tileRows = [];
+  for (let i = 0; i < tiles.length; i += cols) tileRows.push(h_flex().w_full().flex_none().gap(6).children(tiles.slice(i, i + cols)));
   const usage = usageParts(view);
   const stats = sm ? statsBlock(view, sm) : null;
   const spacer = div().w_full().h(4).flex_none();
   return base.gap(8)
     .child(floatBox(v_flex().w_full().flex_1().min_h(0).px(10).pt(10).pb(6).gap(10))
       .child(brand(view, snap))
-      .child(h_flex().w_full().flex_none().flex_wrap().gap(6).child(allTile(view, snap, open, tileW)).children(snap.machines.map(mm => tile(view, mm, open, tileW))))
+      .child(v_flex().w_full().flex_none().gap(6).children(tileRows))
       .when(all, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
         .children(allGroups(view, snap, false, (mm, cx) => { view.goMachine(mm.key); view.pollStats(cx, true); cx.notify(); }))
         .child(spacer)))

@@ -130,15 +130,17 @@ export function renderHeader(view) {
     .sort((a, b) => (parseInt(a.slice(1)) || 0) - (parseInt(b.slice(1)) || 0))[0] ?? "t1";
   const key = bindingOf("app.palette");
   const win = !!window()?.buttons;
-  // The pill is placed absolutely from the header's own width, centered in the space left of a
-  // fixed reserve for the right-hand buttons: nothing on the right (usage rings loading, the
-  // Changes count) can resize or move it.
-  const W = view.headerW ?? 0;
-  const pillW = Math.max(200, Math.min(440, W - RIGHT_RESERVE - 48));
-  const pillX = Math.max(12, Math.round((W - RIGHT_RESERVE - pillW) / 2));
+  // The pill is centered on the window, not the header: an absolute band reaches left over the
+  // sidebar (its layout width + the root gap) to the window's padding, and centers the pill in it
+  // by flex, with equal insets on both sides wide enough to clear the sidebar and the right-hand
+  // buttons. No measured width is used (a measured size can disagree with layout px under zoom),
+  // and nothing on the right (usage rings, the Changes count) can move it.
+  const sbNode = findNode(layout(), "sidebar");
+  const sb = sbNode && !sbNode.hidden ? (sbNode.size?.px ?? 268) + 8 : 0;
+  const inset = Math.max(sb + 12, RIGHT_RESERVE);
   return h_flex().id("tn-header").relative().size_full().px(12).gap(8).items_center().overflow_hidden()
-    .on_size_change((size, cx) => { if (Math.abs((view.headerW ?? 0) - size.width) >= 1) { view.headerW = size.width; cx.notify(); } })
-    .when(W > 0, el => el.child(h_flex().id("tn-search").absolute().left(pillX).top(4).w(pillW).h(30).pl(10).pr(6).gap(8).items_center().rounded(15)
+    .child(h_flex().absolute().top(0).bottom(0).left(-sb).right(0).px(inset).justify_center().items_center()
+      .child(h_flex().id("tn-search").flex_1().min_w(120).max_w(440).h(30).pl(10).pr(6).gap(8).items_center().rounded(15)
       .bg(C.well).border(1).border_color(C.rim).text_size(12).text_color(C.muted).cursor_pointer()
       .on_mouse_down("left", stop).on_click(() => run("app.palette"))
       .child(ico("search", 13, C.muted))
@@ -177,23 +179,24 @@ export function usageParts(view) {
     const g = groups.find(x => x.tool === tool) ?? (groups.push({ tool, rows: [] }), groups[groups.length - 1]);
     g.rows.push(r);
   }
-  // Each pill is as wide as its icon plus its rings: every ring gets the same slot across both
-  // pills, so a group with more accounts takes more of the row. The last pill takes the rounding.
-  // Glass: one well per tool, 34 high, rings 22. The wells share the row by ring count (a lone ring
-// counts 1.6), and every ring gets an equal slot inside its well; the last well takes the rounding.
-  const RING = 22, ICON_W = RING + 8, GAP = 6;
-  const weight = (g) => g.rows.length === 1 ? 1.6 : g.rows.length;
-  const total = groups.reduce((a, g) => a + weight(g), 0);
-  const avail = (view.width ?? 268) - 20 - 2 - (groups.length - 1) * GAP;
+  // Glass: one well per tool, 34 high, rings 22. Laid out by flex alone (a measured width can
+  // disagree with the laid-out one under zoom, which clipped the last well): a tool with one
+  // account gets a well just as wide as its icon and ring; tools with several share the rest,
+  // their rings in centered slots no wider than RING + 8, so they stay close at any width.
+  const RING = 22, GAP = 6, SLOT_MAX = RING + 8;
+  const fit = groups.every(g => g.rows.length === 1) ? [] : groups.filter(g => g.rows.length === 1);
+  const ringOf = (r) => { const [wc, hc] = ringColors(r); return ring(RING, r.week, r.five, wc, hc); };
   const head = h_flex().id("tn-usage-head").w_full().h(34).flex_none().gap(GAP).items_center().cursor_pointer().on_click(toggle)
     .opacity(u.stale ? 0.6 : 1)
     .tooltip(openState ? "" : `Claude usage · ${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage-tui on ${USAGE_MACHINE}`)
-    .children(groups.map((g, i) => h_flex().h(34).min_w(0).px(6).items_center().rounded(10).bg(C.well)
-      .when(i < groups.length - 1, el => el.w(Math.floor(avail * weight(g) / total)).flex_none())
-      .when(i === groups.length - 1, el => el.flex_1())
+    .children(groups.map(g => h_flex().h(34).px(6).gap(6).items_center().rounded(10).bg(C.well)
+      .when(fit.includes(g), el => el.flex_none())
+      .when(!fit.includes(g), el => el.flex_1().min_w(0))
       .hover(s => s.bg(C.raised))
-      .child(h_flex().w(ICON_W).flex_none().items_center().child(toolIcon(g.tool, RING)))
-      .children(g.rows.map(r => { const [wc, hc] = ringColors(r); return h_flex().flex_1().min_w(RING).justify_center().child(ring(RING, r.week, r.five, wc, hc)); }))));
+      .child(toolIcon(g.tool, RING))
+      .when(fit.includes(g), el => el.child(ringOf(g.rows[0])))
+      .when(!fit.includes(g), el => el.child(h_flex().flex_1().min_w(0).justify_center().items_center()
+        .children(g.rows.map(r => h_flex().flex_1().min_w(RING).max_w(SLOT_MAX).justify_center().child(ringOf(r))))))));
   if (!openState) return { head, panel: null };
   const bar = (label, pct, reset) => h_flex().w_full().gap(6).items_center().font_family(MONO).text_size(10.5)
     .child(div().w(18).flex_none().text_color(C.muted).child(label))

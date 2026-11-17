@@ -11,7 +11,6 @@
 <circle cx="1520" cy="-30" r="210" stroke-opacity=".09"/>
 <circle cx="1520" cy="-30" r="360" stroke-opacity=".06"/>
 <path d="M560 1000L980 0" stroke-opacity=".06"/>
-<path d="M1236 690h14M1243 683v14M316 118h14M323 111v14" stroke-opacity=".3"/>
 </g>
 <circle cx="268" cy="728" r="3" fill="#ffffff" fill-opacity=".45"/>
 <circle cx="1338" cy="212" r="3" fill="#ffffff" fill-opacity=".45"/>
