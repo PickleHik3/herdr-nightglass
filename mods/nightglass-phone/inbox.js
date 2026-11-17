@@ -310,13 +310,15 @@ export function renderInbox(view) {
       body.push(card(view, r, exH));
       body.push(pager(view, q, idx));
     } else {
-      const quiet = mine.filter(x => x.agent).length;
+      // Actual counts by status, zeros left out: "3 working · 1 idle" (done = finished, already seen; offline = unreachable).
+      const by = {}; for (const x of mine) if (x.agent) by[x.kind] = (by[x.kind] ?? 0) + 1;
+      const counts = ["working", "idle", "done", "offline"].filter(k => by[k]).map(k => `${by[k]} ${k === "done" ? "finished" : k}`).join(" · ") || "no agents";
       const seen = mine.filter(x => x.agent && x.kind === "done" && isDismissed(x));
       const where = filter && filter !== ALL ? `${snap.mBy.get(filter)?.name ?? filter}:` : "All:";
       body.push(v_flex().id("tnp-empty").w_full().flex_none().py(24).gap(8).items_center()
         .child(ico("check-circle", 40, C.green))
         .child(div().text_size(15).font_semibold().text_color(C.fg).child("Nothing needs you"))
-        .child(div().text_size(12).text_color(C.muted).child(`${where} ${quiet} agents are working or idle.`))
+        .child(div().text_size(12).text_color(C.muted).child(`${where} ${counts}`))
         .child(h_flex().id("tnp-see-all").h(40).px(14).items_center().rounded(10).bg(C.raised).font_medium().text_color(C.fg).cursor_pointer()
           .on_click((_e, cx) => { view.tab = "all"; cx.notify(); }).child("See all agents")));
       if (seen.length) body.push(floatBox(v_flex().id("tnp-finished").w_full().flex_none().p(6).gap(2))
