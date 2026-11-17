@@ -101,6 +101,17 @@ export function renderStrip(view) {
 
 // ---- tab bar: the shown space's tabs (Ctrl+Shift+T makes one), status capsule on the right ----
 const TAB_KIND = { blocked: "waiting", working: "working", done: "done", idle: "idle" };
+// A tab nobody named is called by its position ("1", "2"): show what runs in it instead. The focused pane (else
+// the first): the title its program set (Claude Code: the session title), else the program, else the folder.
+function tabLabel(t) {
+  if (t.named !== false && !/^\d+$/.test(String(t.name))) return t.name;
+  const ps = panes().filter(p => p.tab === t.id && p.terminal);
+  const p = ps.find(x => x.focused) ?? ps[0];
+  if (!p) return t.name;
+  const title = String(p.title ?? "").replace(/^[^\p{L}\p{N}~/.]+/u, "").trim(); // drop spinner / status glyphs
+  const folder = p.cwd ? p.cwd.replace(/\/+$/, "").split("/").pop() || "/" : "";
+  return title || p.program?.name || folder || t.name;
+}
 function tabRow(view, snap, att) {
   const sp = spaces().find(s => s.active);
   const mc = machineColor(mkey(sp?.machine ?? null));
@@ -110,20 +121,17 @@ function tabRow(view, snap, att) {
       .bg(on ? C.raised : CLEAR)
       .when(on, el => el.shadow_md())
       .cursor_pointer().hover(s => s.bg(on ? C.raisedHi : C.raised))
-      .on_hover((h, cx) => { const id = h ? t.id : view.tabHover === t.id ? null : view.tabHover; if (id !== view.tabHover) { view.tabHover = id; cx.notify(); } })
       .on_click(() => { if (!on) run("tab.select", { id: t.id }); })
       .child(mark(t.status ? TAB_KIND[t.status] ?? "idle" : "idle"))
-      .child(div().min_w(0).truncate().text_size(12).when(on, el => el.font_medium()).text_color(on ? C.fg : C.muted).child(t.name))
+      .child(div().min_w(0).truncate().text_size(12).when(on, el => el.font_medium()).text_color(on ? C.fg : C.muted).child(tabLabel(t)))
       .when(t.panes > 1, el => el.child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.muted).child(`×${t.panes}`)))
-      // Close on hover. The 20 px slot is ALWAYS there and only its opacity changes (natively transitioned):
-      // a tab that widened on hover pushed "+" sideways under the pointer, so aiming at "+" closed a tab.
-      // Nothing in the bar moves on hover. tab.close asks first when it would close the space's last tab.
+      // Close, always shown (muted; red under the pointer). It used to appear on hover by widening the tab, which
+      // pushed "+" sideways under the pointer, so aiming at "+" closed a tab. Nothing in the bar moves on hover.
+      // tab.close asks first when it would close the space's last tab.
       .child(h_flex().id(`tn-tab-xs-${t.id}`).w(20).h(16).flex_none().overflow_hidden().items_center()
-        .opacity(view.tabHover === t.id ? 1 : 0)
-        .transition("opacity", revealMotion(view.tabHover === t.id))
         .child(h_flex().id(`tn-tab-x-${t.id}`).size(16).flex_none().justify_center().items_center()
           .rounded(4).cursor_pointer().hover(s => s.bg(alpha(C.red, 0.25))).tooltip("Close tab")
-          .on_mouse_down("left", stop).on_click((_e, cx) => { view.tabHover = null; run("tab.close", { id: t.id }); cx.notify(); })
+          .on_mouse_down("left", stop).on_click(() => run("tab.close", { id: t.id }))
           .child(ico("win-close", 9, C.muted))));
   };
   const tabs = (sp?.tabs ?? []).filter(t => !t.settled || t.active);
