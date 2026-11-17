@@ -80,10 +80,13 @@ function openUsage(view, n) {
 }
 
 // ---- machine cards: the filter ----
-const CARD_W = 124, CARD_H = 60;
-function cardShell(id, sel, color) {
+const CARD_W = 134, CARD_H = 60; // wide enough for "This computer" beside the 20 px glyph
+// tinted: the whole tile takes the machine's color (stronger when selected); the All tile stays neutral until selected
+function cardShell(id, sel, color, tinted) {
+  const bg = tinted ? alpha(mix(color, C.glassBase, sel ? 0.22 : 0.12), sel ? 0.75 : 0.62) : sel ? alpha(mix(color, C.glassBase, 0.14), 0.6) : C.glass;
+  const rim = tinted ? alpha(color, sel ? 0.65 : 0.3) : sel ? alpha(color, 0.55) : C.rim;
   return v_flex().id(id).w(CARD_W).h(CARD_H).flex_none().px(10).py(8).gap(6).justify_center().rounded(12).cursor_pointer()
-    .bg(sel ? alpha(mix(color, C.glassBase, 0.14), 0.6) : C.glass).border(1).border_color(sel ? alpha(color, 0.55) : C.rim);
+    .bg(bg).border(1).border_color(rim);
 }
 function allCard(view, snap, filter) {
   const agents = snap.rows.filter(r => r.agent).length;
@@ -104,7 +107,7 @@ function machineCard(view, m, filter) {
   const ringIcon = (name, v, base) => h_flex().relative().size(RS).flex_none()
     .child(ringS(RS, v ?? 0, 0, level(v ?? 0, base), C.teal))
     .child(div().absolute().top((RS - ICO) / 2).left((RS - ICO) / 2).child(ico(name, ICO, C.muted)));
-  return cardShell(`tnp-m-${m.key}`, sel, machineColor(m.key)).opacity(m.offline ? 0.7 : 1)
+  return cardShell(`tnp-m-${m.key}`, sel, machineColor(m.key), true).opacity(m.offline ? 0.7 : 1)
     // The selected machine's card, tapped again, opens its scheme picker (there is no right-click on a phone).
     .on_mouse_down("left", (e, cx) => {
       cx.stop_propagation();
@@ -122,7 +125,9 @@ function machineCard(view, m, filter) {
       } else { view.setOpen(m.key); view.cardAddr = null; }
       cx.notify();
     }))
-    .child(h_flex().min_w(0).gap(6).items_center().child(mdot(m.key))
+    // the machine's glyph as on the desktop tiles, small: a tinted rounded square with the monitor / server icon
+    .child(h_flex().min_w(0).gap(6).items_center()
+      .child(h_flex().size(20).flex_none().rounded(6).justify_center().items_center().bg(alpha(machineColor(m.key), 0.2)).child(machineIcon(m, 12, machineColor(m.key))))
       .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name)))
     .child(m.offline
       ? div().truncate().text_size(10.5).text_color(C.amber).child("offline")
