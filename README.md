@@ -35,3 +35,7 @@ Herdr draws each notification as an overlay of kind `toast` and loads the mod na
 ## Layout cycle (`mods/layout-cycle`)
 
 `layout.switch` with no name cycles through every file in `layouts/`, including the shipped Herdr 98 and Terminals (put back on every start) and any `*.reset-<time>` copies. `mods/layout-cycle/` switches to the next of `nightglass`, `nightglass-phone` and `main` only (`CYCLE` in its `main.js`) and closes itself. Install it next to the other mods and bind it in `keys.json`: `"ctrl-shift-l": "mod.open:layout-cycle"`. Needs herdr-app 0.1.16 or later (`checking`).
+
+## herdr.dev gallery (`nightglass/`)
+
+`nightglass/` is the desktop layout as the herdr.dev layout gallery installs it (repo topic `herdr-layout`): `layouts/nightglass.json`, `mods/nightglass/`, `mods/nightglass-toast/`, `themes/nightglass*.json`, `RECIPE.md` and `preview.png`. Everything but the recipe and preview is copied from the root tree by `scripts/sync-gallery.sh`; run it after changing the desktop files (`--check` reports drift). Update `RECIPE.md` when behaviour changes. The phone layout is not in the gallery yet.
