@@ -113,14 +113,17 @@ export function statsMachine(snap, key) {
 }
 
 // ---- machine stats: one exec, two /proc/stat samples 0.5 s apart ----
-export const STATS_SCRIPT = `[ -r /proc/stat ] && [ -r /proc/meminfo ] || exit 3
-s() { awk '/^cpu /{t=0; for(i=2;i<=9;i++) t+=$i; print t, $5+$6}' /proc/stat; }
-a=$(s); sleep 0.5; b=$(s)
-echo "cpu $a $b"
+// No early exit: Android (Termux) denies /proc/stat and /proc/uptime, and its toybox `top` cannot read the system cpu
+// either (its header always says 800%idle), so there the cpu line is left out (cpu: null) and memory and disk still
+// report. Disk is the filesystem holding $HOME (the user's data; on Android `/` is the read-only system image, 100%).
+export const STATS_SCRIPT = `s() { awk '/^cpu /{t=0; for(i=2;i<=9;i++) t+=$i; print t, $5+$6}' /proc/stat 2>/dev/null; }
+a=$(s)
+if [ -n "$a" ]; then sleep 0.5; b=$(s); echo "cpu $a $b"; fi
 echo "cores $(nproc 2>/dev/null || echo 1)"
-echo "mem $(awk '/^MemTotal/{t=$2} /^MemAvailable/{a=$2} END{print t, a}' /proc/meminfo)"
-df -kP / | awk 'NR==2{print "disk", $2, $3, $4}'
-awk '{print "up", int($1)}' /proc/uptime
+echo "mem $(awk '/^MemTotal/{t=$2} /^MemAvailable/{a=$2} END{print t, a}' /proc/meminfo 2>/dev/null)"
+df -kP "\${HOME:-/}" 2>/dev/null | awk 'NR==2{print "disk", $2, $3, $4}'
+awk '{print "up", int($1)}' /proc/uptime 2>/dev/null
+exit 0
 `;
 export function parseStats(out) {
   const L = {};
@@ -129,11 +132,12 @@ export function parseStats(out) {
     if (k) L[k] = v.map(Number);
   }
   const cpu = L.cpu, mem = L.mem, disk = L.disk, up = L.up?.[0];
-  if (!cpu || cpu.length < 4 || !mem || !disk || cpu.some(Number.isNaN)) return null;
-  const dt = cpu[2] - cpu[0], di = cpu[3] - cpu[1];
+  if (!mem || mem.length < 2 || mem.some(Number.isNaN) || !disk || disk.length < 2) return null;
+  const cpuOk = !!cpu && cpu.length >= 4 && !cpu.some(Number.isNaN); // absent where /proc/stat is unreadable (Android)
+  const dt = cpuOk ? cpu[2] - cpu[0] : 0, di = cpuOk ? cpu[3] - cpu[1] : 0;
   const gb = (kb) => kb / 1048576;
   return {
-    cpu: dt > 0 ? Math.max(0, Math.min(100, Math.round((dt - di) / dt * 100))) : 0,
+    cpu: !cpuOk ? null : dt > 0 ? Math.max(0, Math.min(100, Math.round((dt - di) / dt * 100))) : 0,
     cores: L.cores?.[0] || 1,
     memPct: mem[0] > 0 ? Math.round((mem[0] - mem[1]) / mem[0] * 100) : 0,
     memText: `${gb(mem[0] - mem[1]).toFixed(1)}/${Math.round(gb(mem[0]))} GB`,
