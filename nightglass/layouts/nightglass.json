@@ -1,0 +1,167 @@
+{
+  "id": "root",
+  "toast": "nightglass-toast",
+  "type": "row",
+  "titlebar": "none",
+  "traffic_lights": [
+    20,
+    22
+  ],
+  "theme": "nightglass",
+  "background": {
+    "image": "mods/nightglass/wallpaper.png",
+    "fit": "cover"
+  },
+  "padding": 8,
+  "gap": 8,
+  "terminal_padding": [
+    14,
+    22
+  ],
+  "terminal_opacity": 0.82,
+  "preview": "layouts/nightglass.svg",
+  "ui_font": "Inter",
+  "font": "JetBrains Mono",
+  "font_size": 13,
+  "children": [
+    {
+      "id": "sidebar",
+      "type": "block",
+      "size": {
+        "px": 268
+      },
+      "min": 56,
+      "max": 480,
+      "content": {
+        "mod": "nightglass",
+        "props": {
+          "role": "sidebar"
+        }
+      }
+    },
+    {
+      "id": "work",
+      "type": "column",
+      "gap": 8,
+      "resizable": false,
+      "children": [
+        {
+          "id": "header",
+          "type": "block",
+          "size": {
+            "px": 38
+          },
+          "window_drag": true,
+          "content": {
+            "mod": "nightglass",
+            "props": {
+              "role": "header"
+            }
+          }
+        },
+        {
+          "id": "strip",
+          "type": "block",
+          "size": {
+            "px": 40
+          },
+          "content": {
+            "mod": "nightglass",
+            "props": {
+              "role": "strip"
+            }
+          }
+        },
+        {
+          "id": "work-body",
+          "type": "row",
+          "gap": 8,
+          "children": [
+            {
+              "id": "main-stack",
+              "type": "stack",
+              "active": "main",
+              "children": [
+                {
+                  "id": "main",
+                  "type": "block",
+                  "content": {
+                    "tab": "active",
+                    "pane": {
+                      "gap": 8,
+                      "radius": 12,
+                      "background": "surface",
+                      "lone": true,
+                      "border": {
+                        "width": 1,
+                        "color": "border"
+                      },
+                      "focus": {
+                        "width": 1,
+                        "color": "#ffffff40"
+                      },
+                      "header": {
+                        "content": {
+                          "mod": "nightglass",
+                          "props": {
+                            "role": "pane"
+                          }
+                        },
+                        "height": 34,
+                        "position": "top",
+                        "reveal": "always"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "empty",
+                  "type": "block",
+                  "content": {
+                    "mod": "nightglass",
+                    "props": {
+                      "role": "empty"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "id": "panel",
+              "type": "column",
+              "size": {
+                "px": 368
+              },
+              "min": 280,
+              "max": 900,
+              "hidden": true,
+              "children": [
+                {
+                  "id": "panel-body",
+                  "type": "stack",
+                  "active": "files",
+                  "children": [
+                    {
+                      "id": "files",
+                      "type": "block",
+                      "content": {
+                        "mod": "files"
+                      }
+                    },
+                    {
+                      "id": "changes",
+                      "type": "block",
+                      "content": {
+                        "mod": "changes"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

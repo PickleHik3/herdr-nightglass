@@ -1,0 +1,244 @@
+// nightglass: the header (search pill, panel toggles, window buttons) and the usage popup.
+import { div, image } from "gpui-kit";
+import { h_flex, v_flex } from "gpui-base";
+import { run, openOverlay, closeOverlay, props, spaces, panes, machines, focused, layout, window, shared, setShared, exec } from "herdr";
+import { C, MONO, CLEAR, alpha, dur, ico, ring, level, stop, findNode, anchorBelowRight, setPressed, getPressed, bindingOf } from "./lib.js";
+import { snapshot, USAGE_MACHINE, parseUsageJson } from "./data.js";
+
+const MOD = "nightglass";
+const USAGE_KEY = "nightglass.usage";
+const USAGE_W = 392;
+const ROW_H = 54;
+const RIGHT_RESERVE = 360; // Files + Changes +N + Settings + window buttons
+const usageHeight = (n) => Math.min(720, 24 + 18 + 16 + n * ROW_H + 34 + (n + 2) * 8);
+
+// ---- pollers (called from timers, each with its own cx) ----
+const place = (s) => {
+  const tabs = new Set((s.tabs ?? []).map(t => t.id));
+  return panes().find(p => tabs.has(p.tab) && p.cwd)?.cwd || s.folder;
+};
+export function pollChanges(view, cx) {
+  const f = focused();
+  const sp = f && spaces().find(s => s.id === f.space);
+  const cwd = sp && (f.cwd || place(sp));
+  if (!sp || !cwd) { if (view.changes) { view.changes = 0; cx.notify(); } return; }
+  const key = `${sp.machine}|${cwd}`, now = Date.now();
+  if (view.chBusy || (key === view.chKey && now - view.chAt < 10000)) return;
+  view.chKey = key; view.chAt = now; view.chBusy = true;
+  cx.spawn(async (cx) => {
+    let n = 0;
+    try {
+      const r = await exec("git", ["--no-optional-locks", "status", "--porcelain"], { cwd, on: sp.machine });
+      n = r.code === 0 ? r.stdout.split("\n").filter(Boolean).length : 0;
+    } catch { n = 0; }
+    view.chBusy = false;
+    if (n !== view.changes) { view.changes = n; cx.notify(); }
+  });
+}
+// Opt-in: the sidebar block's prop "usage" is a machine name, or true for USAGE_MACHINE; no prop, no polling and no usage UI.
+export function usageMachine() {
+  const u = props()?.usage;
+  if (u === true) return USAGE_MACHINE;
+  return typeof u === "string" && u ? u : null;
+}
+// ai-usage-tui --json (by path: ~/.local/bin isn't on sh's PATH there) on USAGE_MACHINE every 120 s (it calls the Anthropic usage endpoints), shared as parsed data.
+export function pollUsage(view, cx) {
+  const um = view.usageM;
+  if (!um || view.usageBusy) return;
+  const m = machines().find(x => x.name === um);
+  if (!m || m.layout !== "ready") return;
+  const now = Date.now(), cur = shared(USAGE_KEY);
+  const wait = cur?.rows?.length ? 120000 : 20000;
+  if (view.usageTried && now - view.usageTried < wait) return;
+  view.usageTried = now; view.usageBusy = true;
+  cx.spawn(async (cx) => {
+    let rows = null;
+    try {
+      const r = await exec("sh", ["-c", '"$HOME/.local/bin/ai-usage-tui" --json'], { on: um, timeout: 60000 });
+      if (r.code === 0) rows = parseUsageJson(r.stdout);
+    } catch { rows = null; }
+    view.usageBusy = false;
+    if (rows && rows.length) setShared(USAGE_KEY, { at: Date.now(), rows, stale: false });
+    else { const prev = shared(USAGE_KEY); if (prev && !prev.stale) setShared(USAGE_KEY, { ...prev, stale: true }); }
+  });
+}
+
+// ---- Files / Changes panel, remembered per space (as dynamic-board does) ----
+function syncPanel(view, space, panel, body, enabled) {
+  if (!space || !panel) return;
+  let stored = {};
+  try { stored = JSON.parse(localStorage.getItem("panels") ?? "{}"); } catch { stored = {}; }
+  view.panels ??= stored;
+  const now = panel.hidden ? null : body?.active ?? null;
+  if (space.id !== view.panelSpace) {
+    const first = view.panelSpace === undefined;
+    view.panelSpace = space.id; view.panelPending = null;
+    if (!(first && !(space.id in view.panels))) {
+      const s = view.panels[space.id] ?? null, want = enabled.includes(s) ? s : null;
+      if (want !== now) {
+        view.panelPending = { want, until: Date.now() + 1000 };
+        if (want) { run("layout.select", { stack: "panel-body", child: want }); run("layout.show", { id: "panel" }); }
+        else run("layout.hide", { id: "panel" });
+        return;
+      }
+    }
+  }
+  if (view.panelPending) {
+    if (view.panelPending.want !== now && Date.now() < view.panelPending.until) return;
+    view.panelPending = null;
+  }
+  if (view.panels[space.id] === now) return;
+  view.panels[space.id] = now;
+  try { localStorage.setItem("panels", JSON.stringify(view.panels)); } catch { /* storage unavailable */ }
+}
+function panelButtons(view) {
+  const root = layout();
+  const panel = findNode(root, "panel"), body = findNode(root, "panel-body");
+  if (!panel || !body) return [];
+  syncPanel(view, spaces().find(s => s.active), panel, body, ["files", "changes"]);
+  const btn = (id, label, icon, extra) => {
+    const on = !panel.hidden && body.active === id;
+    const b = h_flex().id(`tn-panel-${id}`).h(28).px(10).gap(6).flex_none().items_center().rounded(8);
+    // No fill at rest; the on-state is the raised tint with primary text.
+    return b.bg(on ? C.raised : CLEAR)
+      .text_size(12).text_color(on ? C.fg : C.muted)
+      .cursor_pointer().hover(s => s.bg(on ? C.raisedHi : C.raised))
+      .on_mouse_down("left", stop)
+      .on_click(() => {
+        if (on) run("layout.hide", { id: "panel" });
+        else { run("layout.select", { stack: "panel-body", child: id }); run("layout.show", { id: "panel" }); }
+      })
+      .child(ico(icon, 13, on ? C.fg : C.muted)).child(div().child(label))
+      .when(!!extra, el => el.child(div().font_family(MONO).text_size(10.5).text_color(C.amber).child(extra)));
+  };
+  return [btn("files", "Files", "file"), btn("changes", "Changes", "changes", view.changes > 0 ? `+${view.changes}` : "")];
+}
+
+function windowButtons() {
+  const btn = (id, icon, action, danger) => h_flex().id(id).w(30).h(28).flex_none().justify_center().items_center().rounded(8)
+    .cursor_pointer().hover(s => s.bg(danger ? C.red : C.raised))
+    .on_mouse_down("left", stop).on_click(action).child(ico(icon, 12, C.muted));
+  return [
+    btn("tn-win-min", "win-min", () => run("window.minimize")),
+    btn("tn-win-max", "win-max", () => run("window.maximize")),
+    btn("tn-win-close", "win-close", () => run("window.close"), true),
+  ];
+}
+
+const toolIcon = (tool, size) => image(`icons/${tool === "codex" ? "codex" : "claude"}.svg`).size(size).flex_none();
+const UROW = 62; // one account row in the expanded usage list
+const resetIn = (at) => at ? dur(at * 1000 - Date.now()) : null;
+const ringColors = (u) => [level(u.week ?? 0, C.accent), level(u.five ?? 0, C.teal)];
+
+export function renderHeader(view) {
+  const snap = snapshot();
+  // Stable sample: the lowest terminal address, so the pill's text doesn't change with focus.
+  const sample = snap.rows.map(r => r.short).filter(Boolean)
+    .sort((a, b) => (parseInt(a.slice(1)) || 0) - (parseInt(b.slice(1)) || 0))[0] ?? "t1";
+  const key = bindingOf("app.palette");
+  const win = !!window()?.buttons;
+  // The pill is centered on the window, not the header: an absolute band reaches left over the
+  // sidebar (its layout width + the root gap) to the window's padding, and centers the pill in it
+  // by flex, with equal insets on both sides wide enough to clear the sidebar and the right-hand
+  // buttons. No measured width is used (a measured size can disagree with layout px under zoom),
+  // and nothing on the right (usage rings, the Changes count) can move it.
+  const sbNode = findNode(layout(), "sidebar");
+  const sb = sbNode && !sbNode.hidden ? (sbNode.size?.px ?? 268) + 8 : 0;
+  const inset = Math.max(sb + 12, RIGHT_RESERVE);
+  return h_flex().id("tn-header").relative().size_full().px(12).gap(8).items_center().overflow_hidden()
+    .child(h_flex().absolute().top(0).bottom(0).left(-sb).right(0).px(inset).justify_center().items_center()
+      .child(h_flex().id("tn-search").flex_1().min_w(120).max_w(440).h(30).pl(10).pr(6).gap(8).items_center().rounded(15)
+      .bg(C.well).border(1).border_color(C.rim).text_size(12).text_color(C.muted).cursor_pointer()
+      .on_mouse_down("left", stop).on_click(() => run("app.palette"))
+      .child(ico("search", 13, C.muted))
+      .child(h_flex().flex_1().min_w(0).overflow_hidden().whitespace_nowrap()
+        .child(div().flex_none().child("Jump to an agent, "))
+        .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.fg).child(sample))
+        .child(div().flex_none().child(", or a command")))
+      .when(!!key, el => el.child(div().flex_none().px(8).py(1).rounded(6).bg(C.raised).font_family(MONO).text_size(10.5)
+        .text_color(C.muted).child(key)))))
+    .child(div().flex_1().h(1))
+    .children(panelButtons(view))
+    .child(h_flex().id("tn-settings").size(28).flex_none().justify_center().items_center().rounded(8).cursor_pointer()
+      .hover(s => s.bg(C.raised)).tooltip("Settings")
+      .on_mouse_down("left", stop).on_click(() => run("app.settings")).child(ico("settings", 15, C.muted)))
+    .when(win, el => el.child(div().w(6)).children(windowButtons()));
+}
+
+// ---- Claude usage (sidebar dock) ----
+// Returns { head, panel } or null. head is the collapsed row: one pill per tool (icon + rings),
+// stretched edge to edge. panel is the expanded content (legend, an account per row, collapse),
+// null while collapsed; the dock draws it above the head.
+export function usageParts(view) {
+  const um = usageMachine();
+  if (!um) return null;
+  const u = shared(USAGE_KEY);
+  const rows = u?.rows ?? [];
+  if (!rows.length || !machines().some(m => m.name === um)) return null;
+  const openState = view.usageOpen ?? (view.usageOpen = (() => { try { return localStorage.getItem("usageOpen") === "1"; } catch { return false; } })());
+  const toggle = (_e, cx) => {
+    view.usageOpen = !openState;
+    try { localStorage.setItem("usageOpen", view.usageOpen ? "1" : "0"); } catch { /* storage unavailable */ }
+    cx.notify();
+  };
+  const age = u.at ? (Date.now() - u.at < 60000 ? `${Math.max(1, Math.round((Date.now() - u.at) / 1000))}s ago` : `${dur(Date.now() - u.at)} ago`) : "";
+  const groups = [];
+  for (const r of rows) {
+    const tool = r.tool === "codex" ? "codex" : "claude";
+    const g = groups.find(x => x.tool === tool) ?? (groups.push({ tool, rows: [] }), groups[groups.length - 1]);
+    g.rows.push(r);
+  }
+  // Glass: one well per tool, 34 high, rings 22. Laid out by flex alone (a measured width can
+  // disagree with the laid-out one under zoom, which clipped the last well): a tool with one
+  // account gets a well just as wide as its icon and ring; tools with several share the rest,
+  // their rings in centered slots no wider than RING + 8, so they stay close at any width.
+  const RING = 22, GAP = 6, SLOT_MAX = RING + 8;
+  const fit = groups.every(g => g.rows.length === 1) ? [] : groups.filter(g => g.rows.length === 1);
+  const ringOf = (r) => { const [wc, hc] = ringColors(r); return ring(RING, r.week, r.five, wc, hc); };
+  const head = h_flex().id("tn-usage-head").w_full().h(34).flex_none().gap(GAP).items_center().cursor_pointer().on_click(toggle)
+    .opacity(u.stale ? 0.6 : 1)
+    .tooltip(openState ? "" : `Claude usage · ${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage-tui on ${um}`)
+    .children(groups.map(g => h_flex().h(34).px(6).gap(6).items_center().rounded(10).bg(C.well)
+      .when(fit.includes(g), el => el.flex_none())
+      .when(!fit.includes(g), el => el.flex_1().min_w(0))
+      .hover(s => s.bg(C.raised))
+      .child(toolIcon(g.tool, RING))
+      .when(fit.includes(g), el => el.child(ringOf(g.rows[0])))
+      .when(!fit.includes(g), el => el.child(h_flex().flex_1().min_w(0).justify_center().items_center()
+        .children(g.rows.map(r => h_flex().flex_1().min_w(RING).max_w(SLOT_MAX).justify_center().child(ringOf(r))))))));
+  if (!openState) return { head, panel: null };
+  const bar = (label, pct, reset) => h_flex().w_full().gap(6).items_center().font_family(MONO).text_size(10.5)
+    .child(div().w(18).flex_none().text_color(C.muted).child(label))
+    .child(div().flex_1().min_w(0).h(4).rounded(2).bg(C.raised).overflow_hidden()
+      .when(pct != null, el => el.child(div().h(4).rounded(2).w(`${Math.max(2, Math.min(100, pct))}%`).bg(level(pct, label === "5h" ? C.teal : C.accent)))))
+    .child(div().w(28).flex_none().text_right().text_color(pct == null ? C.muted : level(pct, C.muted)).child(pct == null ? "–" : `${Math.round(pct)}%`))
+    .child(div().w(46).flex_none().text_right().whitespace_nowrap().text_color(C.muted).child(reset ?? ""));
+  const row = (r) => {
+    const hot = (r.week ?? 0) >= 85 || (r.five ?? 0) >= 85;
+    const [wc, hc] = ringColors(r);
+    return h_flex().w_full().h(UROW).flex_none().gap(10).px(8).items_center().rounded(10)
+      .bg(hot ? alpha(C.red, 0.16) : C.well)
+      .child(ring(30, r.week, r.five, wc, hc))
+      .child(v_flex().flex_1().min_w(0).gap(3)
+        .child(h_flex().gap(6).items_center().child(toolIcon(r.tool, 12)).child(div().text_size(12).font_semibold().text_color(C.fg).child(r.name))
+          .child(div().font_family(MONO).text_size(10.5).text_color(C.muted).child(r.plan))
+          .when(!!r.saved, el => el.child(div().font_family(MONO).text_size(10.5).text_color(C.amber).child(`saved ${dur(Date.now() - r.saved * 1000)}`))))
+        .when(!!r.note, el => el.child(div().text_size(11).text_color(C.amber).truncate().child(r.note)))
+        .when(!r.note, el => el.child(bar("wk", r.week, resetIn(r.weekAt))).child(bar("5h", r.five, resetIn(r.fiveAt)))));
+  };
+  // The expanded list is capped by the sidebar height (view.height) and scrolls past that.
+  const cap = Math.max(120, Math.round((view.height ?? 600) * 0.55) - 130); // leaves the list box room
+  // An explicit height (content, capped): a scroll area with only max_h takes all the room it may
+  // and pushed the usage row and stats out of the widget box.
+  const contentH = 16 + rows.length * UROW + 14 + (rows.length + 1) * 8;
+  const panel = v_flex().id("tn-usage-panel").w_full().flex_none().h(Math.min(cap, contentH)).gap(8).overflow_y_scrollbar().opacity(u.stale ? 0.6 : 1)
+    .child(h_flex().w_full().h(16).flex_none().gap(12).items_center().text_size(11).text_color(C.muted)
+      .child(h_flex().gap(5).items_center().child(div().size(9).rounded(5).border(2).border_color(C.accent)).child(div().child("outer: week")))
+      .child(h_flex().gap(5).items_center().child(div().size(5).rounded(3).bg(C.teal)).child(div().child("inner: 5-hour")))
+      .child(div().flex_1())
+      .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.muted).child(u.stale ? `stale · ${age}` : age)))
+    .children(rows.map(row))
+    .child(h_flex().id("tn-usage-fold").w_full().h(14).flex_none().justify_center().items_center().rounded(7).cursor_pointer()
+      .tooltip("Collapse").hover(s => s.bg(C.raised)).on_click(toggle).child(ico("chevron-down", 12, C.muted)));
+  return { head, panel };
+}
