@@ -115,12 +115,12 @@ function tabRow(view, snap, att) {
       .child(mark(t.status ? TAB_KIND[t.status] ?? "idle" : "idle"))
       .child(div().min_w(0).truncate().text_size(12).when(on, el => el.font_medium()).text_color(on ? C.fg : C.muted).child(t.name))
       .when(t.panes > 1, el => el.child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.muted).child(`×${t.panes}`)))
-      // Close on hover. The slot is always there and only its width and opacity change, natively
-      // transitioned, so the pill grows smoothly and its neighbours slide over instead of jumping.
-      // tab.close asks first when it would close the space's last tab.
-      .child(h_flex().id(`tn-tab-xs-${t.id}`).h(16).flex_none().overflow_hidden().items_center()
-        .w(view.tabHover === t.id ? 20 : 0).opacity(view.tabHover === t.id ? 1 : 0)
-        .transition("width", revealMotion(view.tabHover === t.id)).transition("opacity", revealMotion(view.tabHover === t.id))
+      // Close on hover. The 20 px slot is ALWAYS there and only its opacity changes (natively transitioned):
+      // a tab that widened on hover pushed "+" sideways under the pointer, so aiming at "+" closed a tab.
+      // Nothing in the bar moves on hover. tab.close asks first when it would close the space's last tab.
+      .child(h_flex().id(`tn-tab-xs-${t.id}`).w(20).h(16).flex_none().overflow_hidden().items_center()
+        .opacity(view.tabHover === t.id ? 1 : 0)
+        .transition("opacity", revealMotion(view.tabHover === t.id))
         .child(h_flex().id(`tn-tab-x-${t.id}`).size(16).flex_none().justify_center().items_center()
           .rounded(4).cursor_pointer().hover(s => s.bg(alpha(C.red, 0.25))).tooltip("Close tab")
           .on_mouse_down("left", stop).on_click((_e, cx) => { view.tabHover = null; run("tab.close", { id: t.id }); cx.notify(); })
