@@ -1,4 +1,4 @@
-// nightglass: the header (search pill, usage rings, panel toggles, window buttons) and the usage popup.
+// nightglass: the header (search pill, panel toggles, window buttons) and the usage popup.
 import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, props, spaces, panes, machines, focused, layout, window, shared, setShared, exec } from "herdr";
@@ -35,10 +35,17 @@ export function pollChanges(view, cx) {
     if (n !== view.changes) { view.changes = n; cx.notify(); }
   });
 }
+// Opt-in: the sidebar block's prop "usage" is a machine name, or true for USAGE_MACHINE; no prop, no polling and no usage UI.
+export function usageMachine() {
+  const u = props()?.usage;
+  if (u === true) return USAGE_MACHINE;
+  return typeof u === "string" && u ? u : null;
+}
 // ai-usage-tui --json (by path: ~/.local/bin isn't on sh's PATH there) on USAGE_MACHINE every 120 s (it calls the Anthropic usage endpoints), shared as parsed data.
 export function pollUsage(view, cx) {
-  if (view.usageBusy) return;
-  const m = machines().find(x => x.name === USAGE_MACHINE);
+  const um = view.usageM;
+  if (!um || view.usageBusy) return;
+  const m = machines().find(x => x.name === um);
   if (!m || m.layout !== "ready") return;
   const now = Date.now(), cur = shared(USAGE_KEY);
   const wait = cur?.rows?.length ? 120000 : 20000;
@@ -47,7 +54,7 @@ export function pollUsage(view, cx) {
   cx.spawn(async (cx) => {
     let rows = null;
     try {
-      const r = await exec("sh", ["-c", '"$HOME/.local/bin/ai-usage-tui" --json'], { on: USAGE_MACHINE, timeout: 60000 });
+      const r = await exec("sh", ["-c", '"$HOME/.local/bin/ai-usage-tui" --json'], { on: um, timeout: 60000 });
       if (r.code === 0) rows = parseUsageJson(r.stdout);
     } catch { rows = null; }
     view.usageBusy = false;
@@ -163,9 +170,11 @@ export function renderHeader(view) {
 // stretched edge to edge. panel is the expanded content (legend, an account per row, collapse),
 // null while collapsed; the dock draws it above the head.
 export function usageParts(view) {
+  const um = usageMachine();
+  if (!um) return null;
   const u = shared(USAGE_KEY);
   const rows = u?.rows ?? [];
-  if (!rows.length || !machines().some(m => m.name === USAGE_MACHINE)) return null;
+  if (!rows.length || !machines().some(m => m.name === um)) return null;
   const openState = view.usageOpen ?? (view.usageOpen = (() => { try { return localStorage.getItem("usageOpen") === "1"; } catch { return false; } })());
   const toggle = (_e, cx) => {
     view.usageOpen = !openState;
@@ -188,7 +197,7 @@ export function usageParts(view) {
   const ringOf = (r) => { const [wc, hc] = ringColors(r); return ring(RING, r.week, r.five, wc, hc); };
   const head = h_flex().id("tn-usage-head").w_full().h(34).flex_none().gap(GAP).items_center().cursor_pointer().on_click(toggle)
     .opacity(u.stale ? 0.6 : 1)
-    .tooltip(openState ? "" : `Claude usage · ${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage-tui on ${USAGE_MACHINE}`)
+    .tooltip(openState ? "" : `Claude usage · ${rows.length} account${rows.length === 1 ? "" : "s"} · ai-usage-tui on ${um}`)
     .children(groups.map(g => h_flex().h(34).px(6).gap(6).items_center().rounded(10).bg(C.well)
       .when(fit.includes(g), el => el.flex_none())
       .when(!fit.includes(g), el => el.flex_1().min_w(0))

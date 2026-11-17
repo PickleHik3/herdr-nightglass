@@ -1,6 +1,6 @@
 // nightglass: one multi-role mod for the "nightglass" layout.
 //   sidebar  machines, folder capsules, system stats (and the 56 px rail below 160 px wide)
-//   header   search pill, Claude usage rings, Files / Changes, settings, window buttons
+//   header   search pill, Files / Changes, settings, window buttons
 //   strip    "Nothing needs you" / offline banner / "Needs you" cards (sizes its own block)
 //   pane     the pane header
 //   newmenu, agentmenu, spaces          popups opened by the roles above
@@ -8,7 +8,7 @@
 import { View, div } from "gpui-kit";
 import { props, exec, run, shared, setShared } from "herdr";
 import { renderSidebar, renderNewMenu, renderAgentMenu, renderSpacesPopup, renderColorsPopup, loadAgents, prefetchAgents } from "./sidebar.js";
-import { renderHeader, pollChanges, pollUsage } from "./header.js";
+import { renderHeader, pollChanges, pollUsage, usageMachine } from "./header.js";
 import { renderStrip, renderPane, renderEmpty, EMPTY_KEY } from "./strip.js";
 import { snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
 import { nodePx, machineScheme, ALL_THEME } from "./lib.js";
@@ -25,8 +25,11 @@ export default class Nightglass extends View {
       cx.timer.every(3000, (cx) => this.pollStats(cx));
       cx.timer.every(30000, (cx) => cx.notify()); // elapsed times
       cx.timer.every(500, (cx) => this.watchFocus(cx));
-      pollUsage(this, cx);
-      cx.timer.every(5000, (cx) => pollUsage(this, cx));
+      this.usageM = usageMachine(); // opt-in: block prop "usage" (read here: timers run outside props())
+      if (this.usageM) {
+        pollUsage(this, cx);
+        cx.timer.every(5000, (cx) => pollUsage(this, cx));
+      }
     }
     if (role === "header") {
       pollChanges(this, cx);
