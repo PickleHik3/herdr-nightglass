@@ -47,11 +47,17 @@ The same glass look for Herdr on a portrait phone screen (designed for 412 px wi
 - **Answer from the card.** Yes / Always / No prompts get one-tap buttons. A question shows its full text and each option's description, with a numbered row per option. **Open** shows the terminal full screen with a message box and a Files / Changes sheet.
 - **Nothing needs you** shows the real counts, like "3 working · 1 idle".
 
-Install it next to the desktop layout (it uses `mods/nightglass/` for icons, rings and the wallpaper): copy `layouts/nightglass-phone.json`, `mods/nightglass-phone/`, `mods/nightglass/`, `mods/nightglass-toast/` and `themes/` into `~/.config/herdr-app/`. For usage rings add `"usage": "<machine>"` (or `true`) to the inbox block's props. On Android, CPU stays blank: apps can't read `/proc/stat`.
+Inside Herdr, ask your agent:
+
+```
+Read ~/.config/herdr-app/AGENTS.md, then add this layout: herdr.dev/layouts/PickleHik3/nightglass-phone
+```
+
+Or install it by hand: copy `nightglass-phone/layouts`, `nightglass-phone/mods` and `nightglass-phone/themes` into `~/.config/herdr-app/` (the folder includes `mods/nightglass/`, which the phone mod uses for icons, rings and the wallpaper). For usage rings add `"usage": "<machine>"` (or `true`) to the inbox block's props. On Android, CPU stays blank: apps can't read `/proc/stat`.
 
 ## Also in this repo
 
-- **Nightglass Phone** (`layouts/nightglass-phone.json`, `mods/nightglass-phone/`): described above; not in the gallery yet.
+- **Nightglass Phone** (`layouts/nightglass-phone.json`, `mods/nightglass-phone/`): described above; in the gallery.
 - **Layout cycle** (`mods/layout-cycle/`): `ctrl-shift-l` switches between `nightglass`, `nightglass-phone` and Herdr's `main` only. Bind it in `keys.json` with `"ctrl-shift-l": "mod.open:layout-cycle"`.
 
 ## Working on it
