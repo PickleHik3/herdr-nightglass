@@ -168,19 +168,31 @@ function card(view, r, exH) {
   const asking = choices.length > 0 && !isPermission(choices);
   const exQ = asking ? Math.max(EX_MIN, exH - 46 * choices.length) : exH;
   const nLines = Math.max(3, Math.floor((exQ - 16) / LINE));
-  // A question: the screen text ends just above its option 1 (the options are rows below), so the question shows,
-  // not the options again; trailing blank and rule lines are dropped.
   let src = mine?.lines ?? [];
+  let question = null;
   if (asking) {
-    let at = -1;
+    // A question (Claude Code's ask dialog): the text between its tab header ("← ☐ … Submit →", when there is one) and
+    // option 1, with rules, blanks and quote bars dropped and the screen's line breaks joined into prose.
+    let at = -1, from = 0;
     for (let i = src.length - 1; i >= 0; i--) if (/^(?:[❯›>]\s*)?1[.)]\s+/.test(src[i].replace(/^[\s│┃|]+/, ""))) { at = i; break; }
-    if (at > 0) src = src.slice(0, at).filter(l => !/^[\s─━—\-=_│┃|]*$/.test(l)); // rules and blanks waste preview rows
+    for (let i = (at > 0 ? at : src.length) - 1; i >= 0; i--) if (/Submit\s*→|^\s*←/.test(src[i])) { from = i + 1; break; }
+    question = (at > 0 ? src.slice(from, at) : src).map(l => l.replace(/^[\s│┃|]+/, "").trim()).filter(l => l && !/^[─━—\-=_]+$/.test(l)).join(" ");
   }
   const lines = src.length ? src.slice(-nLines) : null;
-  const excerpt = v_flex().id("tnp-excerpt").w_full().h(exQ).flex_none().px(10).py(8).justify_end().overflow_hidden().rounded(10)
+  // A question reads as prose in the UI font and scrolls in its own box from its start (drag to read the rest);
+  // terminal output stays the last lines, one per row, bottom-aligned (0.1.13 cannot scroll a box to its end).
+  const excerpt = asking && question
+    ? swipeArea(watchScroll(v_flex().id("tnp-excerpt").w_full().h(Math.max(exQ, 132)).flex_none().overflow_y_scroll().rounded(10)
+        .bg(alpha("#000000", 0.45)).border(1).border_color(C.rim), view))
+      .child(swipeBody(v_flex().w_full().flex_none().px(12).py(10).gap(10))
+        .child(div().w_full().text_size(14).line_height(1.45).text_color(C.fg).child(question))
+        // each option with its description (gain / loss): what you need to choose; the numbered rows below answer
+        .children(choices.filter(c => c.desc).map(c => v_flex().w_full().gap(2)
+          .child(div().w_full().text_size(13).font_semibold().text_color(C.fg).child(`${c.n}. ${c.label}`))
+          .child(div().w_full().text_size(12).line_height(1.4).text_color(C.muted).child(c.desc)))))
+    : v_flex().id("tnp-excerpt").w_full().h(exQ).flex_none().px(10).py(8).justify_end().overflow_hidden().rounded(10)
     .bg(alpha("#000000", 0.45)).border(1).border_color(C.rim).font_family(MONO).text_size(10.5).line_height(1.5)
-    // a question's text wraps (it is prose); terminal output stays one line per row
-    .when(!!lines, el => el.children(lines.map(l => (asking ? div().w_full().flex_none() : div().w_full().whitespace_nowrap().overflow_hidden()).text_color(alpha(C.fg, 0.85)).child(l.trim() ? (asking ? l.replace(/^[\s│┃|]+/, "").trim() : l) : " "))))
+    .when(!!lines, el => el.children(lines.map(l => div().w_full().whitespace_nowrap().overflow_hidden().text_color(alpha(C.fg, 0.85)).child(l || " "))))
     // no screen text (yet): the agent's own line, as the agent rows show it
     .when(!lines, el => el.child(div().w_full().text_color(C.muted).child(r.now || ""))
       .child(div().w_full().text_color(C.dim).child(mine?.fail ? "terminal text unavailable" : "reading…")));

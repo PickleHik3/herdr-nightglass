@@ -112,7 +112,7 @@ export function pollPreview(view, cx, address, force) {
       if (r.code === 0) {
         const all = String(r.stdout).replace(ANSI, "").split("\n").map(l => l.replace(/\s+$/, ""));
         while (all.length && !all[all.length - 1]) all.pop();
-        lines = all.slice(-24);
+        lines = all.slice(-60); // a question with described options runs ~30 lines; the card shows only what fits
       }
     } catch { lines = null; }
     view.pvBusy = false;
@@ -126,17 +126,22 @@ export function pollPreview(view, cx, address, force) {
 // again ...", "  3. No, and tell ..."), from the last lines of the preview: [{ n, label }] for 1, 2, 3... in order (at most
 // three, at least two), or [].
 export function dialogChoices(lines) {
+  // Options can carry description lines (Claude Code's ask dialog: "1. Label" then indented text), so a list runs well past
+  // a screen's last 16 lines: scan 60. Description lines attach to the option above them as `desc`.
   const out = [];
-  for (const raw of (lines ?? []).slice(-16)) {
+  for (const raw of (lines ?? []).slice(-60)) {
     const l = raw.replace(/^[\s│┃|]+/, "").replace(/[\s│┃|]+$/, "");
     const m = /^(?:[❯›>]\s*)?([1-9])[.)]\s+(.+)$/.exec(l);
-    if (!m) continue;
+    if (!m) {
+      if (out.length && l && !/^[─━—\-=_]+$/.test(l) && !/Enter to select|Esc to cancel/.test(l) && /^\s{3,}/.test(raw)) out[out.length - 1].desc.push(l);
+      continue;
+    }
     const n = Number(m[1]);
     if (n === 1) out.length = 0;                 // a later list starts again
     if (n !== out.length + 1) continue;
-    out.push({ n, label: m[2] });
+    out.push({ n, label: m[2], desc: [] });
   }
-  return out.length >= 2 ? out : []; // one numbered line is not a dialog (a list in the agent's output); all choices (1-9)
+  return out.length >= 2 ? out.map(c => ({ ...c, desc: c.desc.join(" ") })) : []; // one numbered line is not a dialog
 }
 // A permission prompt: every choice reads as Yes / Always / No (the chip row); anything else is a question (one row each).
 export const isPermission = (choices) => choices.length <= 3 && choices.every(c => ["Yes", "Always", "No"].includes(choiceLabel(c.label)));
