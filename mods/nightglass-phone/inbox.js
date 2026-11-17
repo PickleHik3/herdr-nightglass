@@ -57,7 +57,7 @@ function header(view, snap, filter, usageRows) {
   const ringOf = (r) => { const [wc, hc] = ringColors(r); return ring(RING, r.week, r.five, wc, hc); };
   const usage = h_flex().id("tnp-usage-row").flex_1().min_w(0).h(40).gap(6).items_center().overflow_hidden()
     .when(groups.length > 0, el => el.cursor_pointer().opacity(u?.stale ? 0.6 : 1).on_click(() => openUsage(view, usageRows.length)))
-    .children(groups.map(g => h_flex().flex_none().h(36).px(6).gap(4).items_center().rounded(12).bg(C.well)
+    .children(groups.map(g => h_flex().flex_none().h(36).pl(6).pr(8).gap(4).items_center().rounded(18).bg(C.raised).border(1).border_color(C.rim)
       .child(toolIcon(g.tool, ICON))
       .children(g.rows.map(ringOf))));
   return floatBox(v_flex().id("tnp-head").w_full().flex_none().pl(10).pr(6).py(6).gap(8))
