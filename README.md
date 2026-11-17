@@ -20,6 +20,20 @@ To install by hand, copy the `layouts/`, `mods/` and `themes/` folders from `nig
 
 **Layout cycle.** `mods/layout-cycle/` makes `ctrl-shift-l` switch between `nightglass`, `nightglass-phone` and Herdr's `main` only. Bind it in `keys.json` with `"ctrl-shift-l": "mod.open:layout-cycle"`.
 
+## On your phone
+
+The phone layout was designed for [Termux Launcher](https://github.com/PickleHik3/termux-launcher). It's built for an upright phone screen, and the launcher's store has the Herdr desktop app and Nightglass ready to install:
+
+```sh
+tlstore install herdr-gui herdr-nightglass
+herdr-nightglass            # copy the layouts into ~/.config/herdr-app
+herdr-nightglass phone      # switch to the phone layout (or: herdr-nightglass desktop)
+```
+
+Before the first start, open Settings > Linux apps > Graphics acceleration and run the benchmark once. After that, open **Herdr** from the app drawer, or run `herdr-app`. `ctrl-shift-l` switches layouts.
+
+The store's build of Herdr also puts notifications at the top of the terminal and keeps popups inside the narrow window. Other builds show notifications in the bottom right, and popups can run past the edge.
+
 ## Development
 
 The root `layouts/`, `mods/` and `themes/` folders are the source. `nightglass/` and `nightglass-phone/` are the copies the gallery installs from, each with a `RECIPE.md` that describes the layout in full. To keep them in step:
