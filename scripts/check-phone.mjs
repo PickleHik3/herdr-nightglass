@@ -194,9 +194,10 @@ console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desk
   if (!/if \(front !== bound\) \{ setShared\(KEY, \{ \.\.\.st, moved: front \?\? "none" \}\)/.test(cp)) bad("composer.js: the send-time target check is gone");
   if (!/hc\(\["send", bound, text\]\)/.test(cp)) bad("composer.js: sends with hc send to the bound terminal only");
   console.log("composer: bound target, send-time check, hc send: ok");
-  // inbox: header (search, +), usage opt-in, machine cards as the filter, two tabs, card + pager, answers through hc keys
+  // inbox: header (search, +), usage opt-in, machine cards as the filter, two tabs, queue cards (one expanded), answers through hc keys
   const ib = mods["inbox.js"] ?? "";
-  for (const id of ["tnp-search", "tnp-plus", "tnp-m-all", "tnp-tabs", "tnp-tab-needs", "tnp-tab-all", "tnp-pager", "tnp-prev", "tnp-next", "tnp-open", "tnp-empty"]) if (!ib.includes(`"${id}"`)) bad(`inbox.js: ${id} is missing`);
+  if (!ib.includes("`tnp-mini-${")) bad("inbox.js: the collapsed queue cards (tnp-mini-*) are missing");
+  for (const id of ["tnp-search", "tnp-plus", "tnp-m-all", "tnp-tabs", "tnp-tab-needs", "tnp-tab-all", "tnp-open", "tnp-empty"]) if (!ib.includes(`"${id}"`)) bad(`inbox.js: ${id} is missing`);
   if (!/run\("app\.palette"\)/.test(ib)) bad("inbox.js: search opens the command palette");
   if (!/actionRows\(view, snap, m,/.test(ib)) bad("inbox.js: '+' opens the newmenu.js action rows");
   if (!/hc\(\["keys", r\.address, String\(n\)\]\)/.test(ib)) bad("inbox.js: answers press the digit with hc keys");
@@ -206,7 +207,7 @@ console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desk
   if (!/usageMachine\(\) \?/.test(ib) || !/this\.usageM = usageMachine\(\);[^\n]*\n\s*if \(this\.usageM\) \{/.test(mods["main.js"]) || !/if \(u === true\) return USAGE_MACHINE;\s*\n\s*return typeof u === "string" && u \? u : null;/.test(mods["polls.js"])) bad("usage row and polling must be opt-in through the inbox prop usage (true or a machine name)");
   if (JSON.stringify(layout).includes('"usage"')) bad("layout: the usage prop must be absent in the shipped layout");
   if (!/fit_zoom/.test(JSON.stringify(node("inbox")))) bad("layout: fit_zoom stays on (inbox block)");
-  console.log("inbox: header, opt-in usage row, machine filter cards, tabs, card + pager, hc keys answers, hc read lines: ok");
+  console.log("inbox: header, opt-in usage row, machine filter cards, tabs, queue cards, hc keys answers, hc read lines: ok");
   // touch targets: every fixed control height in the mod's own files is >= 40 designed px (cards 60, tabs 40, chips 40)
   for (const [f, src] of all) for (const m of src.matchAll(/\.id\([^)]*\)[^;\n]*?\.(?:h|size)\((\d+)\)[^;\n]*?\.cursor_pointer\(\)/g)) if (Number(m[1]) < 40 && !/tnp-sw-/.test(m[0])) bad(`${f}: a control is ${m[1]} px (< 40): ${m[0].slice(0, 60)}`);
   if (!/ACT_H = 40/.test(mods["newmenu.js"])) bad("newmenu.js: action chips are 40 px");

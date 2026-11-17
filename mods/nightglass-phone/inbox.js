@@ -5,7 +5,7 @@
 //   machines a sideways-scrolling row of cards: "All machines" + one per machine (tint dot, name, cpu / ram / disk);
 //            the cards are the machine filter; tapping the selected machine's card again picks its scheme (colors popup)
 //   tabs     "Needs you (n)" | "All agents (n)"
-//   body     Needs you: one card at a time (status dot, machine, space, age, address; title; the terminal's last lines
+//   body     Needs you: the queue as cards, the tapped one expanded (status dot, machine, space, age, address; title; the terminal's last lines
 //            from `hc read`; the dialog's numbered answers, sent with `hc keys`; Open) with a pager. Empty: "Nothing needs
 //            you" and the finished agents already seen. All agents: the agents grouped by machine and space.
 // Opening an agent (Open, a row) switches to the detail view (detail.js).
@@ -158,6 +158,27 @@ function answer(view, r, n) {
     .catch((e) => notify({ title: `Not answered: ${r.short}`, body: String(e?.message ?? e).slice(0, 200), level: "warning" }));
   view.pvForce = true; // read the screen again at the next tick
 }
+// The top row every card starts with: the status dot (red: waiting for you, green: finished), the machine's tinted name,
+// the space and the age, and the terminal address.
+function cardTop(r) {
+  const waiting = r.kind === "waiting";
+  return h_flex().w_full().gap(8).items_center().text_size(12).text_color(C.muted)
+    .child(div().size(10).flex_none().rounded(5).bg(waiting ? C.red : C.green).border(2).border_color(alpha(waiting ? C.red : C.green, 0.3)))
+    .child(div().flex_none().max_w(120).truncate().font_medium().text_color(machineColor(r.machine)).child(r.machineName))
+    .child(div().flex_1().min_w(0).truncate().child([r.spaceName, `${dur(r.ms)} ago`].filter(Boolean).join(" · ")))
+    .child(div().flex_none().px(6).py(3).rounded(6).bg(machineColor(r.machine)).font_family(MONO).text_size(10.5).font_semibold().text_color(C.ink).child(r.short));
+}
+// A collapsed card in the queue: the top row and the title; tapping it expands it (and collapses the open one).
+function miniCard(view, r) {
+  const tint = r.kind === "waiting" ? C.red : C.green;
+  return v_flex().id(`tnp-mini-${r.address}`).w_full().flex_none().px(12).py(10).gap(6).rounded(16).cursor_pointer()
+    .bg(alpha(mix(tint, C.glassBase, 0.06), 0.7)).border(1).border_color(alpha(tint, 0.25))
+    .on_click(tap(view, (_e, cx) => { view.cardAddr = r.address; cx.notify(); }))
+    .child(cardTop(r))
+    .child(h_flex().w_full().gap(8).items_center()
+      .child(div().flex_1().min_w(0).truncate().text_size(15).font_semibold().text_color(C.fg).child(r.title))
+      .child(ico("chevron-down", 14, C.muted)));
+}
 function card(view, r, exH) {
   const waiting = r.kind === "waiting";
   const tint = waiting ? C.red : C.green;
@@ -179,17 +200,17 @@ function card(view, r, exH) {
     question = (at > 0 ? src.slice(from, at) : src).map(l => l.replace(/^[\s│┃|]+/, "").trim()).filter(l => l && !/^[─━—\-=_]+$/.test(l)).join(" ");
   }
   const lines = src.length ? src.slice(-nLines) : null;
-  // A question reads as prose in the UI font and scrolls in its own box from its start (drag to read the rest);
+  // A question reads as prose in the UI font, the whole of it inline (the page scrolls);
   // terminal output stays the last lines, one per row, bottom-aligned (0.1.13 cannot scroll a box to its end).
   const excerpt = asking && question
-    ? swipeArea(watchScroll(v_flex().id("tnp-excerpt").w_full().h(Math.max(exQ, 132)).flex_none().overflow_y_scroll().rounded(10)
-        .bg(alpha("#000000", 0.45)).border(1).border_color(C.rim), view))
-      .child(swipeBody(v_flex().w_full().flex_none().px(12).py(10).gap(10))
+    // Inline at full height, NOT a scroll box: on 0.1.13 every scroll area under the pointer takes the wheel (stop_propagation
+    // does not keep it from the page), so a box inside the page scrolled both. The page is the one thing that scrolls.
+    ? v_flex().id("tnp-excerpt").w_full().flex_none().px(12).py(10).gap(10).rounded(10).bg(alpha("#000000", 0.45)).border(1).border_color(C.rim)
         .child(div().w_full().text_size(14).line_height(1.45).text_color(C.fg).child(question))
         // each option with its description (gain / loss): what you need to choose; the numbered rows below answer
         .children(choices.filter(c => c.desc).map(c => v_flex().w_full().gap(2)
           .child(div().w_full().text_size(13).font_semibold().text_color(C.fg).child(`${c.n}. ${c.label}`))
-          .child(div().w_full().text_size(12).line_height(1.4).text_color(C.muted).child(c.desc)))))
+          .child(div().w_full().text_size(12).line_height(1.4).text_color(C.muted).child(c.desc))))
     : v_flex().id("tnp-excerpt").w_full().h(exQ).flex_none().px(10).py(8).justify_end().overflow_hidden().rounded(10)
     .bg(alpha("#000000", 0.45)).border(1).border_color(C.rim).font_family(MONO).text_size(10.5).line_height(1.5)
     .when(!!lines, el => el.children(lines.map(l => div().w_full().whitespace_nowrap().overflow_hidden().text_color(alpha(C.fg, 0.85)).child(l || " "))))
@@ -222,31 +243,12 @@ function card(view, r, exH) {
     .bg(alpha(mix(tint, C.glassBase, waiting ? 0.12 : 0.08), 0.78)).border(1).border_color(alpha(tint, waiting ? 0.45 : 0.35))
     // Rows are scarce on a phone: the status is the dot that starts the top row (red: waiting for you, green: finished),
     // the machine its tinted name, then the space and the age; the title is the only other line above the screen text.
-    .child(h_flex().w_full().gap(8).items_center().text_size(12).text_color(C.muted)
-      .child(div().size(10).flex_none().rounded(5).bg(waiting ? C.red : C.green).border(2).border_color(alpha(waiting ? C.red : C.green, 0.3)))
-      .child(div().flex_none().max_w(120).truncate().font_medium().text_color(machineColor(r.machine)).child(r.machineName))
-      .child(div().flex_1().min_w(0).truncate().child([r.spaceName, `${dur(r.ms)} ago`].filter(Boolean).join(" · ")))
-      .child(div().flex_none().px(6).py(3).rounded(6).bg(machineColor(r.machine)).font_family(MONO).text_size(10.5).font_semibold().text_color(C.ink).child(r.short)))
+    .child(cardTop(r))
     .child(div().w_full().truncate().text_size(17).font_semibold().text_color(C.fg).child(r.title))
     .child(excerpt)
     .when(!!answerList, el => el.child(answerList))
     .child(h_flex().id("tnp-card-acts").w_full().gap(6).children(acts));
 }
-function pager(view, q, idx) {
-  const go = (d) => tap(view, (_e, cx) => { const i = idx + d; if (i < 0 || i >= q.length) return; view.cardAddr = q[i].address; cx.notify(); });
-  const arrow = (id, icon, on, d) => h_flex().id(id).size(40).flex_none().justify_center().items_center().rounded(20).bg(C.raised)
-    .opacity(on ? 1 : 0.4).when(on, el => el.cursor_pointer().on_click(go(d))).child(pico(icon, 20, C.fg));
-  const shown = q.slice(0, 12);
-  return h_flex().id("tnp-pager").w_full().flex_none().gap(8).items_center().justify_between()
-    .child(arrow("tnp-prev", "chevron-left", idx > 0, -1))
-    .child(v_flex().flex_1().min_w(0).gap(4).items_center()
-      .child(h_flex().gap(6).items_center().children(shown.map((x, i) => i === idx
-        ? div().w(16).h(6).rounded(3).bg(C.fg)
-        : div().size(6).rounded(3).bg(x.kind === "waiting" ? C.red : alpha("#ffffff", 0.22)))))
-      .child(div().font_family(MONO).text_size(12).text_color(C.muted).child(`${idx + 1} of ${q.length}`)))
-    .child(arrow("tnp-next", "chevron-right", idx < q.length - 1, 1));
-}
-// The card on screen: the one picked last (by address, so a new arrival does not move it), else the first.
 export function currentCard(view, q) {
   let idx = view.cardAddr ? q.findIndex(r => r.address === view.cardAddr) : -1;
   if (idx < 0) idx = Math.min(view.idx ?? 0, Math.max(0, q.length - 1));
@@ -334,10 +336,10 @@ export function renderInbox(view) {
   const exH = Math.round(Math.max(EX_MIN, Math.min(EX_MAX, Hd - 470 - usageH - plusH)));
   const body = [];
   if (view.tab === "needs") {
-    const { idx, r } = currentCard(view, q);
+    const { r } = currentCard(view, q);
     if (r) {
-      body.push(card(view, r, exH));
-      if (q.length > 1) body.push(pager(view, q, idx)); // one card: no pager row
+      // The whole queue, one card expanded (the tapped one; first by default), the rest collapsed to two lines.
+      for (const x of q) body.push(x.address === r.address ? card(view, x, exH) : miniCard(view, x));
     } else {
       // Actual counts by status, zeros left out: "3 working · 1 idle" (done = finished, already seen; offline = unreachable).
       const by = {}; for (const x of mine) if (x.agent) by[x.kind] = (by[x.kind] ?? 0) + 1;
