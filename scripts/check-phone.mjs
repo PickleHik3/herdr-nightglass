@@ -203,7 +203,7 @@ console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desk
   if (!/dialogChoices\(mine\.lines\)/.test(ib)) bad("inbox.js: answer buttons only for numbered choices read from the screen");
   if (!/hc\(\["read", address\]\)/.test(mods["polls.js"] ?? "")) bad("polls.js: the card's lines come from hc read");
   if (!/Nothing needs you/.test(ib)) bad("inbox.js: empty state text");
-  if (!/props\(\)\?\.usage === true/.test(ib) || !/props\(\)\?\.usage === true\) \{/.test(mods["main.js"])) bad("usage row and polling must be opt-in through the inbox prop usage: true");
+  if (!/usageMachine\(\) \?/.test(ib) || !/this\.usageM = usageMachine\(\);[^\n]*\n\s*if \(this\.usageM\) \{/.test(mods["main.js"]) || !/if \(u === true\) return USAGE_MACHINE;\s*\n\s*return typeof u === "string" && u \? u : null;/.test(mods["polls.js"])) bad("usage row and polling must be opt-in through the inbox prop usage (true or a machine name)");
   if (JSON.stringify(layout).includes('"usage"')) bad("layout: the usage prop must be absent in the shipped layout");
   if (!/fit_zoom/.test(JSON.stringify(node("inbox")))) bad("layout: fit_zoom stays on (inbox block)");
   console.log("inbox: header, opt-in usage row, machine filter cards, tabs, card + pager, hc keys answers, hc read lines: ok");

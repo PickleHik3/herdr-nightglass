@@ -15,7 +15,7 @@ import { run, props, shared, setShared, openOverlay, closeOverlay, setAgentOrder
 import { C, MONO, CLEAR, SCHEMES, COLORS_KEY, alpha, mix, dur, ico, mark, ring, level, machineColor, nearBlack, darkOf, lightOf, anchorBelow } from "./lib.js";
 import { snapshot, LOCAL, ALL, mArg, lastSeen, statsMachine } from "./data.js";
 import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, popupIsOpen, popupJustClosed, swipeArea, swipeBody, watchScroll, tap, needsRows, finishedRows, isDismissed, dismissRows } from "./phone.js";
-import { USAGE_KEY, STATS_KEY, PREVIEW_KEY, diskUsed, usageHeight, dialogChoices, choiceLabel, ringColors, toolIcon } from "./polls.js";
+import { USAGE_KEY, STATS_KEY, PREVIEW_KEY, diskUsed, usageHeight, dialogChoices, choiceLabel, ringColors, toolIcon, usageMachine } from "./polls.js";
 import { actionRows } from "./newmenu.js";
 import { openDetail } from "./detail.js";
 
@@ -303,7 +303,7 @@ export function renderInbox(view) {
   view.agentOpen ??= props()?.openAgents ?? null; // the machine whose agent list is open in the "+" rows (props: staged checks)
   // agent.next / agent.prev follow the list order (this block owns it now that the pill row is gone)
   setAgentOrder(snap.rows.filter(r => r.agent).map(r => r.address));
-  const usageRows = props()?.usage === true ? (shared(USAGE_KEY)?.rows ?? []) : []; // opt-in: block prop "usage": true
+  const usageRows = usageMachine() ? (shared(USAGE_KEY)?.rows ?? []) : []; // opt-in: block prop "usage" (true or a machine name)
   const q = needsRows(snap, filter);
   const mine = filter && filter !== ALL ? snap.rows.filter(r => r.machine === filter) : snap.rows;
   const nAll = mine.filter(r => r.agent).length;

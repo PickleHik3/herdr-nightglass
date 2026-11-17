@@ -1,6 +1,6 @@
 // nightglass-phone: one multi-role mod for the "nightglass-phone" layout (portrait phone, 412 x 915), Concept B "Inbox"
 // (design/PhoneConcepts.html).
-//   inbox     the home view (inbox.js): header (search, "+", usage row when prop "usage": true), machine cards (the filter,
+//   inbox     the home view (inbox.js): header (search, "+", usage row when prop "usage" is true or a machine name), machine cards (the filter,
 //             with cpu / ram / disk), Needs you / All agents. Owns the pollers (changes, stats of every machine, usage
 //             when on, the shown card's terminal text), fit_zoom, the scheme of the focused machine; resets to the inbox
 //             view at load. Its copy lives while the block is hidden (detail view), so its timers keep running.
@@ -12,7 +12,7 @@
 import { View, div } from "gpui-kit";
 import { props, run } from "herdr";
 import { renderInbox, renderColorsPopup, currentCard } from "./inbox.js";
-import { pollChanges, pollStats, pollUsage, pollPreview, renderUsage, PREVIEW_MS } from "./polls.js";
+import { pollChanges, pollStats, pollUsage, pollPreview, renderUsage, usageMachine } from "./polls.js";
 import { prefetchAgents } from "./newmenu.js";
 import { renderDbar, renderSheetHead, showInbox } from "./detail.js";
 import { renderComposer, initComposer } from "./composer.js";
@@ -34,7 +34,8 @@ export default class NightglassPhone extends View {
       prefetchAgents(cx);
       pollChanges(this, cx);
       cx.timer.every(2000, (cx) => pollChanges(this, cx));
-      if (props()?.usage === true) { // opt-in (layout prop "usage": true on the inbox block): no usage fetching otherwise
+      this.usageM = usageMachine(); // opt-in: block prop "usage" (a machine name, or true for USAGE_MACHINE), read here: timers run outside props()
+      if (this.usageM) { // no prop: no usage fetching
         pollUsage(this, cx);
         cx.timer.every(5000, (cx) => pollUsage(this, cx));
       }

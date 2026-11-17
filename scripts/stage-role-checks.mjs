@@ -26,7 +26,8 @@ themeColors.ansi0 = theme.ansi[0];
 // name -> { role, scenario, props }
 const CASES = {
   inbox: { role: "inbox", scen: "normal" },                        // Needs you: the waiting card with screen lines and 1/2/3 answers
-  "inbox-usage": { role: "inbox", scen: "usage" },                 // usage row on (prop usage: true), 5 accounts: two lines
+  "inbox-usage": { role: "inbox", scen: "usage" },                 // usage row on (prop usage: true), 5 accounts in two tool wells
+  "inbox-usage-name": { role: "inbox", scen: "usage-name" },       // usage row on (prop usage: "amal-build")
   "inbox-plus": { role: "inbox", scen: "plus" },                   // "+" open: action rows
   "inbox-plus-agents": { role: "inbox", scen: "agents" },          // "+" open with the Agent list
   "inbox-nopreview": { role: "inbox", scen: "nopreview" },         // no screen text yet: the agent's line, "reading…", Open only
@@ -96,7 +97,7 @@ const store = new Map([["nightglass.usage", USAGE], ["nightglass-phone.usage-ope
 const done = Promise.resolve({ code: 0, stdout: "", stderr: "" });
 try { localStorage.setItem("open", JSON.stringify({ set: true, key: SCEN === "machine" || SCEN === "machine-needs" ? "amal-build" : "@all" })); } catch {}
 
-export const props = () => ({ role: ROLE, fit_zoom: true, usage: SCEN === "usage" ? true : undefined, plus: SCEN === "plus" || SCEN === "agents", openAgents: SCEN === "agents" ? "@local" : null, tab: SCEN === "all-tab" || SCEN === "machine" ? "all" : undefined, overlay: "ov1", h: 428, machine: "amal-build", name: "amal-build" });
+export const props = () => ({ role: ROLE, fit_zoom: true, usage: SCEN === "usage" ? true : SCEN === "usage-name" ? "amal-build" : undefined, plus: SCEN === "plus" || SCEN === "agents", openAgents: SCEN === "agents" ? "@local" : null, tab: SCEN === "all-tab" || SCEN === "machine" ? "all" : undefined, overlay: "ov1", h: 428, machine: "amal-build", name: "amal-build" });
 export const theme = () => THEME;
 export const settings = () => ({ zoom: 2.5 });
 export const keys = () => [];

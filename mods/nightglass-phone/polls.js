@@ -67,10 +67,18 @@ export function pollStats(view, cx, force) {
     return; // one per tick
   }
 }
-// ai-usage-tui --json (by path: ~/.local/bin isn't on sh's PATH there) on USAGE_MACHINE every 120 s, shared as parsed data.
+// Opt-in, as the desktop's: the inbox block's prop "usage" is a machine name, or true for USAGE_MACHINE; no prop, no polling
+// and no usage row. main.js reads it at init into view.usageM (timers run outside props()).
+export function usageMachine() {
+  const u = props()?.usage;
+  if (u === true) return USAGE_MACHINE;
+  return typeof u === "string" && u ? u : null;
+}
+// ai-usage-tui --json (by path: ~/.local/bin isn't on sh's PATH there) on the usage machine every 120 s, shared as parsed data.
 export function pollUsage(view, cx) {
-  if (view.usageBusy) return;
-  const m = machines().find(x => x.name === USAGE_MACHINE);
+  const um = view.usageM;
+  if (!um || view.usageBusy) return;
+  const m = machines().find(x => x.name === um);
   if (!m || m.layout !== "ready") return;
   const now = Date.now(), cur = shared(USAGE_KEY);
   const wait = cur?.rows?.length ? 120000 : 20000;
@@ -79,7 +87,7 @@ export function pollUsage(view, cx) {
   cx.spawn(async (cx) => {
     let rows = null;
     try {
-      const r = await exec("sh", ["-c", '"$HOME/.local/bin/ai-usage-tui" --json'], { on: USAGE_MACHINE, timeout: 60000 });
+      const r = await exec("sh", ["-c", '"$HOME/.local/bin/ai-usage-tui" --json'], { on: um, timeout: 60000 });
       if (r.code === 0) rows = parseUsageJson(r.stdout);
     } catch { rows = null; }
     view.usageBusy = false;
