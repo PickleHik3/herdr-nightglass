@@ -184,7 +184,7 @@ console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desk
   // the view switch: reset at load, Open / Back swap the blocks
   if (!/showInbox\(true\)/.test(mods["main.js"])) bad("main.js: the inbox role must reset to the inbox view at load");
   const d = mods["detail.js"] ?? "";
-  if (!/for \(const id of DETAIL_IDS\) run\("layout\.show", \{ id \}\);\s*\n\s*run\("layout\.hide", \{ id: "inbox" \}\);/.test(d)) bad("detail.js: Open must show the detail blocks, then hide the inbox");
+  if (!/for \(const id of DETAIL_IDS\)[^\n]*run\("layout\.show", \{ id \}\);[\s\S]{0,160}?run\("layout\.hide", \{ id: "inbox" \}\);/.test(d)) bad("detail.js: Open must show the detail blocks, then hide the inbox");
   if (!/run\("layout\.show", \{ id: "inbox" \}\);\s*\n\s*for \(const id of DETAIL_IDS\) run\("layout\.hide", \{ id \}\);/.test(d)) bad("detail.js: Back must show the inbox and hide the detail blocks");
   if (!/openComposer\(r\.address\)/.test(d)) bad("detail.js: the composer is bound to the opened terminal");
   for (const [f, src] of all) if (f !== "detail.js" && f !== "phone.js" && /"layout\.(show|hide)"/.test(src.replace(/\/\/.*$/gm, ""))) bad(`${f}: shows / hides blocks outside detail.js / phone.js`);

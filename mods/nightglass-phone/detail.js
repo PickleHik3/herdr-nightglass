@@ -1,11 +1,11 @@
 // nightglass-phone: the detail view (Concept B "Inbox", design/PhoneConcepts.html: detail). "Open" on a card, or a tap on
 // any agent row, focuses that terminal and swaps the inbox block for the detail blocks: the slim bar (dbar role: Back,
-// agent name, address, Files / Changes), the terminal at full height (layout node "term", the shown tab) and the composer
+// agent name, address, keyboard (message box on / off), Files / Changes), the terminal at full height (layout node "term", the shown tab) and the composer
 // (composer.js, bound to that terminal). Files / Changes open a sheet under the terminal (layout column "sheet": this
 // mod's head (sheet role) over the app's own `files` / `changes` blocks in the stack "sheet-body"). Back returns to the inbox.
 import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { run, shared } from "herdr";
+import { run, shared, setShared } from "herdr";
 import { C, MONO, CLEAR, alpha, ico, mark, machineColor } from "./lib.js";
 import { snapshot, short } from "./data.js";
 import { pico, detailAddress, setViewState, sheetShown, setSheet, DETAIL_IDS, dismissRows, needsRows } from "./phone.js";
@@ -24,10 +24,20 @@ export function openDetail(r) {
   if (r.agent && r.kind === "done") dismissRows([r]);
   focusRow(r);
   setViewState({ view: "detail", address: r.address });
-  openComposer(r.address);
+  // the message box follows the keyboard button's last choice (shown unless it was turned off)
+  if (kbOn()) openComposer(r.address); else closeComposer();
   // show the detail first, then hide the inbox: the column is never empty in between
-  for (const id of DETAIL_IDS) run("layout.show", { id });
+  for (const id of DETAIL_IDS) if (id !== "composer" || kbOn()) run("layout.show", { id });
+  if (!kbOn()) run("layout.hide", { id: "composer" });
   run("layout.hide", { id: "inbox" });
+}
+// The keyboard button in the slim bar: the message box under the terminal, on or off, remembered (shared, default on).
+const KB_KEY = "nightglass-phone.composerOn";
+export const kbOn = () => shared(KB_KEY) !== false;
+function setKb(on, addr) {
+  setShared(KB_KEY, on);
+  if (on && addr) { openComposer(addr); run("layout.show", { id: "composer" }); }
+  else { closeComposer(); run("layout.hide", { id: "composer" }); }
 }
 // Back (and the load: `init` also hides blocks a crashed run or the saved layout left shown).
 export function showInbox(init) {
@@ -67,6 +77,7 @@ export function renderDbar(view) {
           .child(div().min_w(0).truncate().font_family(MONO).text_size(10.5).text_color(C.muted)
             .child([r.machineName, r.short, r.branch].filter(Boolean).join(" · "))))))
       .when(!!r, el => el.child(mark(r.kind, 14)))
+      .child(roundBtn("tnp-kb", pico("keyboard", 18, kbOn() ? C.ink : C.fg), kbOn(), (_e, cx) => { setKb(!kbOn(), addr); cx.notify(); }))
       .child(roundBtn("tnp-files", ico("folder", 18, sheet === "files" ? C.ink : C.fg), sheet === "files", toggle("files")))
       .child(roundBtn("tnp-changes", ico("changes", 18, sheet === "changes" ? C.ink : C.fg), sheet === "changes", toggle("changes"))
         .when(changes > 0 && sheet !== "changes", el => el.child(div().absolute().top(4).right(3).size(11).rounded(6).bg(C.amber).border(2).border_color(C.glassSolid)))));
