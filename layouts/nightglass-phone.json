@@ -1,5 +1,6 @@
 {
   "id": "root",
+  "toast": "nightglass-toast",
   "type": "row",
   "titlebar": "none",
   "theme": "nightglass",

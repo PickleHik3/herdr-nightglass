@@ -221,7 +221,8 @@ console.log(`icon references checked: ${nIcons}; ring arcs: phone ring-s-*, desk
   if (r.status !== 0) bad(`nightglass-toast/main.js: syntax: ${r.stderr}`);
   if (readFileSync(join(T, "lib.js"), "utf8") !== readFileSync(join(DESK, "lib.js"), "utf8")) bad("mods/nightglass-toast/lib.js differs from the desktop copy");
   if (!/findNode\(layout\(\), "inbox"\)/.test(src) || !/glassSolid/.test(src) || !/\.h\(32\)/.test(src) || !/closeOverlay\(p\.overlay\)/.test(src)) bad("nightglass-toast/main.js: phone capsule (32 px, glassSolid, tap closes) or the phone-layout switch (inbox node) is missing");
-  console.log("toast mod: syntax ok, lib.js identical, phone capsule only when the layout has the inbox node");
+  if (layout.toast !== "nightglass-toast") bad("layout: root key toast must be \"nightglass-toast\" (the capsule toast)");
+  console.log("toast mod: syntax ok, lib.js identical, phone capsule only when the layout has the inbox node; the phone layout selects it (toast key)");
 }
 
 console.log(fails ? `${fails} FAILURE(S)` : "ALL STATIC CHECKS PASSED");
