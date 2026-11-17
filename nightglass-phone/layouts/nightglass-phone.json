@@ -1,0 +1,102 @@
+{
+  "id": "root",
+  "toast": "nightglass-toast",
+  "type": "row",
+  "titlebar": "none",
+  "theme": "nightglass",
+  "background": { "image": "mods/nightglass/wallpaper.png", "fit": "cover" },
+  "resizable": false,
+  "terminal_padding": [10, 12],
+  "terminal_opacity": 0.82,
+  "preview": "layouts/nightglass-phone.svg",
+  "ui_font": "Inter",
+  "font": "JetBrains Mono",
+  "font_size": 8,
+  "toasts": { "over": "term", "anchor": "top-center", "offset": 8, "width": 380, "height": 32, "gap": 6, "max": 2 },
+  "children": [
+    {
+      "id": "phone",
+      "type": "column",
+      "children": [
+        {
+          "id": "core",
+          "type": "column",
+          "gap": 6,
+          "resizable": false,
+          "children": [
+            {
+              "id": "inbox",
+              "type": "block",
+              "content": { "mod": "nightglass-phone", "props": { "role": "inbox", "fit_zoom": true } }
+            },
+            {
+              "id": "dbar",
+              "type": "block",
+              "hidden": true,
+              "size": { "px": 60 },
+              "content": { "mod": "nightglass-phone", "props": { "role": "dbar" } }
+            },
+            {
+              "id": "term",
+              "type": "column",
+              "hidden": true,
+              "size": { "weight": 1 },
+              "padding": [0, 8],
+              "children": [
+                {
+                  "id": "main",
+                  "type": "block",
+                  "content": {
+                    "tab": "active",
+                    "pane": {
+                      "gap": 6,
+                      "radius": 12,
+                      "background": "surface",
+                      "lone": true,
+                      "border": { "width": 1, "color": "border" },
+                      "focus": { "width": 1, "color": "#ffffff40" }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "id": "sheet",
+              "type": "column",
+              "hidden": true,
+              "size": { "weight": 1.5 },
+              "padding": [0, 8],
+              "children": [
+                {
+                  "id": "sheethead",
+                  "type": "block",
+                  "size": { "px": 52 },
+                  "content": { "mod": "nightglass-phone", "props": { "role": "sheet" } }
+                },
+                {
+                  "id": "sheet-body",
+                  "type": "stack",
+                  "active": "files",
+                  "radius": 12,
+                  "background": "surface",
+                  "border": { "width": 1, "color": "border" },
+                  "children": [
+                    { "id": "files", "type": "block", "content": { "mod": "files" } },
+                    { "id": "changes", "type": "block", "content": { "mod": "changes" } }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "composer",
+              "type": "block",
+              "hidden": true,
+              "size": { "px": 44 },
+              "content": { "mod": "nightglass-phone", "props": { "role": "composer" } }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
