@@ -14,7 +14,7 @@ import { h_flex, v_flex } from "gpui-base";
 import { run, props, shared, setShared, openOverlay, closeOverlay, setAgentOrder, hc, notify } from "herdr";
 import { C, MONO, CLEAR, SCHEMES, COLORS_KEY, alpha, mix, dur, ico, mark, ring, level, machineColor, nearBlack, darkOf, lightOf, anchorBelow } from "./lib.js";
 import { snapshot, LOCAL, ALL, mArg, lastSeen, statsMachine } from "./data.js";
-import { MOD, WIN, DESIGN_W, zoom, dsg, pico, popupIsOpen, popupJustClosed, swipeArea, swipeBody, watchScroll, tap, needsRows, finishedRows, isDismissed, dismissRows } from "./phone.js";
+import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, popupIsOpen, popupJustClosed, swipeArea, swipeBody, watchScroll, tap, needsRows, finishedRows, isDismissed, dismissRows } from "./phone.js";
 import { USAGE_KEY, STATS_KEY, PREVIEW_KEY, diskUsed, usageHeight, dialogChoices, choiceLabel, ringColors, toolIcon } from "./polls.js";
 import { actionRows } from "./newmenu.js";
 import { openDetail } from "./detail.js";
@@ -107,10 +107,12 @@ function machineCard(view, m, filter) {
   const sel = filter === m.key;
   const st = shared(STATS_KEY)?.[m.key];
   const data = st?.data;
-  const bar = (k, v) => v_flex().flex_1().min_w(0).gap(2)
-    .child(div().whitespace_nowrap().font_family(MONO).text_size(9.5).line_height(1).text_color(C.muted).child(`${k} ${v == null ? "–" : v}`))
-    .child(div().w_full().h(3).rounded(2).bg(C.well).overflow_hidden()
-      .when(v != null, el => el.child(div().h(3).rounded(2).w(`${Math.max(2, Math.min(100, v))}%`).bg(level(v, C.fg)))));
+  // cpu / ram / disk: each icon inside a ring filled to the value (ring-s arcs, as the old top bar's stats pill), colored
+  // with level(); no value yet: the empty track.
+  const RS = 22, ICO = 12;
+  const ringIcon = (name, v, base) => h_flex().relative().size(RS).flex_none()
+    .child(ringS(RS, v ?? 0, 0, level(v ?? 0, base), C.teal))
+    .child(div().absolute().top((RS - ICO) / 2).left((RS - ICO) / 2).child(ico(name, ICO, C.muted)));
   return cardShell(`tnp-m-${m.key}`, sel, machineColor(m.key)).opacity(m.offline ? 0.7 : 1)
     // The selected machine's card, tapped again, opens its scheme picker (there is no right-click on a phone).
     .on_mouse_down("left", (e, cx) => {
@@ -133,10 +135,10 @@ function machineCard(view, m, filter) {
       .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name)))
     .child(m.offline
       ? div().truncate().text_size(10.5).text_color(C.amber).child("offline")
-      : h_flex().w_full().gap(6)
-        .child(bar("cpu", data ? data.cpu : null))
-        .child(bar("ram", data ? data.memPct : null))
-        .child(bar("dsk", data ? diskUsed(data) : null)));
+      : h_flex().w_full().items_center().justify_between()
+        .child(ringIcon("cpu", data ? data.cpu : null, C.accent))
+        .child(ringIcon("ram", data ? data.memPct : null, C.teal))
+        .child(ringIcon("disk", data ? diskUsed(data) : null, C.fg)));
 }
 
 // ---- the two tabs ----

@@ -27,8 +27,8 @@ export const dsg = (screenPx) => screenPx / zoom();
 // An icon that lives in this mod's folder (menu, arrow-up, prompt); the rest come from lib.js `ico`.
 export const pico = (name, size, color) => svg(`${PM}/${name}.svg`).size(size).flex_none().text_color(color ?? C.dim);
 
-// A 16 px double ring (outer = week, inner = 5-hour, 5% steps): arcs from scripts/gen-phone-rings.mjs. Not drawn by the
-// inbox (its usage row uses lib.js ring at 36 px); kept with its ring-s-*.svg arcs for a compact widget.
+// A small double ring (outer = week, inner = 5-hour, 5% steps): arcs from scripts/gen-phone-rings.mjs. The machine cards
+// draw cpu / ram / disk with it (outer arc only).
 const step = (p) => p > 0 ? Math.min(100, Math.max(5, Math.round(p / 5) * 5)) : 0;
 export function ringS(size, wPct, hPct, wColor, hColor) {
   const layer = (file, color) => svg(`${PM}/ring-s-${file}.svg`).absolute().top(0).left(0).size(size).text_color(color);
