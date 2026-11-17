@@ -174,9 +174,18 @@ export function renderPane() {
   const mk = snapshot().rows.find(r => r.address === p.terminal)?.machine ?? LOCAL;
   const mc = machineColor(mk);
   const kind = p.status === "blocked" ? "waiting" : p.status ?? (p.program?.shell === false ? "working" : "idle");
+  const tab = spaces().flatMap(sp => sp.tabs ?? []).find(t => t.id === p.tab);
+  const shown = p.title || p.program?.name || addr;
+  const echoed = !!tab && tabLabel(tab) === String(shown).replace(/^[^\p{L}\p{N}~/.]+/u, "").trim();
+  const folder = p.cwd ? p.cwd.replace(/^\/(?:home|Users)\/[^/]+/, "~").replace(/\/+$/, "") : "";
   return root
     .child(mark(kind))
-    .child(div().min_w(0).flex_shrink(1).truncate().text_size(12).font_semibold().text_color(C.fg).child(p.title || p.program?.name || addr))
+    // The title, unless the tab already shows it (an unnamed tab takes its focused pane's title): then where the
+    // pane is instead, its folder and git branch, so the tab and the header never say the same thing twice.
+    .when(!echoed, el => el.child(div().min_w(0).flex_shrink(1).truncate().text_size(12).font_semibold().text_color(C.fg).child(p.title || p.program?.name || addr)))
+    .when(echoed, el => el.child(div().min_w(0).flex_shrink(1).truncate().text_size(12).font_semibold().text_color(C.fg).child(folder || addr))
+      .when(!!p.branch, el => el.child(h_flex().flex_none().gap(4).items_center().text_size(11).text_color(C.muted)
+        .child(ico("branch", 11, C.muted)).child(div().whitespace_nowrap().child(p.branch)))))
     .child(h_flex().id(`tn-copy-${id}`).h(20).flex_none().pl(6).pr(5).gap(5).items_center().rounded(5)
       .bg(mc).font_family(MONO).text_size(10.5).font_medium().text_color(C.ink).cursor_pointer()
       .tooltip("Copy terminal number")
