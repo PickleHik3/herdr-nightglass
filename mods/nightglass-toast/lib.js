@@ -1,7 +1,7 @@
 // nightglass: shared helpers (palette, icons, status marks, popup anchors, formatting).
 import { svg, image, div } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { theme, keys, window, layout, shared } from "herdr";
+import { theme, keys, window, layout, shared, machines } from "herdr";
 
 export const M = "mods/nightglass";
 export const MONO = "JetBrains Mono";
@@ -70,9 +70,34 @@ const OLD_SWATCHES = { "#7aa2f7": 0, "#7dcfff": 1, "#73daca": 2, "#9ece6a": 3, "
 export const ALL_THEME = "nightglass-storm";
 // Renamed from tokyo-night: a stored theme name (or a pick kept under the old shared key) still resolves.
 export const migrateTheme = (name) => typeof name === "string" && name.startsWith("tokyo-night") ? `nightglass${name.slice("tokyo-night".length)}` : name;
+// A stored pick (a swatch color, a theme name or an old Tokyo Night swatch) -> its scheme, or null.
+const pickedScheme = (v) => {
+  const c = String(v ?? "").toLowerCase();
+  if (!c) return null;
+  return SCHEMES.find(s => s.color === c) ?? SCHEMES.find(s => s.theme === migrateTheme(c)) ?? (OLD_SWATCHES[c] != null ? SCHEMES[OLD_SWATCHES[c]] : null);
+};
+// Stored picks win. A machine without one gets the first scheme no stored pick and no earlier unpicked machine uses,
+// in machines() order with this computer ("@local") first (all taken: round the list again). Cached per picks + machines.
+let autoSig = null, autoMap = null;
+function autoSchemes(picks) {
+  const order = ["@local"];
+  for (const m of machines()) { const k = m.name ?? "@local"; if (!order.includes(k)) order.push(k); }
+  const sig = JSON.stringify(picks ?? null) + "|" + order.join(",");
+  if (sig === autoSig) return autoMap;
+  const used = new Set(), map = new Map();
+  for (const k of Object.keys(picks ?? {})) { const s = pickedScheme(picks[k]); if (s) used.add(s); }
+  let n = 0;
+  for (const k of order) {
+    if (pickedScheme(picks?.[k])) continue;
+    const free = SCHEMES.find(s => !used.has(s)) ?? SCHEMES[n % SCHEMES.length];
+    used.add(free); map.set(k, free); n++;
+  }
+  autoSig = sig; autoMap = map;
+  return map;
+}
 export const machineScheme = (key) => {
-  const c = String((shared(COLORS_KEY) ?? shared("tokyo-night.colors"))?.[key] ?? "").toLowerCase();
-  return SCHEMES.find(s => s.color === c) ?? SCHEMES.find(s => s.theme === migrateTheme(c)) ?? SCHEMES[OLD_SWATCHES[c] ?? 0];
+  const picks = shared(COLORS_KEY) ?? shared("tokyo-night.colors");
+  return pickedScheme(picks?.[key]) ?? autoSchemes(picks).get(key) ?? SCHEMES[0];
 };
 // A fixed default (not the live accent, which follows whichever machine is focused).
 export const machineColor = (key) => machineScheme(key).color;
