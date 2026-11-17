@@ -1,20 +1,21 @@
-// nightglass-phone: the message composer row (prompt field + send button), behind a button. Design: phone-template.html:456-472.
+// nightglass-phone: the message composer row (prompt field + send button) of the detail view. Design: design/PhoneConcepts.html
+// (Concept B, detail: the composer under the terminal).
 //
-// Default: no row (the terminal takes its height; typing goes straight to the terminal). The button at the start of the pill
-// row (strip.js) reveals it: layout.show on the `composer` block (layout.hide again on a second tap, after a successful send,
-// and when the active terminal / tab / space changes). Nothing is persisted: init hides it every time the mod loads.
+// The row shows whenever the detail view does: detail.js opens it bound to the terminal that view was opened for, Back closes
+// it. Nothing is persisted: the inbox role's init resets it every time the mod loads.
 //
 // Send target rule (a message once went to a live agent after the active tab had moved): the row is BOUND to the terminal
-// that was active when it was opened (address captured at open, shown as "Message tNN" and a tNN chip). A send goes to that
-// address only. At send time the active terminal is looked up again; if it is not the bound one, nothing is sent, the text
-// is kept and the row turns amber ("tNN is no longer in front, tap to retarget"); the retarget tap binds it to what is in
-// front now. Never "whatever is focused". Sending is `hc send <terminal> <text>` (herdr.d.ts: hc): it pastes the text and
-// presses Enter, and refuses a terminal that is blocked on a dialog (hc send --help); that refusal is kept.
+// it was opened for (address captured at open, shown as "Message tNN" and a tNN chip). A send goes to that address only.
+// At send time the active terminal is looked up again; if it is not the bound one, nothing is sent, the text is kept and the
+// row turns amber ("tNN is no longer in front, tap to retarget"); the retarget tap binds it to what is in front now (and the
+// detail bar follows). Never "whatever is focused". Sending is `hc send <terminal> <text>` (herdr.d.ts: hc): it pastes the
+// text and presses Enter, and refuses a terminal that is blocked on a dialog (hc send --help; --force would type anyway);
+// that refusal is kept (the inbox card answers dialogs with `hc keys`). After a send the field empties and the row stays.
 import { div } from "gpui-kit";
 import { h_flex, InputState, Input } from "gpui-base";
-import { hc, focused, spaces, panes, notify, shared, setShared, run } from "herdr";
+import { hc, focused, spaces, panes, notify, shared, setShared } from "herdr";
 import { C, MONO, alpha } from "./lib.js";
-import { pico } from "./phone.js";
+import { pico, setViewState } from "./phone.js";
 import { short } from "./data.js";
 
 const KEY = "nightglass-phone.composer"; // { open, target, ctx, moved? } (not persisted across loads: init resets it)
@@ -26,18 +27,13 @@ export function targetTerminal() {
   const tab = spaces().find(s => s.active)?.tabs?.find(t => t.active);
   return tab ? panes().find(p => p.tab === tab.id && p.terminal)?.terminal ?? null : null;
 }
-// What "in front" means: space, tab and terminal. A change of any of them hides the row.
+// What "in front" means: space, tab and terminal.
 const ctxKey = () => { const f = focused(); return `${f?.space ?? ""}|${f?.tab ?? ""}|${targetTerminal() ?? ""}`; };
 
 export const composerOpen = () => shared(KEY)?.open === true;
-export function closeComposer() { setShared(KEY, { open: false }); run("layout.hide", { id: "composer" }); }
-export function toggleComposer() {
-  if (composerOpen()) { closeComposer(); return; }
-  const target = targetTerminal();
-  if (!target) { notify({ title: "Nothing to type into", body: "The shown tab has no terminal.", level: "warning" }); return; }
-  setShared(KEY, { open: true, target, ctx: ctxKey() });
-  run("layout.show", { id: "composer" });
-}
+// Open bound to `target` (the terminal the detail view was opened for) / close (Back). Showing the block is detail.js's.
+export function openComposer(target) { setShared(KEY, { open: true, target, ctx: ctxKey() }); }
+export function closeComposer() { setShared(KEY, { open: false }); }
 
 function makeInput(view, placeholder) {
   const st = InputState.new({ placeholder });
@@ -62,26 +58,18 @@ export function initComposer(view, cx) {
   view.inputFocused = false;
   view.bound = null;
   view.input = makeInput(view, "Message");
-  // Default hidden, whatever the last run or the saved layout click said.
-  setShared(KEY, { open: false });
-  run("layout.hide", { id: "composer" });
+  // The field is not focused on open: on a phone that raises the soft keyboard over the terminal the person came to read.
+  // A change of the terminal in front does not close the row (it is the detail view's own row): the send-time check is
+  // what keeps a message from going anywhere but the bound terminal.
   cx.timer.every(250, (cx) => {
     const st = shared(KEY);
     if (st?.open) {
-      if (view.bound !== st.target) {                       // just opened: bind, fresh field, focus it
+      if (view.bound !== st.target) {                       // just opened (or for another terminal): bind, fresh field
         view.bound = st.target;
         if (view.input.value()) view.input.set_value("");
         remake(view, st.target);
-        view.focusAt = Date.now() + 300;                    // focus once the row is on screen (a later tick)
         cx.notify();
       }
-      if (view.focusAt && Date.now() >= view.focusAt) { view.focusAt = 0; try { view.input.focus(); } catch { /* not shown yet */ } }
-      // The terminal in front changed: close, but only when it is a terminal that differs for two ticks in a row. focused() can be
-      // null or still moving for a moment after the panel or a tap shifted focus, and the old one-tick check on space|tab|terminal
-      // closed a just-opened composer at once (the first tap seemed to do nothing).
-      const now = targetTerminal();
-      if (!st.moved && now && now !== st.target) { view.drift = (view.drift ?? 0) + 1; if (view.drift >= 2) { view.drift = 0; closeComposer(); } }
-      else view.drift = 0;
     } else if (view.bound) {                                // closed
       view.bound = null;
       try { view.input.set_value(""); } catch { /* ignore */ }
@@ -103,18 +91,17 @@ function send(view, cx) {
     if (view.input.value() === "") view.input.set_value(text);
     notify({ title: `Not sent to ${short(bound)}`, body: String(why ?? "").trim().slice(0, 200), level: "warning" });
   };
-  hc(["send", bound, text]).then((r) => { if (r.code !== 0) fail(r.stderr || r.stdout); else closeComposer(); }).catch((e) => fail(e?.message ?? e));
+  hc(["send", bound, text]).then((r) => { if (r.code !== 0) fail(r.stderr || r.stdout); }).catch((e) => fail(e?.message ?? e));
 }
 
-// Retarget: bind the row to what is in front now, keeping the text.
+// Retarget: bind the row to what is in front now, keeping the text; the detail bar shows the new terminal.
 function retarget(view, cx) {
-  const st = shared(KEY);
   const front = targetTerminal();
-  if (!front) { closeComposer(); return; }
+  if (!front) return;
   view.bound = front;                                       // so the timer does not read it as a new opening
   remake(view, front);
   setShared(KEY, { open: true, target: front, ctx: ctxKey() });
-  view.focusAt = Date.now() + 200;
+  setViewState({ view: "detail", address: front });
   cx?.notify();
 }
 

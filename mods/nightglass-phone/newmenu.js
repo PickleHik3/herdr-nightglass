@@ -1,8 +1,8 @@
-// nightglass-phone: the panel's actions row (what the retired menu popup offered). Desktop's New menu lists the
-// connected machines with their create options (New space, New terminal tab, Agent flyout); on the phone the row
-// sits in the panel (drawer.js) for the machine shown: New space, New terminal tab, Agent (its list opens as a second
-// row of chips under the first), then Files, Changes and Settings. Agent lists are the desktop's (knownAgents,
-// cached per machine and shared with the other copies of this mod).
+// nightglass-phone: the "+" actions (what the desktop's New menu offers). Desktop's New menu lists the connected machines
+// with their create options (New space, New terminal tab, Agent flyout); on the phone the rows open in the inbox header
+// (inbox.js, the "+" button) for the machine shown: New space, New terminal tab, Agent (its list opens as a second row of
+// chips under the first), then Settings (Files and Changes when `panels`). Agent lists are the desktop's (knownAgents,
+// cached per machine and shared with the other copies of this mod). Chips are 40 px: touch targets.
 import { div } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { run, shared, setShared, knownAgents } from "herdr";
@@ -10,7 +10,7 @@ import { C, MONO, ico, prog, machineColor } from "./lib.js";
 import { snapshot, mArg, onArg } from "./data.js";
 import { swipeArea, swipeBody, watchScroll, tap } from "./phone.js";
 
-export const ACT_H = 32, ACT_GAP = 6;
+export const ACT_H = 40, ACT_GAP = 6;
 
 // ---- agents a machine can start (as the desktop sidebar does) ----
 const agentCache = new Map();
@@ -42,16 +42,17 @@ function targetSpace(snap, key) {
   return (mine.find(s => s.id === snap.foc?.space) ?? mine.find(s => s.active) ?? mine[0])?.id ?? null;
 }
 
-// label null: an icon-only 32 px chip (Files / Changes / Settings), so six chips fit in the 376 px of the row.
-const chip = (view, id, lead, label, trail, onPick, on) => h_flex().id(id).h(ACT_H).min_w(ACT_H).flex_none().px(label ? 10 : 6).gap(6).justify_center().items_center().rounded(16)
+// label null: an icon-only 40 px chip (Files / Changes / Settings).
+const chip = (view, id, lead, label, trail, onPick, on) => h_flex().id(id).h(ACT_H).min_w(ACT_H).flex_none().px(label ? 10 : 6).gap(6).justify_center().items_center().rounded(20)
   .bg(on ? C.raisedHi : C.raised).text_size(12).text_color(C.fg).whitespace_nowrap().cursor_pointer()
   .on_click(tap(view, onPick)).child(lead).when(!!label, el => el.child(div().child(label))).when(!!trail, el => el.child(trail));
 
-// The actions for machine `m` (null: the app rows only). `done` closes the panel; `changes` is the focused space's change count.
-// view.agentOpen (the machine whose agent list is shown) lives on the drawer's view.
-export function actionRows(view, snap, m, done, changes) {
+// The actions for machine `m` (null: the app rows only). `done` closes the "+" rows; `changes` is the focused space's change
+// count. `panels` false leaves out Files / Changes (the inbox: they live in the detail view's sheet). view.agentOpen (the
+// machine whose agent list is shown) lives on the inbox's view.
+export function actionRows(view, snap, m, done, changes, panels = true) {
   const modTab = (mod) => snap.foc?.space ? { mod, space: snap.foc.space } : { mod };
-  const pick = (fn) => () => { done(); fn(); };
+  const pick = (fn) => (_e, cx) => { done(cx); fn(); };
   const target = m && !m.offline ? targetSpace(snap, m.key) : null;
   const open = !!m && view.agentOpen === m.key;
   const list = m ? cachedAgents(m.key).filter(a => a.installed) : [];
@@ -69,10 +70,12 @@ export function actionRows(view, snap, m, done, changes) {
     if (target) main.push(chip(view, "tnp-act-term", ico("terminal", 13, C.muted), "Terminal", null, pick(() => run("tab.new", { space: target }))));
     main.push(chip(view, "tnp-act-agent", ico("cpu", 13, C.muted), "Agent", div().text_size(13).text_color(C.muted).child(open ? "⌄" : "›"), toggleAgents, open));
   }
-  main.push(chip(view, "tnp-act-files", ico("file", 13, C.muted), null, null, pick(() => run("tab.new", modTab("files")))));
-  main.push(chip(view, "tnp-act-changes", ico("changes", 13, C.muted), null,
-    changes > 0 ? div().font_family(MONO).text_size(10.5).text_color(C.amber).child(`+${changes}`) : null,
-    pick(() => run("tab.new", modTab("changes")))));
+  if (panels) {
+    main.push(chip(view, "tnp-act-files", ico("file", 13, C.muted), null, null, pick(() => run("tab.new", modTab("files")))));
+    main.push(chip(view, "tnp-act-changes", ico("changes", 13, C.muted), null,
+      changes > 0 ? div().font_family(MONO).text_size(10.5).text_color(C.amber).child(`+${changes}`) : null,
+      pick(() => run("tab.new", modTab("changes")))));
+  }
   main.push(chip(view, "tnp-act-settings", ico("settings", 13, C.muted), null, null, pick(() => run("app.settings", {}))));
   const rows = [row("tnp-act-row", main)];
   if (open) {

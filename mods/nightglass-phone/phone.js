@@ -6,6 +6,7 @@ import { svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { settings, shared, setShared, run } from "herdr";
 import { C, anchorBelow } from "./lib.js";
+import { ALL } from "./data.js";
 
 export const MOD = "nightglass-phone";
 const PM = `mods/${MOD}`;
@@ -16,7 +17,7 @@ export const DESIGN_W = 412;
 // App zoom (settings.json "zoom"; settings() carries it). Layout px are "as designed" and drawn at zoom x px.
 export const zoom = () => { const z = Number(settings()?.zoom); return z > 0 ? z : 1; };
 
-// The window as measured (main.js "watch" for the height, the top bar for the width). on_size_change reports
+// The window as measured (the inbox block's size: its width is the window's, its height the column's). on_size_change reports
 // SCREEN px, i.e. designed px x zoom (materialize.rs: bounds.size), and overlay `at` points are screen px too,
 // while overlay width/height and every layout/mod px are designed px. So: WIN holds screen px; `dsg` converts.
 // Module scope: every role of this mod shares it.
@@ -26,7 +27,8 @@ export const dsg = (screenPx) => screenPx / zoom();
 // An icon that lives in this mod's folder (menu, arrow-up, prompt); the rest come from lib.js `ico`.
 export const pico = (name, size, color) => svg(`${PM}/${name}.svg`).size(size).flex_none().text_color(color ?? C.dim);
 
-// The top bar's 16 px double ring (outer = week, inner = 5-hour, 5% steps): arcs from scripts/gen-phone-rings.mjs.
+// A 16 px double ring (outer = week, inner = 5-hour, 5% steps): arcs from scripts/gen-phone-rings.mjs. Not drawn by the
+// inbox (its usage row uses lib.js ring at 36 px); kept with its ring-s-*.svg arcs for a compact widget.
 const step = (p) => p > 0 ? Math.min(100, Math.max(5, Math.round(p / 5) * 5)) : 0;
 export function ringS(size, wPct, hPct, wColor, hColor) {
   const layer = (file, color) => svg(`${PM}/ring-s-${file}.svg`).absolute().top(0).left(0).size(size).text_color(color);
@@ -74,40 +76,29 @@ export const watchScroll = (el, view) => el.on_scroll_wheel(() => { view.lastScr
 export const swiped = (view) => Date.now() - (view.lastScroll ?? 0) < SWIPE_GUARD_MS;
 export const tap = (view, fn) => (e, cx) => { if (swiped(view)) return; fn(e, cx); };
 
-// ---- the panel (layout node "drawer": machine cards, actions, agent list) under the top bar ----
-// Hidden by default (the top bar's init closes it), toggled by the top bar's last button; picking something in it closes it.
-// The flag is shared so the button can show its active look; the layout's hidden state is what actually shows the block.
-export const panelOpen = () => shared("nightglass-phone.panel") === true;
-// Opening or closing always returns to normal size; `init` (the load) also re-shows rows a crashed run left hidden.
-export function setPanel(open, init) {
-  const wasFull = panelFull();
-  setShared(FULL_KEY, false);
-  if (wasFull || init) restoreRows();
-  setShared("nightglass-phone.panel", open);
-  run(open ? "layout.show" : "layout.hide", { id: "drawer" });
-}
-// "Full": the handle at the bottom of the panel expands it over everything below the top bar. The strip, the pill row,
-// the terminal and the composer are hidden with layout.hide while it is full and shown again on return to normal (the
-// strip comes back through stripSync's timer, the composer only if it was open). Opening always starts at normal size.
-const FULL_KEY = "nightglass-phone.panel-full";
-export const panelFull = () => shared(FULL_KEY) === true;
-function restoreRows() {
-  run("layout.show", { id: "tabs" });
-  run("layout.show", { id: "term" });
-  if (shared("nightglass-phone.composer")?.open === true) run("layout.show", { id: "composer" });
-}
-export function setPanelFull(full) {
-  if (panelFull() === full) return;
-  setShared(FULL_KEY, full);
-  if (full) for (const id of ["strip", "tabs", "term", "composer"]) run("layout.hide", { id });
-  else restoreRows();
+// ---- the two views: the inbox (layout node "inbox") and the detail (dbar, term, sheet when open, composer) ----
+// The inbox block takes the whole column on the home view; "Open" (or a tap on any agent) hides it and shows the detail
+// blocks, Back does the reverse (detail.js). Which one shows is shared, so every role knows; the layout's hidden flags
+// are what actually show the blocks. The inbox role's init resets to the inbox at load, whatever the saved layout said.
+const VIEW_KEY = "nightglass-phone.view";   // { view: "inbox" | "detail", address: the opened terminal }
+const SHEET_KEY = "nightglass-phone.sheet"; // null | "files" | "changes": the Files / Changes sheet in the detail view
+export const DETAIL_IDS = ["dbar", "term", "composer"];
+export const detailOpen = () => shared(VIEW_KEY)?.view === "detail";
+export const detailAddress = () => shared(VIEW_KEY)?.address ?? null;
+export const setViewState = (v) => { setShared(VIEW_KEY, v); };
+export const sheetShown = () => shared(SHEET_KEY) ?? null;
+export function setSheet(which) {
+  setShared(SHEET_KEY, which ?? null);
+  if (!which) { run("layout.hide", { id: "sheet" }); return; }
+  run("layout.select", { stack: "sheet-body", child: which });
+  run("layout.show", { id: "sheet" });
 }
 
-// ---- finished agents: a count in the top bar, a chip row on demand, dismissable ----
+// ---- finished agents: listed in the inbox's "Needs you" queue until dismissed (or opened) ----
 // The data layer (data.js) has no "seen" mark, so dismissal is phone-only: { terminal address: time it was dismissed }.
 // A finished agent is dismissed while its finish time (now - r.ms) is not after that, so a LATER finish shows again.
 // Kept in shared state (all roles) and mirrored in localStorage (as the mod's other small state: "open", "visited").
-const DIS_KEY = "nightglass-phone.dismissed", OPEN_KEY = "nightglass-phone.finished-open";
+const DIS_KEY = "nightglass-phone.dismissed";
 let disLocal = null;
 const disMap = () => {
   const v = shared(DIS_KEY);
@@ -125,5 +116,11 @@ export function dismissRows(rows) {
   try { localStorage.setItem("dismissed", JSON.stringify(next)); } catch { /* storage unavailable */ }
 }
 export const finishedRows = (snap) => snap.rows.filter(r => r.agent && r.kind === "done" && !isDismissed(r));
-export const finishedOpen = () => shared(OPEN_KEY) === true;
-export const setFinishedOpen = (open) => { setShared(OPEN_KEY, open); };
+// The "Needs you" queue of the inbox (machine `key`, or every machine for null / All): waiting agents first, then the
+// finished ones not dismissed, each newest first.
+export function needsRows(snap, key) {
+  const mine = (r) => !key || key === ALL || r.machine === key;
+  const byAge = (a, b) => a.ms - b.ms;
+  const waiting = snap.rows.filter(r => r.agent && r.kind === "waiting" && mine(r)).sort(byAge);
+  return [...waiting, ...finishedRows(snap).filter(mine).sort(byAge)];
+}

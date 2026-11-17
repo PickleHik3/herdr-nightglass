@@ -1,24 +1,24 @@
-// nightglass-phone: one multi-role mod for the "nightglass-phone" layout (portrait phone, 412 x 915).
-//   topbar    search button, finished count, stats rings, usage rings (opt-in: prop "usage": true), panel toggle (with the changes dot); polls
-//             changes, the stats (and usage when on) of the machine in front; closes the panel at load
-//   strip     unreachable banner / one-line chips for agents that wait or finished (hidden when empty)
-//   tabs      tab pills: every agent across machines, plus "+"; its timer shows / hides / sizes the strip
-//   composer  prompt field + send (hc send)
-//   drawer    the panel under the top bar: machine cards + All, actions row, spaces with agent rows; also follows
-//             the focused machine and applies its whole-window scheme (its copy lives while the panel is hidden)
-//   watch     a 1 px full-height column that only measures the window height (the panel's height cap)
-//   usage, stats, colors   popups opened by the roles above
+// nightglass-phone: one multi-role mod for the "nightglass-phone" layout (portrait phone, 412 x 915), Concept B "Inbox"
+// (design/PhoneConcepts.html).
+//   inbox     the home view (inbox.js): header (search, "+", usage row when prop "usage": true), machine cards (the filter,
+//             with cpu / ram / disk), Needs you / All agents. Owns the pollers (changes, stats of every machine, usage
+//             when on, the shown card's terminal text), fit_zoom, the scheme of the focused machine; resets to the inbox
+//             view at load. Its copy lives while the block is hidden (detail view), so its timers keep running.
+//   dbar      the detail view's slim bar (detail.js): Back, agent name and address, Files / Changes
+//   sheet     the head of the Files / Changes sheet under the terminal (detail.js); the sheet itself is the app's mods
+//   composer  prompt field + send (composer.js: hc send, bound to the opened terminal)
+//   usage, colors   popups opened by the inbox (usage details, a machine's scheme)
 // Data (data.js) and helpers (lib.js) are the desktop nightglass mod's files, copied verbatim.
 import { View, div } from "gpui-kit";
 import { props, run } from "herdr";
-import { renderTopbar, renderUsage, renderStatsPopup, pollChanges, pollUsage, pollStats } from "./topbar.js";
+import { renderInbox, renderColorsPopup, currentCard } from "./inbox.js";
+import { pollChanges, pollStats, pollUsage, pollPreview, renderUsage, PREVIEW_MS } from "./polls.js";
 import { prefetchAgents } from "./newmenu.js";
-import { renderStrip, renderTabs, stripSync } from "./strip.js";
+import { renderDbar, renderSheetHead, showInbox } from "./detail.js";
 import { renderComposer, initComposer } from "./composer.js";
-import { renderDrawer, renderColorsPopup, panelSync } from "./drawer.js";
 import { snapshot, ALL } from "./data.js";
 import { machineScheme, ALL_THEME } from "./lib.js";
-import { WIN, DESIGN_W, zoom, popupOpened, popupClosed, setPanel } from "./phone.js";
+import { WIN, DESIGN_W, zoom, popupOpened, popupClosed, detailOpen, needsRows } from "./phone.js";
 
 export default class NightglassPhone extends View {
   init(_p, cx) {
@@ -27,61 +27,51 @@ export default class NightglassPhone extends View {
     this.stats = {};   // machine key -> { tried, at, data, fail }
     this.statsBusy = {};
     this.changes = 0;
-    if (role === "topbar") {
-      setPanel(false, true); // the panel is closed whatever the last run or the saved layout said
+    if (role === "inbox") {
+      showInbox(true); // the inbox view, whatever the last run or the saved layout said
       // The layout is drawn for 412 designed px: when props.fit_zoom is on, step the app zoom to window / 412.
       if (props()?.fit_zoom) cx.timer.every(400, () => this.fitZoom());
+      prefetchAgents(cx);
       pollChanges(this, cx);
       cx.timer.every(2000, (cx) => pollChanges(this, cx));
-      if (props()?.usage === true) { // opt-in (layout prop "usage": true on the topbar block): no usage fetching otherwise
+      if (props()?.usage === true) { // opt-in (layout prop "usage": true on the inbox block): no usage fetching otherwise
         pollUsage(this, cx);
         cx.timer.every(5000, (cx) => pollUsage(this, cx));
       }
       pollStats(this, cx, true);
       cx.timer.every(3000, (cx) => pollStats(this, cx));
-    }
-    if (role === "strip") cx.timer.every(30000, (cx) => cx.notify()); // elapsed times
-    if (role === "composer") initComposer(this, cx);
-    if (role === "drawer") {
-      prefetchAgents(cx);
-      cx.timer.every(30000, (cx) => cx.notify()); // elapsed times
       cx.timer.every(500, (cx) => this.watchFocus(cx));
-      cx.timer.every(400, () => panelSync(this));
+      cx.timer.every(30000, (cx) => cx.notify()); // elapsed times
+      cx.timer.every(500, (cx) => this.previewTick(cx));
     }
-    if (role === "tabs") {
-      cx.timer.every(1000, (cx) => { if (this.armed) cx.notify(); }); // the armed close expires
-      cx.timer.every(500, () => stripSync(this));                      // the strip block: shown / hidden / sized
-    }
-    if (role === "usage" || role === "stats" || role === "colors") popupOpened(role); // popup toggles: phone.js
+    if (role === "dbar") cx.timer.every(1000, (cx) => cx.notify()); // status, title and the needs badge follow the agents
+    if (role === "composer") initComposer(this, cx);
+    if (role === "usage" || role === "colors") popupOpened(role); // popup toggles: phone.js
   }
 
   async close() {
-    if (this.role === "usage" || this.role === "stats" || this.role === "colors") popupClosed(this.role);
+    if (this.role === "usage" || this.role === "colors") popupClosed(this.role);
   }
 
-  // ---- the open machine: the person's choice (kept), else the focused space's machine ----
-  // (as the desktop mod; the phone has no "empty view" stack, so a machine without spaces just lists none)
+  // The shown card's screen: read every PREVIEW_MS while the inbox shows the Needs you tab (polls.js pollPreview).
+  previewTick(cx) {
+    if (detailOpen() || this.tab !== "needs") return;
+    const snap = snapshot();
+    const { r } = currentCard(this, needsRows(snap, this.openKey(snap)));
+    if (!r) return;
+    const force = this.pvForce === true;
+    if (force) this.pvForce = false;
+    pollPreview(this, cx, r.address, force); // redraws when the text arrives
+  }
+
+  // ---- the machine filter: the person's choice (kept), else All ----
   openKey(snap) {
     if (this.openState === undefined) {
       try { this.openState = JSON.parse(localStorage.getItem("open") ?? "null"); } catch { this.openState = null; }
     }
     const st = this.openState;
-    if (st?.set) {
-      if (st.key === null) return null;
-      if (st.key === ALL || snap.mBy.has(st.key)) return st.key;
-    }
-    const f = snap.foc && snap.spaces.find(s => s.id === snap.foc.space);
-    return f?.machine ?? snap.machines[0]?.key ?? null;
-  }
-  // Show a machine: its spaces in the drawer, and on screen the space last visited there (else its first).
-  goMachine(key) {
-    this.setOpen(key);
-    const snap = snapshot();
-    const mine = snap.spaces.filter(s => s.machine === key);
-    if (!mine.length) return;
-    const last = this.lastSpaces()[key];
-    const target = mine.find(s => s.id === last) ?? mine[0];
-    if (target.id !== snap.foc?.space) run("space.select", { id: target.id });
+    if (st?.set && (st.key === ALL || snap.mBy.has(st.key))) return st.key;
+    return ALL;
   }
   lastSpaces() {
     if (!this.visited) { try { this.visited = JSON.parse(localStorage.getItem("visited") ?? "{}"); } catch { this.visited = {}; } }
@@ -135,13 +125,6 @@ export default class NightglassPhone extends View {
     run(target > z ? "app.zoom_in" : "app.zoom_out", {});
   }
 
-  // The observer: its block is 1 px wide and as tall as the window, so its height is the window's (screen px).
-  // The panel's own timer (drawer.js panelSync) reads it, so a soft keyboard (a shorter window) shrinks the cap.
-  renderWatch() {
-    return div().id("tnp-watch").size_full()
-      .on_size_change((size) => { WIN.h = size.height; });
-  }
-
   // Every role gets the design's 13 px body size as its base.
   render() {
     return this.renderRole().text_size(13);
@@ -149,14 +132,11 @@ export default class NightglassPhone extends View {
 
   renderRole() {
     switch (props()?.role) {
-      case "topbar": return renderTopbar(this);
-      case "strip": return renderStrip(this);
-      case "tabs": return renderTabs(this);
+      case "inbox": return renderInbox(this);
+      case "dbar": return renderDbar(this);
+      case "sheet": return renderSheetHead();
       case "composer": return renderComposer(this);
-      case "drawer": return renderDrawer(this);
-      case "watch": return this.renderWatch();
       case "usage": return renderUsage();
-      case "stats": return renderStatsPopup();
       case "colors": return renderColorsPopup();
       default: return div();
     }

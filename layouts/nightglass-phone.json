@@ -24,34 +24,22 @@
           "resizable": false,
           "children": [
             {
-              "id": "topbar",
+              "id": "inbox",
               "type": "block",
-              "size": { "px": 52 },
-              "content": { "mod": "nightglass-phone", "props": { "role": "topbar", "fit_zoom": true } }
+              "content": { "mod": "nightglass-phone", "props": { "role": "inbox", "fit_zoom": true } }
             },
             {
-              "id": "drawer",
+              "id": "dbar",
               "type": "block",
               "hidden": true,
-              "size": { "px": 360 },
-              "content": { "mod": "nightglass-phone", "props": { "role": "drawer" } }
-            },
-            {
-              "id": "strip",
-              "type": "block",
-              "hidden": true,
-              "size": { "px": 28 },
-              "content": { "mod": "nightglass-phone", "props": { "role": "strip" } }
-            },
-            {
-              "id": "tabs",
-              "type": "block",
-              "size": { "px": 40 },
-              "content": { "mod": "nightglass-phone", "props": { "role": "tabs" } }
+              "size": { "px": 60 },
+              "content": { "mod": "nightglass-phone", "props": { "role": "dbar" } }
             },
             {
               "id": "term",
               "type": "column",
+              "hidden": true,
+              "size": { "weight": 1 },
               "padding": [0, 8],
               "children": [
                 {
@@ -72,6 +60,33 @@
               ]
             },
             {
+              "id": "sheet",
+              "type": "column",
+              "hidden": true,
+              "size": { "weight": 1.5 },
+              "padding": [0, 8],
+              "children": [
+                {
+                  "id": "sheethead",
+                  "type": "block",
+                  "size": { "px": 52 },
+                  "content": { "mod": "nightglass-phone", "props": { "role": "sheet" } }
+                },
+                {
+                  "id": "sheet-body",
+                  "type": "stack",
+                  "active": "files",
+                  "radius": 12,
+                  "background": "surface",
+                  "border": { "width": 1, "color": "border" },
+                  "children": [
+                    { "id": "files", "type": "block", "content": { "mod": "files" } },
+                    { "id": "changes", "type": "block", "content": { "mod": "changes" } }
+                  ]
+                }
+              ]
+            },
+            {
               "id": "composer",
               "type": "block",
               "hidden": true,
@@ -81,12 +96,6 @@
           ]
         }
       ]
-    },
-    {
-      "id": "watch",
-      "type": "block",
-      "size": { "px": 1 },
-      "content": { "mod": "nightglass-phone", "props": { "role": "watch" } }
     }
   ]
 }
