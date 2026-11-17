@@ -5,7 +5,7 @@
 //   machines a sideways-scrolling row of cards: "All machines" + one per machine (tint dot, name, cpu / ram / disk);
 //            the cards are the machine filter; tapping the selected machine's card again picks its scheme (colors popup)
 //   tabs     "Needs you (n)" | "All agents (n)"
-//   body     Needs you: one card at a time (machine, tool, age, address; title, branch; status; the terminal's last lines
+//   body     Needs you: one card at a time (status dot, machine, space, age, address; title; the terminal's last lines
 //            from `hc read`; the dialog's numbered answers, sent with `hc keys`; Open) with a pager. Empty: "Nothing needs
 //            you" and the finished agents already seen. All agents: the agents grouped by machine and space.
 // Opening an agent (Open, a row) switches to the detail view (detail.js).
@@ -15,7 +15,7 @@ import { run, props, shared, setShared, openOverlay, closeOverlay, setAgentOrder
 import { C, M, MONO, CLEAR, SCHEMES, COLORS_KEY, alpha, mix, dur, ico, mark, ring, level, machineColor, nearBlack, darkOf, lightOf, anchorBelow } from "./lib.js";
 import { snapshot, LOCAL, ALL, mArg, lastSeen, statsMachine } from "./data.js";
 import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, popupIsOpen, popupJustClosed, swipeArea, swipeBody, watchScroll, tap, needsRows, finishedRows, isDismissed, dismissRows } from "./phone.js";
-import { USAGE_KEY, STATS_KEY, PREVIEW_KEY, diskUsed, usageHeight, dialogChoices, choiceLabel, ringColors, toolIcon, usageMachine } from "./polls.js";
+import { USAGE_KEY, STATS_KEY, PREVIEW_KEY, diskUsed, usageHeight, dialogChoices, choiceLabel, isPermission, ringColors, toolIcon, usageMachine } from "./polls.js";
 import { actionRows } from "./newmenu.js";
 import { openDetail } from "./detail.js";
 
@@ -30,7 +30,7 @@ const roundBtn = (id, icon, on, onClick) => h_flex().id(id).size(40).flex_none()
 // A 40 px chip (answers, Open, Dismiss): the design's .chip.
 const chipBtn = (id, label, look, onClick) => {
   const b = h_flex().id(id).flex_1().min_w(0).h(40).px(8).justify_center().items_center().rounded(10).cursor_pointer()
-    .whitespace_nowrap().font_medium().on_click(onClick);
+    .whitespace_nowrap().overflow_hidden().font_medium().on_click(onClick);
   if (look === "yes") return b.bg(alpha(C.green, 0.16)).border(1).border_color(alpha(C.green, 0.4)).text_color(lightOf(C.green)).font_family(MONO).text_size(12).child(label);
   if (look === "no") return b.bg(alpha(C.red, 0.12)).text_color(lightOf(C.red)).font_family(MONO).text_size(12).child(label);
   if (look === "ans") return b.bg(C.raised).text_color(C.fg).font_family(MONO).text_size(12).child(label);
@@ -163,19 +163,37 @@ function card(view, r, exH) {
   const tint = waiting ? C.red : C.green;
   const pv = shared(PREVIEW_KEY);
   const mine = pv && pv.address === r.address ? pv : null;
-  const nLines = Math.max(3, Math.floor((exH - 16) / LINE));
-  const lines = mine?.lines?.length ? mine.lines.slice(-nLines) : null;
   const choices = waiting && mine ? dialogChoices(mine.lines) : [];
-  const tool = r.program?.name ?? "agent";
-  const state = waiting ? `Waiting for you${r.report ? ` · ${r.report}` : ""}` : `Finished${r.report ? ` · ${r.report}` : ""}`;
-  const excerpt = v_flex().id("tnp-excerpt").w_full().h(exH).flex_none().px(10).py(8).justify_end().overflow_hidden().rounded(10)
+  // a question's option rows (40 + 6 each) come out of the screen text, so the card keeps its height
+  const asking = choices.length > 0 && !isPermission(choices);
+  const exQ = asking ? Math.max(EX_MIN, exH - 46 * choices.length) : exH;
+  const nLines = Math.max(3, Math.floor((exQ - 16) / LINE));
+  // A question: the screen text ends just above its option 1 (the options are rows below), so the question shows,
+  // not the options again; trailing blank and rule lines are dropped.
+  let src = mine?.lines ?? [];
+  if (asking) {
+    let at = -1;
+    for (let i = src.length - 1; i >= 0; i--) if (/^(?:[❯›>]\s*)?1[.)]\s+/.test(src[i].replace(/^[\s│┃|]+/, ""))) { at = i; break; }
+    if (at > 0) src = src.slice(0, at).filter(l => !/^[\s─━—\-=_│┃|]*$/.test(l)); // rules and blanks waste preview rows
+  }
+  const lines = src.length ? src.slice(-nLines) : null;
+  const excerpt = v_flex().id("tnp-excerpt").w_full().h(exQ).flex_none().px(10).py(8).justify_end().overflow_hidden().rounded(10)
     .bg(alpha("#000000", 0.45)).border(1).border_color(C.rim).font_family(MONO).text_size(10.5).line_height(1.5)
-    .when(!!lines, el => el.children(lines.map(l => div().w_full().whitespace_nowrap().overflow_hidden().text_color(alpha(C.fg, 0.85)).child(l || " "))))
+    // a question's text wraps (it is prose); terminal output stays one line per row
+    .when(!!lines, el => el.children(lines.map(l => (asking ? div().w_full().flex_none() : div().w_full().whitespace_nowrap().overflow_hidden()).text_color(alpha(C.fg, 0.85)).child(l.trim() ? (asking ? l.replace(/^[\s│┃|]+/, "").trim() : l) : " "))))
     // no screen text (yet): the agent's own line, as the agent rows show it
     .when(!lines, el => el.child(div().w_full().text_color(C.muted).child(r.now || ""))
       .child(div().w_full().text_color(C.dim).child(mine?.fail ? "terminal text unavailable" : "reading…")));
   const acts = [];
-  if (waiting) {
+  let answerList = null; // a question's options: one full-width row each (number badge + the option's text), above the chips
+  if (waiting && choices.length && !isPermission(choices)) {
+    answerList = v_flex().id("tnp-answers").w_full().flex_none().gap(6).children(choices.map(c =>
+      h_flex().id(`tnp-ans-${c.n}`).w_full().h(40).flex_none().pl(6).pr(10).gap(10).items_center().rounded(10).bg(C.raised).cursor_pointer()
+        .on_click(tap(view, () => answer(view, r, c.n)))
+        .child(h_flex().size(28).flex_none().justify_center().items_center().rounded(7).bg(C.well).font_family(MONO).text_size(12).text_color(C.fg).child(String(c.n)))
+        .child(div().flex_1().min_w(0).truncate().text_size(13).text_color(C.fg).child(c.label))));
+    acts.push(chipBtn("tnp-open", "Open", "plain", tap(view, () => openDetail(r))));
+  } else if (waiting) {
     for (const c of choices) {
       const label = choiceLabel(c.label);
       const look = label === "Yes" ? "yes" : label === "No" ? "no" : "ans";
@@ -190,17 +208,16 @@ function card(view, r, exH) {
   }
   return v_flex().id(`tnp-card-${r.address}`).w_full().flex_none().p(12).gap(10).rounded(16).shadow_xl()
     .bg(alpha(mix(tint, C.glassBase, waiting ? 0.12 : 0.08), 0.78)).border(1).border_color(alpha(tint, waiting ? 0.45 : 0.35))
+    // Rows are scarce on a phone: the status is the dot that starts the top row (red: waiting for you, green: finished),
+    // the machine its tinted name, then the space and the age; the title is the only other line above the screen text.
     .child(h_flex().w_full().gap(8).items_center().text_size(12).text_color(C.muted)
-      .child(mdot(r.machine))
-      .child(div().flex_none().max_w(120).truncate().font_medium().text_color(C.fg).child(r.machineName))
-      .child(div().flex_1().min_w(0).truncate().child(`· ${tool} · ${dur(r.ms)} ago`))
+      .child(div().size(10).flex_none().rounded(5).bg(waiting ? C.red : C.green).border(2).border_color(alpha(waiting ? C.red : C.green, 0.3)))
+      .child(div().flex_none().max_w(120).truncate().font_medium().text_color(machineColor(r.machine)).child(r.machineName))
+      .child(div().flex_1().min_w(0).truncate().child([r.spaceName, `${dur(r.ms)} ago`].filter(Boolean).join(" · ")))
       .child(div().flex_none().px(6).py(3).rounded(6).bg(machineColor(r.machine)).font_family(MONO).text_size(10.5).font_semibold().text_color(C.ink).child(r.short)))
-    .child(v_flex().w_full().gap(2)
-      .child(div().w_full().truncate().text_size(18).font_semibold().text_color(C.fg).child(r.title))
-      .child(div().w_full().truncate().font_family(MONO).text_size(12).text_color(C.muted).child([r.branch, r.spaceName].filter(Boolean).join(" · "))))
-    .child(h_flex().w_full().gap(6).items_center().text_size(13).font_semibold().text_color(tint)
-      .child(mark(r.kind, 14)).child(div().flex_1().min_w(0).truncate().child(state)))
+    .child(div().w_full().truncate().text_size(17).font_semibold().text_color(C.fg).child(r.title))
     .child(excerpt)
+    .when(!!answerList, el => el.child(answerList))
     .child(h_flex().id("tnp-card-acts").w_full().gap(6).children(acts));
 }
 function pager(view, q, idx) {
@@ -302,13 +319,13 @@ export function renderInbox(view) {
   // the excerpt gets what the rest of the column leaves (header, usage lines, "+" rows, cards, tabs, card chrome, pager)
   const usageH = 0; // the usage wells share the header row
   const plusH = view.plus ? 46 + (view.agentOpen ? 46 : 0) : 0;
-  const exH = Math.round(Math.max(EX_MIN, Math.min(EX_MAX, Hd - 530 - usageH - plusH)));
+  const exH = Math.round(Math.max(EX_MIN, Math.min(EX_MAX, Hd - 470 - usageH - plusH)));
   const body = [];
   if (view.tab === "needs") {
     const { idx, r } = currentCard(view, q);
     if (r) {
       body.push(card(view, r, exH));
-      body.push(pager(view, q, idx));
+      if (q.length > 1) body.push(pager(view, q, idx)); // one card: no pager row
     } else {
       // Actual counts by status, zeros left out: "3 working · 1 idle" (done = finished, already seen; offline = unreachable).
       const by = {}; for (const x of mine) if (x.agent) by[x.kind] = (by[x.kind] ?? 0) + 1;

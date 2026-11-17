@@ -136,8 +136,10 @@ export function dialogChoices(lines) {
     if (n !== out.length + 1) continue;
     out.push({ n, label: m[2] });
   }
-  return out.length >= 2 ? out.slice(0, 3) : []; // one numbered line is not a dialog (a list in the agent's output)
+  return out.length >= 2 ? out : []; // one numbered line is not a dialog (a list in the agent's output); all choices (1-9)
 }
+// A permission prompt: every choice reads as Yes / Always / No (the chip row); anything else is a question (one row each).
+export const isPermission = (choices) => choices.length <= 3 && choices.every(c => ["Yes", "Always", "No"].includes(choiceLabel(c.label)));
 // "Yes" / "Always" / "No" for the usual permission texts, else the start of the option's own text.
 export function choiceLabel(text) {
   const t = String(text).trim();
