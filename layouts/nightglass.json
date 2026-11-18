@@ -63,7 +63,7 @@
           "id": "strip",
           "type": "block",
           "size": {
-            "px": 40
+            "px": 82
           },
           "content": {
             "mod": "nightglass",
@@ -121,6 +121,16 @@
                     "mod": "nightglass",
                     "props": {
                       "role": "empty"
+                    }
+                  }
+                },
+                {
+                  "id": "board",
+                  "type": "block",
+                  "content": {
+                    "mod": "nightglass",
+                    "props": {
+                      "role": "board"
                     }
                   }
                 }

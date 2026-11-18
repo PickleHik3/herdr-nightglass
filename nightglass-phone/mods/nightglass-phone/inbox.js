@@ -12,8 +12,8 @@
 import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, props, shared, setShared, openOverlay, closeOverlay, setAgentOrder, hc, notify } from "herdr";
-import { C, M, MONO, CLEAR, SCHEMES, COLORS_KEY, alpha, mix, dur, ico, mark, ring, level, machineColor, nearBlack, darkOf, lightOf, anchorBelow } from "./lib.js";
-import { snapshot, LOCAL, ALL, mArg, lastSeen, statsMachine } from "./data.js";
+import { C, M, MONO, CLEAR, SCHEMES, COLORS_KEY, alpha, mix, dur, ico, mark, ring, level, machineColor, machineGlyph, nearBlack, darkOf, lightOf, anchorBelow } from "./lib.js";
+import { snapshot, LOCAL, ALL, mArg, lastSeen, statsMachine, boardColumns, BOARD_COLS, questionOf } from "./data.js";
 import { MOD, WIN, DESIGN_W, zoom, dsg, pico, ringS, popupIsOpen, popupJustClosed, swipeArea, swipeBody, watchScroll, tap, needsRows, finishedRows, isDismissed, dismissRows } from "./phone.js";
 import { USAGE_KEY, STATS_KEY, PREVIEW_KEY, diskUsed, usageHeight, dialogChoices, choiceLabel, isPermission, ringColors, toolIcon, usageMachine } from "./polls.js";
 import { actionRows } from "./newmenu.js";
@@ -44,8 +44,6 @@ const chipBtn = (id, label, look, onClick) => {
 // ring per account (outer week, inner 5 h) packed right after it, no labels (tap: the popover has the details). Content-
 // sized wells, left-aligned; the area clips rather than pushing the buttons (412 designed px leave ~244 for ~200 of wells).
 function header(view, snap, filter, usageRows) {
-  const m = filter && filter !== ALL ? snap.mBy.get(filter) : statsMachine(snap, ALL);
-  const close = () => { view.plus = false; view.agentOpen = null; };
   const u = shared(USAGE_KEY);
   const groups = [];
   for (const r of usageRows) {
@@ -65,9 +63,17 @@ function header(view, snap, filter, usageRows) {
       .child(image(`${M}/herdr.png`).size(28).rounded(7).flex_none())
       .child(usage)
       .child(roundBtn("tnp-search", ico("search", 18, C.fg), false, () => run("app.palette")))
-      .child(roundBtn("tnp-plus", ico("plus", 18, view.plus ? C.onAccent : C.fg), !!view.plus, (_e, cx) => { view.plus = !view.plus; if (!view.plus) view.agentOpen = null; cx.notify(); })))
-    .when(!!view.plus, el => el.child(v_flex().id("tnp-actions").w_full().flex_none().pr(8).gap(6)
-      .children(actionRows(view, snap, m, (cx) => { close(); view.tab = "all"; cx?.notify(); }, shared("nightglass-phone.changes") ?? 0, false))));
+      .child(roundBtn("tnp-plus", ico("plus", 18, view.plus ? C.onAccent : C.fg), !!view.plus, (_e, cx) => { view.plus = !view.plus; if (!view.plus) view.agentOpen = null; cx.notify(); })));
+}
+// The "+" rows float over the inbox just under the header (top: the inbox's 4 px + the header's 52 px + the 8 px gap), so
+// opening them moves nothing: they used to open inside the header and push the cards and tabs down ~46 px under the finger.
+const PLUS_TOP = 64;
+function plusPanel(view, snap, filter) {
+  const m = filter && filter !== ALL ? snap.mBy.get(filter) : statsMachine(snap, ALL);
+  const close = () => { view.plus = false; view.agentOpen = null; };
+  // Solid glass (the see-through one let the cards under it show between the chips).
+  return floatBox(v_flex().id("tnp-actions").absolute().top(PLUS_TOP).left(8).right(8).pl(10).pr(8).py(8).gap(6)).bg(C.glassSolid)
+    .children(actionRows(view, snap, m, (cx) => { close(); view.tab = "all"; cx?.notify(); }, shared("nightglass-phone.changes") ?? 0, false));
 }
 function openUsage(view, n) {
   // A press outside the popover closes it first; don't reopen it with the click that follows (phone.js popup toggles).
@@ -127,7 +133,7 @@ function machineCard(view, m, filter) {
     }))
     // the machine's glyph as on the desktop tiles, small: a tinted rounded square with the monitor / server icon
     .child(h_flex().min_w(0).gap(6).items_center()
-      .child(h_flex().size(20).flex_none().rounded(6).justify_center().items_center().bg(alpha(machineColor(m.key), 0.2)).child(machineIcon(m, 12, machineColor(m.key))))
+      .child(machineGlyph(m.key, 20))
       .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name)))
     .child(m.offline
       ? div().truncate().text_size(10.5).text_color(C.amber).child("offline")
@@ -138,7 +144,7 @@ function machineCard(view, m, filter) {
 }
 
 // ---- the two tabs ----
-function segTabs(view, nNeeds, anyWaiting, nAll) {
+function segTabs(view, nNeeds, anyWaiting, nAll, nWait) {
   const tab = (id, which, icon, label, count, red) => {
     const on = view.tab === which;
     return h_flex().id(id).flex_1().min_w(0).h(40).gap(6).justify_center().items_center().rounded(11).cursor_pointer()
@@ -150,7 +156,8 @@ function segTabs(view, nNeeds, anyWaiting, nAll) {
   };
   return h_flex().id("tnp-tabs").w_full().h(48).flex_none().p(3).rounded(14).bg(C.well).border(1).border_color(C.rim)
     .child(tab("tnp-tab-needs", "needs", "inbox", "Needs you", nNeeds, anyWaiting))
-    .child(tab("tnp-tab-all", "all", "list", "All agents", nAll, false));
+    .child(tab("tnp-tab-all", "all", "list", "All agents", nAll, false))
+    .child(tab("tnp-tab-board", "board", "board", "Board", nWait, nWait > 0));
 }
 
 // ---- the card ----
@@ -166,10 +173,10 @@ function answer(view, r, n) {
 // The top row every card starts with: the status dot (red: waiting for you, green: finished), the machine's tinted name,
 // the space and the age, and the terminal address.
 function cardTop(r) {
-  const waiting = r.kind === "waiting";
+  // Which machine: its glyph (the desktop tile's); the card's tint (or the board column) already says the status.
   return h_flex().w_full().gap(8).items_center().text_size(12).text_color(C.muted)
-    .child(div().size(10).flex_none().rounded(5).bg(waiting ? C.red : C.green).border(2).border_color(alpha(waiting ? C.red : C.green, 0.3)))
-    .child(div().flex_none().max_w(120).truncate().font_medium().text_color(machineColor(r.machine)).child(r.machineName))
+    .child(machineGlyph(r.machine, 20))
+    .child(div().flex_none().max_w(120).truncate().font_medium().text_color(C.fg).child(r.machineName))
     .child(div().flex_1().min_w(0).truncate().child([r.spaceName, `${dur(r.ms)} ago`].filter(Boolean).join(" · ")))
     .child(div().flex_none().px(6).py(3).rounded(6).bg(machineColor(r.machine)).font_family(MONO).text_size(10.5).font_semibold().text_color(C.ink).child(r.short));
 }
@@ -337,8 +344,7 @@ export function renderInbox(view) {
   const Hd = WIN.h > 0 ? dsg(WIN.h) : 860;
   // the excerpt gets what the rest of the column leaves (header, usage lines, "+" rows, cards, tabs, card chrome, pager)
   const usageH = 0; // the usage wells share the header row
-  const plusH = view.plus ? 46 + (view.agentOpen ? 46 : 0) : 0;
-  const exH = Math.round(Math.max(EX_MIN, Math.min(EX_MAX, Hd - 470 - usageH - plusH)));
+  const exH = Math.round(Math.max(EX_MIN, Math.min(EX_MAX, Hd - 470 - usageH))); // the "+" rows float: they take no room
   const body = [];
   if (view.tab === "needs") {
     const { r } = currentCard(view, q);
@@ -361,21 +367,90 @@ export function renderInbox(view) {
         .child(div().px(6).py(2).text_size(11).font_semibold().text_color(C.muted).child("Finished"))
         .children(seen.map(x => agentRow(view, x))));
     }
+  } else if (view.tab === "board") {
+    const parts = boardTab(view, snap, filter);
+    body.push(...parts);
   } else {
     body.push(floatBox(v_flex().id("tnp-list").w_full().flex_none().p(6).gap(6)).children(groups(view, snap, filter)));
   }
-  return v_flex().id("tnp-inbox").size_full().px(8).pt(4).pb(8).gap(8)
+  return v_flex().id("tnp-inbox").size_full().relative().px(8).pt(4).pb(8).gap(8)
     .on_size_change((size, cx) => {
       WIN.h = size.height;
-      if (Math.abs((view.width ?? 0) - size.width) >= 1) { view.width = size.width; WIN.w = size.width; cx.notify(); }
+      if (Math.abs((view.width ?? 0) - size.width) >= 1) {
+        const first = !(WIN.w > 0);
+        view.width = size.width; WIN.w = size.width;
+        if (first && view.fitZ) view.fitZoom(); // don't wait for the 400 ms tick: one re-zoom right away
+        cx.notify();
+      }
     })
     .child(header(view, snap, filter, usageRows))
     .child(swipeArea(watchScroll(h_flex().id("tnp-machines").w_full().h(CARD_H).flex_none().overflow_x_scroll(), view))
       .child(swipeBody(h_flex().h_full().flex_none().gap(6))
         .child(allCard(view, snap, filter)).children(snap.machines.map(m => machineCard(view, m, filter)))))
-    .child(segTabs(view, q.length, q.some(x => x.kind === "waiting"), nAll))
+    .child(segTabs(view, q.length, q.some(x => x.kind === "waiting"), nAll, mine.filter(r => r.agent && r.kind === "waiting").length))
     .child(swipeArea(watchScroll(v_flex().id("tnp-body").w_full().flex_1().min_h(0).overflow_y_scroll(), view))
-      .child(swipeBody(v_flex().w_full().flex_none().gap(10)).children(body)));
+      .child(swipeBody(v_flex().w_full().flex_none().gap(10)).children(body)))
+    .when(!!view.plus, el => el.child(plusPanel(view, snap, filter)));
+}
+
+// ---- the Board tab: the desktop board's four columns, one at a time ----
+// Column chips on top (tap one), or swipe sideways over the cards to move to the next / previous column. The machine
+// cards above filter it, as they do the other tabs. A waiting card quotes what the agent asks (data.js pollQuestions).
+const BCOL = {
+  waiting: { label: "Needs", color: () => C.red },
+  working: { label: "Working", color: () => C.green },
+  done: { label: "Done", color: () => C.teal ?? C.green },
+  idle: { label: "Idle", color: () => C.idle },
+};
+function boardCard(view, r, k) {
+  const tint = BCOL[k].color();
+  const q = k === "waiting" ? questionOf(r.address) : null;
+  return v_flex().id(`tnp-bc-${r.address}`).w_full().flex_none().px(12).py(10).gap(6).rounded(16)
+    .bg(alpha(mix(tint, C.glassBase, 0.06), 0.7)).border(1).border_color(alpha(tint, 0.25)).opacity(r.kind === "offline" ? 0.6 : 1)
+    .child(cardTop(r))
+    .child(div().w_full().min_w(0).truncate().text_size(15).font_semibold().text_color(C.fg).child(r.title))
+    .when(k === "waiting", el => el.child(v_flex().w_full().px(10).py(8).gap(2).rounded(10).bg(alpha(tint, 0.10))
+      .child(div().font_family(MONO).text_size(10.5).font_semibold().text_color(tint).child("ASKS YOU"))
+      .child(div().w_full().min_w(0).text_size(13).text_color(q ? C.fg : C.muted).child(q ?? r.report ?? "reading its screen…"))))
+    .when(k !== "waiting" && !!r.report, el => el.child(div().w_full().min_w(0).truncate().text_size(13).text_color(C.muted).child(r.report)))
+    .child(h_flex().w_full().gap(8)
+      .child(chipBtn(`tnp-bo-${r.address}`, k === "waiting" ? "Answer" : "Open", k === "waiting" ? "sel" : "", tap(view, () => openDetail(r))))
+      .when(k === "done", el => el.child(chipBtn(`tnp-bd-${r.address}`, "Dismiss", "", tap(view, (_e, cx) => { dismissRows([r]); cx.notify(); })))));
+}
+// A sideways swipe (the wheel events a touch scroll sends) of 60+ px, mostly horizontal, moves one column; once per gesture.
+function swipeColumns(view, el, cols) {
+  return el.on_scroll_wheel((e, cx) => {
+    const now = Date.now();
+    if (e?.touch_phase === "started" || now - (view.bsAt ?? 0) > 400) { view.bsX = 0; view.bsY = 0; view.bsLock = false; }
+    view.bsAt = now; view.bsX += e?.delta?.x ?? 0; view.bsY += e?.delta?.y ?? 0;
+    if (view.bsLock || Math.abs(view.bsX) < 60 || Math.abs(view.bsX) < 2 * Math.abs(view.bsY)) return;
+    view.bsLock = true;
+    const i = BOARD_COLS.indexOf(view.bcol) + (view.bsX < 0 ? 1 : -1);
+    if (i >= 0 && i < BOARD_COLS.length) { view.bcol = BOARD_COLS[i]; cx.notify(); }
+  });
+}
+function boardTab(view, snap, filter) {
+  const cols = boardColumns(snap, filter, isDismissed);
+  if (!BOARD_COLS.includes(view.bcol)) view.bcol = cols.waiting.length ? "waiting" : "working";
+  const k = view.bcol, rows = cols[k];
+  const chip = (c) => {
+    const on = c === k, tint = BCOL[c].color(), n = cols[c].length;
+    return h_flex().id(`tnp-bcol-${c}`).flex_1().min_w(0).h(40).gap(5).justify_center().items_center().rounded(11).cursor_pointer()
+      .bg(on ? alpha(tint, 0.18) : C.raised).border(1).border_color(on ? alpha(tint, 0.5) : CLEAR)
+      .on_click((_e, cx) => { view.bcol = c; cx.notify(); })
+      .child(div().text_size(12).font_medium().text_color(on ? C.fg : C.muted).child(BCOL[c].label))
+      .child(div().px(5).rounded(6).bg(c === "waiting" && n ? tint : C.well).font_family(MONO).text_size(10.5)
+        .text_color(c === "waiting" && n ? C.ink : C.fg).child(String(n)));
+  };
+  const list = swipeColumns(view, v_flex().id("tnp-bcards").w_full().flex_none().gap(10), cols)
+    .children(rows.map(r => boardCard(view, r, k)))
+    .when(!rows.length, el => el.child(div().w_full().py(24).text_center().text_size(13).text_color(C.dim)
+      .child(k === "waiting" ? "Nothing needs you" : `No ${BCOL[k].label.toLowerCase()} agents`)));
+  const dismissAll = k === "done" && rows.length > 1
+    ? h_flex().w_full().justify_end().child(h_flex().id("tnp-bd-all").h(40).px(14).items_center().rounded(10).bg(C.raised)
+      .font_medium().text_color(C.fg).cursor_pointer().on_click(tap(view, (_e, cx) => { dismissRows(rows); cx.notify(); })).child("Dismiss all"))
+    : null;
+  return [h_flex().id("tnp-bcols").w_full().flex_none().gap(6).children(BOARD_COLS.map(chip)), ...(dismissAll ? [dismissAll] : []), list];
 }
 
 // ---- popup: theme (whole-window scheme) of a machine ----

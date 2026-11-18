@@ -3,14 +3,16 @@ import { div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, closeOverlay, setAgentOrder, props, spaces, focused, shared, setShared, knownAgents } from "herdr";
 import { C, M, MONO, CLEAR, alpha, mix, nearBlack, darkOf, lightOf, revealMotion, dur, ico, prog, mark, level, stop, nodePx,
-  anchorBelow, anchorRight, setPressed, getPressed, bindingOf, machineColor, SCHEMES, COLORS_KEY } from "./lib.js";
+  anchorBelow, anchorRight, setPressed, getPressed, bindingOf, machineColor, machineGlyph, SCHEMES, COLORS_KEY } from "./lib.js";
 import { snapshot, LOCAL, ALL, mkey, mArg, onArg, lastSeen, upText, statsMachine } from "./data.js";
 import { usageParts } from "./header.js";
+import { boardShown, showTerminals } from "./board.js";
 
 const MOD = "nightglass";
 
 // ---- acting on a row ----
 export function focusRow(r) {
+  if (boardShown()) showTerminals(); // picking a terminal leaves the board for it
   if (r.agent) return run("agent.focus", { terminal: r.address });
   if (!r.spaceActive) run("space.select", { id: r.space });
   if (!r.spaceActive || !r.tabActive) run("tab.select", { id: r.tab });
@@ -99,8 +101,13 @@ function allLight(snap) {
 // only, no delay) while what it covers fades out (fadeUnder), so nothing moves under the pointer. Hidden, it
 // takes no presses: they go to the row. Shown, it stops the press so the row isn't picked.
 // White mark on a strong red fill: a red mark on a faint red fill vanished on a red-tinted row.
-const closeSlot = (id, shown, radius, tip, act) => h_flex().id(id).absolute().top(0).right(0).w(30).h_full()
+// view: records which close button is under the pointer (view.xHover), so its row can drop its own tooltip there.
+const closeSlot = (id, shown, radius, tip, act, view) => h_flex().id(id).absolute().top(0).right(0).w(30).h_full()
   .justify_center().items_center().rounded_r(radius).bg(alpha(C.red, 0.62))
+  .when(!!view, el => el.on_hover((h, cx) => {
+    const v = h ? id : view.xHover === id ? null : view.xHover;
+    if (v !== view.xHover) { view.xHover = v; cx.notify(); }
+  }))
   .opacity(shown ? 1 : 0).transition("opacity", revealMotion(shown))
   .when(shown, el => el.hover(s => s.bg(alpha(C.red, 0.85))).cursor_pointer().tooltip(tip)
     .on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); act(); }))
@@ -121,7 +128,8 @@ function rowEl(view, r, compact, onPick) {
   const h = showNow ? 42 : 30;
   return h_flex().id(`tn-row-${r.address}`).w_full().min_w(0).h(h).flex_none().relative().items_stretch().rounded(6).overflow_hidden()
     .bg(r.focused ? mc : waiting ? alpha(C.red, 0.2) : CLEAR).cursor_pointer().text_size(12).text_color(r.focused ? t1 : C.muted)
-    .when(!compact && !showNow && !!r.now, el => el.tooltip(r.now))
+    // its folder as the tooltip, except over its close button (that one says "Close terminal")
+    .when(!compact && !showNow && !!r.now && view.xHover !== `tn-row-x-${r.address}`, el => el.tooltip(r.now))
     .when(r.focused, el => el.shadow_md())
     .hover(s => s.bg(r.focused ? mc : waiting ? alpha(C.red, 0.28) : C.raised))
     .on_hover((hv, cx) => { if (hv) view.hover = r.address; else if (view.hover === r.address) view.hover = null; cx.notify(); })
@@ -140,7 +148,7 @@ function rowEl(view, r, compact, onPick) {
     .when(showNow, el => el.child(div().pl(18).w_full().min_w(0).h(16).overflow_hidden()
       .child(div().w_full().truncate().font_family(MONO).text_size(10.5).text_color(r.focused ? t2 : waiting ? C.red : C.dim).child(r.now)))))
     .when(closable, el => el.child(closeSlot(`tn-row-x-${r.address}`, hover, 6, "Close terminal",
-      () => r.pane ? run("pane.close", { pane: r.pane }) : run("terminal.kill", { terminal: r.address }))));
+      () => r.pane ? run("pane.close", { pane: r.pane }) : run("terminal.kill", { terminal: r.address }), view)));
 }
 
 const STAT_TEXT_W = 76; // fits "20.3/63 GB", "881 GB free", "58% · 12c" in 11 px mono
@@ -263,8 +271,7 @@ function tile(view, m, open) {
     .hover(s => s.bg(C.raisedHi))
     .on_click((_e, cx) => { view.goMachine(m.key); view.pollStats(cx, true); cx.notify(); })
     .on_mouse_down("right", pickColor(m))
-    .child(h_flex().size(24).rounded(7).justify_center().items_center().bg(alpha(mc, 0.16))
-      .child(machineIcon(m, 14, mc)))
+    .child(machineGlyph(m.key, 24))
     .child(div().max_w_full().truncate().text_size(11).font_medium().text_color(sel ? C.fg : C.muted).child(m.name))
     .when(!!m.light, el => el.child(light(m, 6, 6)));
 }
@@ -286,7 +293,9 @@ function allTile(view, snap, open) {
     .when(!!l, el => el.child(light({ light: l }, 6, 6)));
 }
 
-// Unreachable machines: a note under the tiles. Its x hides it until the set of unreachable machines changes.
+// Unreachable machines: a note under the tiles. Its x hides it until the set of unreachable machines changes; the
+// dismissal is kept in shared state, so it survives a restart.
+const OFFLINE_KEY = "nightglass.offlineDismissed";
 const offlineKey = (snap) => snap.offline.map(m => m.key).sort().join(",");
 function offlineNote(view, snap) {
   const off = snap.offline;
@@ -303,7 +312,7 @@ function offlineNote(view, snap) {
     .child(h_flex().id("tn-offline-x").size(22).flex_none().justify_center().items_center().rounded(6)
       .cursor_pointer().hover(s => s.bg(C.raisedHi)).tooltip("Dismiss")
       .on_mouse_down("left", stop)
-      .on_click((_e, cx) => { cx.stop_propagation(); view.offlineDismissed = offlineKey(snap); cx.notify(); })
+      .on_click((_e, cx) => { cx.stop_propagation(); setShared(OFFLINE_KEY, offlineKey(snap)); cx.notify(); })
       .child(ico("win-close", 9, C.muted)));
 }
 
@@ -332,7 +341,7 @@ function full(base, view, snap, open, w) {
     .child(floatBox(v_flex().w_full().flex_1().min_h(0).px(10).pt(10).pb(6).gap(10))
       .child(brand(view, snap))
       .child(v_flex().w_full().flex_none().gap(6).children(tileRows))
-      .when(snap.offline.length > 0 && view.offlineDismissed !== offlineKey(snap), el => el.child(offlineNote(view, snap)))
+      .when(snap.offline.length > 0 && shared(OFFLINE_KEY) !== offlineKey(snap), el => el.child(offlineNote(view, snap)))
       .when(all, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
         .children(allGroups(view, snap, false, (mm, cx) => { view.goMachine(mm.key); view.pollStats(cx, true); cx.notify(); }))
         .child(spacer)))

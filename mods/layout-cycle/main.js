@@ -5,7 +5,7 @@
 // layout after the shown one in CYCLE (the first one when the shown layout isn't in the list), and closes.
 // Needs herdr-app 0.1.16+ (`checking`).
 import { View, div } from "gpui-kit";
-import { run, shared, layouts, props, closeOverlay, checking } from "herdr";
+import { run, shared, setShared, settings, layouts, props, closeOverlay, checking } from "herdr";
 
 const CYCLE = ["nightglass", "nightglass-phone", "main"];
 
@@ -19,7 +19,16 @@ export default class LayoutCycle extends View {
       if (overlay) closeOverlay(overlay);
       if (!list.length) return;
       const i = list.indexOf(String(shared("layout") ?? ""));
-      run("layout.switch", { name: list[(i + 1) % list.length] });
+      const next = list[(i + 1) % list.length];
+      // Leaving the phone layout: put back the zoom its fit_zoom found (nightglass-phone main.js notes it).
+      const z0 = shared("nightglass-phone.zoomBefore");
+      if (next !== "nightglass-phone" && typeof z0 === "number") {
+        setShared("nightglass-phone.zoomBefore", null);
+        const z = Number(settings()?.zoom) > 0 ? Number(settings().zoom) : 1;
+        const n = Math.round((z0 - z) * 10);
+        for (let k = 0; k < Math.abs(n); k++) run(n > 0 ? "app.zoom_in" : "app.zoom_out", {});
+      }
+      run("layout.switch", { name: next });
     });
   }
 

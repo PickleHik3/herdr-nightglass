@@ -8,11 +8,14 @@
 import { View, div, image } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { props, closeOverlay, run, theme, layout } from "herdr";
-import { C, alpha, findNode } from "./lib.js";
+import { C, alpha, findNode, enter, startEnter } from "./lib.js";
 
 const DOT = { error: "blocked", warning: "working", success: "done", info: "accent" };
 
 export default class Toast extends View {
+  // The toast eases in, lifting 6 px (lib.js enter).
+  init(_p, cx) { startEnter(this, cx); }
+
   render(_cx) {
     const p = props() ?? {};
     const act = () => {
@@ -28,7 +31,7 @@ export default class Toast extends View {
     const dot = { error: C.red, warning: C.amber, success: C.green, info: C.accent }[p.level] ?? C.accent;
     const text = [p.title, p.body].filter(Boolean).join(" · ");
     return v_flex().size_full().items_center()
-      .child(h_flex().id("toast").w_full().h(32).flex_none().px(12).gap(8).items_center().rounded(16)
+      .child(enter(h_flex().id("toast").w_full().h(32).flex_none().px(12).gap(8).items_center().rounded(16), this.shown, 6)
         .bg(C.glassSolid).border(1).border_color(C.rim).cursor_pointer().text_size(12)
         .on_click(act)
         .child(p.icon ? image(p.icon).size(14).flex_none() : div().size(8).rounded(4).flex_none().bg(dot))
@@ -37,7 +40,7 @@ export default class Toast extends View {
 
   stock(p, act) {
     const t = theme();
-    return h_flex().id("toast").size_full().px(18).gap(12).items_center().bg(t.popover).cursor_pointer()
+    return enter(h_flex().id("toast").size_full().px(18).gap(12).items_center(), this.shown, 6).bg(t.popover).cursor_pointer()
       .hover((s) => s.bg(t.hover)).on_click(act)
       .child(p.icon ? image(p.icon).w(18).h(18).flex_none() : div().size(8).rounded(4).flex_none().bg(t[DOT[p.level] ?? "accent"]))
       .child(v_flex().flex_1().overflow_hidden()

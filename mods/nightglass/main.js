@@ -1,17 +1,33 @@
 // nightglass: one multi-role mod for the "nightglass" layout.
 //   sidebar  machines, folder capsules, system stats (and the 56 px rail below 160 px wide)
 //   header   search pill, Files / Changes, settings, window buttons
-//   strip    "Nothing needs you" / "Needs you" cards (sizes its own block)
+//   strip    tab bar (with the Board pill) + the fixed-height "Needs you" bar
+//   board    every agent in four columns, in the main stack in place of the terminals (board.js)
 //   pane     the pane header
 //   newmenu, agentmenu, spaces          popups opened by the roles above
 // Data comes from Herdr's live state; see data.js. Colors and icons: lib.js.
 import { View, div } from "gpui-kit";
-import { props, exec, run, shared, setShared } from "herdr";
+import { props, exec, run, shared, setShared, settings } from "herdr";
 import { renderSidebar, renderNewMenu, renderAgentMenu, renderSpacesPopup, renderColorsPopup, loadAgents, prefetchAgents } from "./sidebar.js";
 import { renderHeader, pollChanges, pollUsage, usageMachine } from "./header.js";
 import { renderStrip, renderPane, renderEmpty, EMPTY_KEY } from "./strip.js";
-import { snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL } from "./data.js";
-import { nodePx, machineScheme, ALL_THEME } from "./lib.js";
+import { renderBoard, boardShown, showTerminals } from "./board.js";
+import { snapshot, STATS_SCRIPT, parseStats, onArg, statsMachine, ALL, pollQuestions } from "./data.js";
+import { nodePx, machineScheme, ALL_THEME, pulsing, enter, startEnter } from "./lib.js";
+
+// Popups: they ease in, dropping 4 px into place (lib.js enter).
+const POPUPS = ["newmenu", "agentmenu", "spaces", "colors"];
+// The phone layout's fit_zoom steps the app zoom up to fit its 412 designed px and notes the zoom it found here;
+// coming back to this layout puts that zoom back (layout-cycle does the same when it leaves the phone layout).
+const ZOOM_BEFORE = "nightglass-phone.zoomBefore";
+function restoreZoom() {
+  const z0 = shared(ZOOM_BEFORE);
+  if (typeof z0 !== "number") return;
+  setShared(ZOOM_BEFORE, null);
+  const z = Number(settings()?.zoom) > 0 ? Number(settings().zoom) : 1;
+  const n = Math.round((z0 - z) * 10);
+  for (let i = 0; i < Math.abs(n); i++) run(n > 0 ? "app.zoom_in" : "app.zoom_out", {});
+}
 
 export default class Nightglass extends View {
   init(_p, cx) {
@@ -20,7 +36,9 @@ export default class Nightglass extends View {
     this.statsBusy = {};
     this.hover = null;
     this.changes = 0;
+    if (POPUPS.includes(role)) startEnter(this, cx);
     if (role === "sidebar") {
+      restoreZoom();
       this.pollStats(cx, true);
       cx.timer.every(3000, (cx) => this.pollStats(cx));
       cx.timer.every(30000, (cx) => cx.notify()); // elapsed times
@@ -36,6 +54,20 @@ export default class Nightglass extends View {
       cx.timer.every(2000, (cx) => pollChanges(this, cx));
     }
     if (role === "strip") cx.timer.every(30000, (cx) => cx.notify());
+    // Roles that draw status marks re-render once when the waiting pulse's window opens or closes (lib.js pulsing).
+    // The board reads what each waiting agent asks every 5 s while it shows (a hidden stack child doesn't run), and
+    // re-renders every 30 s for the timers.
+    if (role === "board") {
+      pollQuestions(cx, snapshot().rows);
+      cx.timer.every(5000, (cx) => pollQuestions(cx, snapshot().rows));
+      cx.timer.every(30000, (cx) => cx.notify());
+    }
+    if (["sidebar", "strip", "pane", "spaces", "board"].includes(role)) {
+      cx.timer.every(1000, (cx) => {
+        const on = pulsing(), b = boardShown(); // the strip also follows the board opening or closing
+        if (on !== this.pulse || b !== this.boardOn) { this.pulse = on; this.boardOn = b; cx.notify(); }
+      });
+    }
     if (role === "newmenu") prefetchAgents(cx);
     if (role === "agentmenu") loadAgents(this, props().machine, cx);
   }
@@ -92,6 +124,8 @@ export default class Nightglass extends View {
       if (v[sp.machine] !== id) { v[sp.machine] = id; try { localStorage.setItem("visited", JSON.stringify(v)); } catch { /* storage unavailable */ } }
     }
     if (this.emptyShown()) { setShared(EMPTY_KEY, null); run("layout.select", { stack: "main-stack", child: "main" }); }
+    // Focus moved (a sidebar row, the palette, an attention chip) while the board shows: show that terminal.
+    else if (boardShown()) showTerminals();
   }
   // The whole window wears the focused space's machine scheme (the empty view: the machine it
   // shows; All: its own Storm scheme). Checked every tick, so a color picked for the focused machine applies at once.
@@ -141,7 +175,8 @@ export default class Nightglass extends View {
   // Every role gets the design's 13 px body size as its base, so text without its own size
   // never falls back to Herdr's larger UI default.
   render() {
-    return this.renderRole().text_size(13);
+    const el = this.renderRole().text_size(13);
+    return POPUPS.includes(props()?.role) ? enter(el, this.shown, -4) : el;
   }
 
   renderRole() {
@@ -149,6 +184,7 @@ export default class Nightglass extends View {
       case "sidebar": return renderSidebar(this);
       case "header": return renderHeader(this);
       case "strip": return renderStrip(this);
+      case "board": return renderBoard(this);
       case "pane": return renderPane();
       case "empty": return renderEmpty();
       case "newmenu": return renderNewMenu(this);

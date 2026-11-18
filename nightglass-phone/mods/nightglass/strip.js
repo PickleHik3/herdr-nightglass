@@ -1,24 +1,20 @@
-// nightglass: the strip (tab bar + status capsule, "Needs you" cards), the pane header
+// nightglass: the strip (tab bar, then the fixed-height "Needs you" bar), the pane header
 // and the empty view (a machine with no spaces).
 import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { run, openOverlay, panes, props, exec, shared, setShared, spaces } from "herdr";
 import { C, MONO, CLEAR, alpha, mix, revealMotion, dur, ico, prog, mark, stop, nodePx, anchorBelowRight, setPressed, getPressed, machineColor } from "./lib.js";
 import { snapshot, short, LOCAL, mArg, mname, mkey } from "./data.js";
+import { boardPill, boardShown, hasBoard, showTerminals } from "./board.js";
 
 export const EMPTY_KEY = "nightglass.empty"; // machine key shown in the empty view, or null
-const TABS = 40, GAP = 8, CARD = 76, HEAD = 18, PAD = 22, MAX_CARDS = 6;
+// Fixed height: the tab row, then one bar for what needs you. The strip never grows or shrinks with the number of
+// agents waiting or finished (it used to stack cards and resize itself), so the terminal below never moves.
+const TABS = 40, GAP = 8, BAR = 34, STRIP = TABS + GAP + BAR;
 
-function plan(snap) {
-  const att = snap.rows.filter(r => r.agent && (r.kind === "waiting" || r.kind === "done"))
-    .sort((a, b) => (a.kind === "waiting" ? 0 : 1) - (b.kind === "waiting" ? 0 : 1) || a.ms - b.ms);
-  const parts = [TABS];
-  if (att.length) {
-    const rows = Math.ceil(Math.min(att.length, MAX_CARDS) / 2);
-    parts.push(PAD + HEAD + GAP + rows * CARD + (rows - 1) * GAP);
-  }
-  return { att, px: parts.reduce((s, n) => s + n, 0) + GAP * (parts.length - 1) };
-}
+// Agents that want you: waiting first, then finished; the most recent first within each.
+const attention = (snap) => snap.rows.filter(r => r.agent && (r.kind === "waiting" || r.kind === "done"))
+  .sort((a, b) => (a.kind === "waiting" ? 0 : 1) - (b.kind === "waiting" ? 0 : 1) || a.ms - b.ms);
 
 function summary(snap) {
   const live = snap.rows.filter(r => r.kind !== "offline");
@@ -27,62 +23,53 @@ function summary(snap) {
   return `${w} working · ${i} idle`;
 }
 
-function card(r) {
+// One chip per agent that wants you; the whole chip opens it. Where it runs and its last report are the tooltip.
+function chip(r) {
   const waiting = r.kind === "waiting";
   const tint = waiting ? C.red : C.green;
-  // The whole card opens the agent; the chip on the right just names the terminal.
-  return h_flex().id(`tn-card-${r.address}`).w_full().min_w(0).h(CARD).flex_none().pl(12).pr(10).gap(12).items_center().rounded(10)
+  const tip = [`${waiting ? "Waiting on you" : "Finished"} · ${r.machineName} › ${r.spaceName}`, r.report || r.program?.name || ""].filter(Boolean).join("\n");
+  return h_flex().id(`tn-chip-${r.address}`).h(26).flex_none().max_w(280).pl(9).pr(4).gap(7).items_center().rounded(13)
     .bg(alpha(tint, waiting ? 0.16 : 0.10)).border(1).border_color(alpha(tint, waiting ? 0.45 : 0.35))
-    .when(waiting, el => el.shadow_md())
     .cursor_pointer().hover(s => s.bg(alpha(tint, waiting ? 0.24 : 0.16)).border_color(alpha(tint, waiting ? 0.6 : 0.5)))
-    .tooltip(`Open ${r.short}`)
-    .on_click(() => run("agent.focus", { terminal: r.address }))
-    .child(v_flex().flex_1().min_w(0).gap(3)
-      .child(h_flex().w_full().min_w(0).gap(8).items_center()
-        .child(mark(r.kind))
-        .child(div().min_w(0).flex_shrink(1).truncate().font_semibold().text_color(C.fg).child(r.title))
-        .child(div().flex_none().text_size(11).font_semibold().text_color(tint).child(waiting ? "Waiting on you" : "Finished"))
-        .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.muted).child(dur(r.ms))))
-      .child(div().w_full().min_w(0).truncate().text_size(12).text_color(C.muted).child(r.report || r.program?.name || ""))
-      .child(div().w_full().min_w(0).truncate().text_size(11).text_color(C.muted).child(`${r.machineName} › ${r.spaceName}`)))
-    .child(div().flex_none().px(6).py(1).rounded(5).bg(waiting ? C.red : machineColor(r.machine)).font_family(MONO).text_size(10.5).font_medium()
-      .text_color(C.ink).child(r.short));
+    .tooltip(tip)
+    .on_click(() => { run("agent.focus", { terminal: r.address }); if (boardShown()) showTerminals(); })
+    .child(mark(r.kind))
+    .child(div().min_w(0).flex_shrink(1).truncate().text_size(12).font_medium().text_color(C.fg).child(r.title))
+    .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.muted).child(dur(r.ms)))
+    .child(div().flex_none().px(5).rounded(5).bg(waiting ? C.red : machineColor(r.machine)).font_family(MONO).text_size(10.5)
+      .font_medium().text_color(C.ink).child(r.short));
 }
 
-function attention(snap, att) {
-  const shown = att.slice(0, MAX_CARDS);
-  const more = att.length - shown.length;
+function bar(snap, att) {
   const nWait = att.filter(r => r.kind === "waiting").length, nDone = att.length - nWait;
-  const col = (xs) => v_flex().flex_1().min_w(0).gap(GAP).children(xs.map(card));
-  return v_flex().w_full().flex_none().bg(C.glass).border(1).border_color(C.rim).rounded(12).px(12).pt(10).pb(12).gap(GAP)
-    .child(h_flex().w_full().h(HEAD).flex_none().gap(8).px(2).items_center()
-      .when(nWait > 0, el => el.child(div().text_size(12).font_semibold().text_color(C.fg).child("Needs you"))
-        .child(div().px(5).rounded(5).bg(C.red).font_family(MONO).text_size(10.5).font_medium().text_color(C.ink).child(String(nWait))))
-      .when(nDone > 0, el => el.when(nWait > 0, e => e.child(div().w(6)))
-        .child(div().text_size(12).font_semibold().text_color(C.fg).child("Done"))
-        .child(div().px(5).rounded(5).bg(C.green).font_family(MONO).text_size(10.5).font_medium().text_color(C.ink).child(String(nDone))))
-      .child(div().flex_1())
-      .child(div().text_size(11).text_color(C.muted).child(more > 0 ? `${summary(snap)} · +${more} more` : summary(snap))))
-    .child(h_flex().w_full().gap(GAP).items_start()
-      .child(col(shown.filter((_r, i) => i % 2 === 0)))
-      .child(col(shown.filter((_r, i) => i % 2 === 1))));
+  const count = (label, n, color) => h_flex().flex_none().gap(6).items_center()
+    .child(div().text_size(12).font_semibold().text_color(C.fg).child(label))
+    .child(div().px(5).rounded(5).bg(color).font_family(MONO).text_size(10.5).font_medium().text_color(C.ink).child(String(n)));
+  return h_flex().id("tn-bar").w_full().h(BAR).flex_none().pl(12).pr(12).gap(10).items_center().rounded(12)
+    .bg(C.glass).border(1).border_color(C.rim)
+    .when(!att.length, el => el.child(ico("check-circle", 14, C.green))
+      .child(div().flex_1().min_w(0).truncate().text_size(12).font_medium().text_color(C.fg).child("Nothing needs you")))
+    .when(att.length > 0, el => el
+      .when(nWait > 0, e => e.child(count("Needs you", nWait, C.red)))
+      .when(nDone > 0, e => e.child(count("Done", nDone, C.green)))
+      .child(h_flex().id("tn-chips").flex_1().min_w(0).h_full().gap(6).items_center().overflow_x_scroll().children(att.map(chip))))
+    .child(div().flex_none().text_size(11).text_color(C.muted).child(summary(snap)));
 }
 
 export function renderStrip(view) {
   const snap = snapshot();
-  const { att, px } = plan(snap);
-  // Size our own block: only when it differs from the layout's current px (retried at most every 2 s).
-  const cur = nodePx("strip");
-  if (cur !== px) {
+  // The board shows every agent already, so while it is up the strip is the tab row alone. Otherwise the strip holds
+  // its one height whatever needs you (an installed layout may still say otherwise). Resized only when the wanted
+  // height changes, or retried every 2 s.
+  const board = boardShown();
+  const px = board ? TABS : STRIP;
+  if (nodePx("strip") !== px) {
     const now = Date.now();
-    if (view.stripReq !== px || now - (view.stripAt ?? 0) > 2000) {
-      view.stripReq = px; view.stripAt = now;
-      run("layout.resize", { id: "strip", px });
-    }
+    if (view.stripReq !== px || now - (view.stripAt ?? 0) > 2000) { view.stripReq = px; view.stripAt = now; run("layout.resize", { id: "strip", px }); }
   }
   return v_flex().id("tn-strip").size_full().gap(GAP).overflow_hidden()
-    .child(tabRow(view, snap, att))
-    .when(att.length > 0, el => el.child(attention(snap, att)));
+    .child(tabRow(view, snap))
+    .when(!board, el => el.child(bar(snap, attention(snap))));
 }
 
 // ---- tab bar: the shown space's tabs (Ctrl+Shift+T makes one), status capsule on the right ----
@@ -98,16 +85,18 @@ function tabLabel(t) {
   const folder = p.cwd ? p.cwd.replace(/\/+$/, "").split("/").pop() || "/" : "";
   return title || p.program?.name || folder || t.name;
 }
-function tabRow(view, snap, att) {
+function tabRow(view, snap) {
   const sp = spaces().find(s => s.active);
   const mc = machineColor(mkey(sp?.machine ?? null));
+  // While the board shows, no tab is the shown one, and picking any tab (the active one too) goes back to the terminals.
+  const board = boardShown();
   const tab = (t) => {
-    const on = t.active;
+    const on = t.active && !board;
     return h_flex().id(`tn-tab-${t.id}`).h(26).min_w(0).max_w(220).flex_shrink(1).pl(10).pr(3).gap(7).items_center().rounded(8)
       .bg(on ? C.raised : CLEAR)
       .when(on, el => el.shadow_md())
       .cursor_pointer().hover(s => s.bg(on ? C.raisedHi : C.raised))
-      .on_click(() => { if (!on) run("tab.select", { id: t.id }); })
+      .on_click(() => { if (board) showTerminals(); if (!t.active) run("tab.select", { id: t.id }); })
       .child(mark(t.status ? TAB_KIND[t.status] ?? "idle" : "idle"))
       .child(div().min_w(0).truncate().text_size(12).when(on, el => el.font_medium()).text_color(on ? C.fg : C.muted).child(tabLabel(t)))
       .when(t.panes > 1, el => el.child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.muted).child(`×${t.panes}`)))
@@ -123,28 +112,12 @@ function tabRow(view, snap, att) {
   const tabs = (sp?.tabs ?? []).filter(t => !t.settled || t.active);
   return h_flex().w_full().h(TABS).flex_none().gap(10).items_center()
     .child(h_flex().id("tn-tabs").flex_1().min_w(0).h(30).p(2).gap(2).items_center().rounded(10).bg(C.well).overflow_x_scroll()
+      .when(hasBoard(), el => el.child(boardPill(snap)).child(div().w(1).h(16).flex_none().mx(3).bg(C.rim)))
       .children(tabs.map(tab))
       .child(h_flex().id("tn-tab-new").size(26).flex_none().justify_center().items_center().rounded(8)
         .cursor_pointer().hover(s => s.bg(C.raised)).tooltip("New tab")
-        .on_click(() => run("tab.new", {})).child(ico("plus", 13, C.muted))))
-    .child(statusCapsule(snap, att));
+        .on_click(() => run("tab.new", {})).child(ico("plus", 13, C.muted))));
 }
-function statusCapsule(snap, att) {
-  const nWait = att.filter(r => r.kind === "waiting").length, nDone = att.length - nWait;
-  const pill = h_flex().id("tn-status").h(26).flex_none().px(12).gap(8).items_center().rounded(13).bg(C.glass).border(1).border_color(C.rim);
-  if (!att.length) return pill
-    .child(ico("check-circle", 14, C.green))
-    .child(div().text_size(12).font_medium().text_color(C.fg).child("Nothing needs you"))
-    .child(div().text_size(11).text_color(C.muted).child(summary(snap)));
-  const count = (label, n, color) => h_flex().gap(6).items_center()
-    .child(div().text_size(12).font_medium().text_color(C.fg).child(label))
-    .child(div().px(5).rounded(5).bg(color).font_family(MONO).text_size(10.5).font_medium().text_color(C.ink).child(String(n)));
-  return pill
-    .when(nWait > 0, el => el.child(count("Needs you", nWait, C.red)))
-    .when(nDone > 0, el => el.child(count("Done", nDone, C.green)))
-    .child(div().text_size(11).text_color(C.muted).child(summary(snap)));
-}
-
 // ---- pane header ----
 export function renderPane() {
   const id = props()?.pane;

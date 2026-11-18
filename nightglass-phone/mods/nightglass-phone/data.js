@@ -1,5 +1,6 @@
 // nightglass: live data (machines, spaces, terminals as rows), machine stats and ai-usage parsing.
-import { spaces, machines, panes, agents, terminals, focused, home } from "herdr";
+import { spaces, machines, panes, agents, terminals, focused, home, shared, setShared, hc } from "herdr";
+import { notePulse, PULSE_MS } from "./lib.js";
 
 export const LOCAL = "@local";
 export const mkey = (n) => n ?? LOCAL;
@@ -86,6 +87,7 @@ export function snapshot() {
           report,
           now: report ?? (agent ? cwd : [prog?.name, cwd].filter(Boolean).join(" · ")),
         };
+        if (r.kind === "waiting") notePulse(now - r.ms + PULSE_MS); // waiting marks pulse for a while after it began
         space.rows.push(r); rows.push(r);
         m.total++;
         if (!offline) m.count[status === "waiting" ? "waiting" : status]++;
@@ -176,5 +178,55 @@ export function parseUsageJson(text) {
       saved: a.saved_at ?? null,                       // set when the numbers are a saved snapshot
       note: !five && !week ? (a.error ?? "no data") : "",
     };
+  });
+}
+
+// ---- the board (both layouts): agents by column, and what each waiting one asks ----
+// Columns follow the agent's status (an unreachable machine's agents keep their last one, drawn dimmed). A finished agent
+// the person dismissed (`dismissed(r)`, each layout keeps its own list) counts as idle. Plain shells are not on the board.
+export const BOARD_COLS = ["waiting", "working", "done", "idle"];
+export function boardColumns(snap, filter, dismissed) {
+  const cols = { waiting: [], working: [], done: [], idle: [] };
+  for (const r of snap.rows) {
+    if (!r.agent || (filter && filter !== ALL && r.machine !== filter)) continue;
+    let k = cols[r.status] && r.status !== "idle" ? r.status : "idle";
+    if (k === "done" && dismissed?.(r)) k = "idle";
+    cols[k].push(r);
+  }
+  cols.waiting.sort((a, b) => b.ms - a.ms); // the longest waiting first: the next move
+  for (const k of ["working", "done", "idle"]) cols[k].sort((a, b) => a.ms - b.ms); // the latest change first
+  return cols;
+}
+
+// What a waiting agent asks: the lowest line of its screen that ends in "?" (box-drawing and prompt marks trimmed).
+// Read with `hc read` every few seconds for the waiting agents only, kept in shared state for every role.
+const QUESTIONS_KEY = "nightglass.questions"; // { [terminal address]: { q: string | null, at } }
+const ANSI_RE = /\u001b\[[0-9;?]*[ -/]*[@-~]|\u001b\][^\u0007]*\u0007/g;
+export function pickQuestion(text) {
+  const lines = String(text ?? "").replace(ANSI_RE, "").split("\n");
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const l = lines[i].replace(/^[\s│┃|>❯›•●◆*-]+/, "").replace(/[\s│┃|]+$/, "");
+    if (l.length > 3 && l.endsWith("?")) return l.length > 200 ? `${l.slice(0, 199)}…` : l;
+  }
+  return null;
+}
+export const questionOf = (address) => shared(QUESTIONS_KEY)?.[address]?.q ?? null;
+let questionsBusy = false;
+export function pollQuestions(cx, rows) {
+  const want = rows.filter(r => r.agent && r.kind === "waiting").slice(0, 8);
+  const cur = shared(QUESTIONS_KEY) ?? {};
+  if (questionsBusy || (!want.length && !Object.keys(cur).length)) return;
+  questionsBusy = true;
+  cx.spawn(async (cx) => {
+    const next = {};
+    for (const r of want) {
+      try {
+        const res = await hc(["read", r.address]);
+        next[r.address] = res.code === 0 ? { q: pickQuestion(res.stdout), at: Date.now() } : cur[r.address] ?? { q: null, at: Date.now() };
+      } catch { next[r.address] = cur[r.address] ?? { q: null, at: Date.now() }; }
+    }
+    questionsBusy = false;
+    setShared(QUESTIONS_KEY, next);
+    cx.notify();
   });
 }

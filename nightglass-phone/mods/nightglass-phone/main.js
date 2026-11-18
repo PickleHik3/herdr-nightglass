@@ -10,14 +10,19 @@
 //   usage, colors   popups opened by the inbox (usage details, a machine's scheme)
 // Data (data.js) and helpers (lib.js) are the desktop nightglass mod's files, copied verbatim.
 import { View, div } from "gpui-kit";
-import { props, run } from "herdr";
+import { props, run, shared, setShared } from "herdr";
 import { renderInbox, renderColorsPopup, currentCard } from "./inbox.js";
 import { pollChanges, pollStats, pollUsage, pollPreview, renderUsage, usageMachine } from "./polls.js";
 import { prefetchAgents } from "./newmenu.js";
 import { renderDbar, renderSheetHead, showInbox } from "./detail.js";
 import { renderComposer, initComposer } from "./composer.js";
-import { snapshot, ALL } from "./data.js";
-import { machineScheme, ALL_THEME } from "./lib.js";
+import { snapshot, ALL, pollQuestions } from "./data.js";
+import { machineScheme, ALL_THEME, pulsing, enter, startEnter } from "./lib.js";
+
+// Popups: they ease in, dropping 4 px into place (lib.js enter).
+const POPUPS = ["usage", "colors"];
+// The zoom found before fit_zoom first stepped it; the desktop layout (and layout-cycle) put it back on the way out.
+const ZOOM_BEFORE = "nightglass-phone.zoomBefore";
 import { WIN, DESIGN_W, zoom, popupOpened, popupClosed, detailOpen, needsRows } from "./phone.js";
 
 export default class NightglassPhone extends View {
@@ -30,7 +35,9 @@ export default class NightglassPhone extends View {
     if (role === "inbox") {
       showInbox(true); // the inbox view, whatever the last run or the saved layout said
       // The layout is drawn for 412 designed px: when props.fit_zoom is on, step the app zoom to window / 412.
-      if (props()?.fit_zoom) cx.timer.every(400, () => this.fitZoom());
+      // The first fit runs as soon as the inbox knows the window's width (inbox.js on_size_change), the timer re-checks.
+      this.fitZ = !!props()?.fit_zoom;
+      if (this.fitZ) cx.timer.every(400, () => this.fitZoom());
       prefetchAgents(cx);
       pollChanges(this, cx);
       cx.timer.every(2000, (cx) => pollChanges(this, cx));
@@ -46,8 +53,13 @@ export default class NightglassPhone extends View {
       cx.timer.every(500, (cx) => this.previewTick(cx));
     }
     if (role === "dbar") cx.timer.every(1000, (cx) => cx.notify()); // status, title and the needs badge follow the agents
+    // The inbox re-renders once when the waiting pulse's window opens or closes (lib.js pulsing; the dbar ticks anyway).
+    if (role === "inbox") cx.timer.every(1000, (cx) => { const on = pulsing(); if (on !== this.pulse) { this.pulse = on; cx.notify(); } });
+    // The Board tab quotes what each waiting agent asks: read every 5 s while it shows.
+    if (role === "inbox") cx.timer.every(5000, (cx) => { if (this.tab === "board") pollQuestions(cx, snapshot().rows); });
     if (role === "composer") initComposer(this, cx);
     if (role === "usage" || role === "colors") popupOpened(role); // popup toggles: phone.js
+    if (POPUPS.includes(role)) startEnter(this, cx);
   }
 
   async close() {
@@ -115,20 +127,29 @@ export default class NightglassPhone extends View {
 
   // The layout only makes sense at zoom ~ window width / DESIGN_W (every px in it is designed px). There is no
   // layout-level zoom and no "set zoom" command, only app.zoom_in / app.zoom_out (one 0.1 step each, written to
-  // settings.json by the app). So: one step per 400 ms tick until the zoom is within 0.05 of the target, then stop
-  // for good (until the layout is loaded again), so a later manual zoom is never fought.
+  // settings.json by the app). So: every step still needed at once on a 400 ms tick (one at a time redrew the whole
+  // layout 4-5 times, 400 ms apart), checked again on the next tick until the zoom is within 0.05 of the target, then
+  // stop for good (until the layout is loaded again), so a later manual zoom is never fought.
   fitZoom() {
     if (this.zoomDone || !(WIN.w > 0)) return;
     const target = Math.min(3, Math.max(0.5, Math.round((WIN.w / DESIGN_W) * 10) / 10));
     const z = Math.round(zoom() * 10) / 10;
     if (Math.abs(z - target) < 0.05 || (this.zoomSteps ?? 0) >= 30) { this.zoomDone = true; return; }
-    this.zoomSteps = (this.zoomSteps ?? 0) + 1;
-    run(target > z ? "app.zoom_in" : "app.zoom_out", {});
+    // A batch still landing (the setting lags the commands): wait for it, up to 1.5 s, rather than step again from a
+    // stale zoom and overshoot.
+    const p = this.zoomPending;
+    if (p && Math.abs(z - p.to) >= 0.05 && Date.now() - p.at < 1500) return;
+    if (typeof shared(ZOOM_BEFORE) !== "number") setShared(ZOOM_BEFORE, z);
+    const n = Math.max(1, Math.min(Math.round(Math.abs(target - z) * 10), 30 - (this.zoomSteps ?? 0)));
+    this.zoomSteps = (this.zoomSteps ?? 0) + n;
+    this.zoomPending = { to: Math.round((z + (target > z ? n : -n) / 10) * 10) / 10, at: Date.now() };
+    for (let i = 0; i < n; i++) run(target > z ? "app.zoom_in" : "app.zoom_out", {});
   }
 
   // Every role gets the design's 13 px body size as its base.
   render() {
-    return this.renderRole().text_size(13);
+    const el = this.renderRole().text_size(13);
+    return POPUPS.includes(props()?.role) ? enter(el, this.shown, -4) : el;
   }
 
   renderRole() {

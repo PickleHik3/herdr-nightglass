@@ -101,12 +101,29 @@ export const machineScheme = (key) => {
 };
 // A fixed default (not the live accent, which follows whichever machine is focused).
 export const machineColor = (key) => machineScheme(key).color;
+// A machine's glyph, as its sidebar tile draws it: its icon (a monitor for this computer, a server otherwise) on a tile of
+// its colour. The one mark for "which machine" everywhere: tiles, board cards and chips, phone cards. (Status has its own
+// marks, so a red machine never reads as "waiting".)
+export const machineGlyph = (key, size = 18) => h_flex().size(size).flex_none().rounded(Math.round(size * 0.3))
+  .justify_center().items_center().bg(alpha(machineColor(key), 0.18))
+  .child(ico(key === "@local" ? "monitor" : "server", Math.round(size * 0.6), machineColor(key)));
 export const stop = (_e, cx) => cx.stop_propagation();
 // Hover-revealed controls (close buttons): an opacity fade in place, no delay. A delayed reveal was not
 // cancelled when the pointer left first, so strips flashed on rows already passed.
 export const revealMotion = (shown) => shown
   ? { duration: 120, easing: "ease-out" }
   : { duration: 90, easing: "ease-out" };
+
+// Popups and toasts ease in. The app puts an overlay up at once (no entrance of its own), so its content is drawn
+// hidden and `dy` px off on the first frame, then shown a frame later (startEnter, from init), which the native
+// transitions animate. Guarded: the phone's app 0.1.13 may lack transition or cx.sleep; there it just appears.
+export const enter = (el, shown, dy) => typeof el.transition !== "function" ? el
+  : el.relative().top(shown ? 0 : dy).opacity(shown ? 1 : 0)
+    .transition("opacity", { duration: 160, easing: "ease-out" }).transition("top", { duration: 200, easing: "ease-out" });
+export function startEnter(view, cx) {
+  view.shown = typeof cx?.sleep !== "function";
+  if (!view.shown) cx.spawn(async (cx) => { await cx.sleep(16); view.shown = true; cx.notify(); });
+}
 
 export function dur(ms) {
   const m = Math.floor(Math.max(0, ms) / 60000);
@@ -132,10 +149,20 @@ export function prog(p, size, color) {
   if (p?.icon) return (p.tint ? svg(p.icon).text_color(color ?? C.muted) : image(p.icon)).size(size).flex_none();
   return image(`${M}/herdr.png`).size(size).rounded(3).flex_none();
 }
+// The waiting mark pulses only for PULSE_MS after something starts waiting (data.js snapshot() notes when): a loop
+// redraws the whole window ~30 times a second and an agent can wait for hours; after that the solid red says it.
+// Each view is its own copy of the mod, so each keeps its own window and re-renders when it closes (main.js).
+export const PULSE_MS = 10000;
+let pulseUntil = 0;
+export const notePulse = (until) => { if (until > pulseUntil) pulseUntil = until; };
+export const pulsing = () => Date.now() < pulseUntil;
 // The status marks of the design, in a fixed 10 px slot. kind: waiting | working | done | idle | offline
 export function mark(kind, slot = 10) {
   const box = h_flex().w(slot).h(slot).flex_none().justify_center().items_center();
-  if (kind === "waiting") return box.child(div().size(7).rounded(2).bg(C.red).loop("opacity", { from: 0.3, to: 1, period: 1000 }));
+  if (kind === "waiting") {
+    const dot = div().size(7).rounded(2).bg(C.red);
+    return box.child(pulsing() ? dot.loop("opacity", { from: 0.3, to: 1, period: 1000 }) : dot);
+  }
   // Only "waiting" pulses: a loop redraws the whole window ~30 times a second, and every working agent had one.
   if (kind === "working") return box.child(div().size(6).rounded(3).bg(C.green));
   if (kind === "done") return box.child(ico("check", 10, C.green));
