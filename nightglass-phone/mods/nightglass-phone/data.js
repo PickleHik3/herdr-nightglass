@@ -181,7 +181,7 @@ export function parseUsageJson(text) {
   });
 }
 
-// ---- the board (both layouts): agents by column, and what each waiting one asks ----
+// ---- the desktop board (board.js): agents by column, and what each waiting one asks ----
 // Columns follow the agent's status (an unreachable machine's agents keep their last one, drawn dimmed). A finished agent
 // the person dismissed (`dismissed(r)`, each layout keeps its own list) counts as idle. Plain shells are not on the board.
 export const BOARD_COLS = ["waiting", "working", "done", "idle"];

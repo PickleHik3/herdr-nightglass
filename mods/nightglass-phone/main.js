@@ -16,7 +16,7 @@ import { pollChanges, pollStats, pollUsage, pollPreview, renderUsage, usageMachi
 import { prefetchAgents } from "./newmenu.js";
 import { renderDbar, renderSheetHead, showInbox } from "./detail.js";
 import { renderComposer, initComposer } from "./composer.js";
-import { snapshot, ALL, pollQuestions } from "./data.js";
+import { snapshot, ALL } from "./data.js";
 import { machineScheme, ALL_THEME, pulsing, enter, startEnter } from "./lib.js";
 
 // Popups: they ease in, dropping 4 px into place (lib.js enter).
@@ -55,8 +55,6 @@ export default class NightglassPhone extends View {
     if (role === "dbar") cx.timer.every(1000, (cx) => cx.notify()); // status, title and the needs badge follow the agents
     // The inbox re-renders once when the waiting pulse's window opens or closes (lib.js pulsing; the dbar ticks anyway).
     if (role === "inbox") cx.timer.every(1000, (cx) => { const on = pulsing(); if (on !== this.pulse) { this.pulse = on; cx.notify(); } });
-    // The Board tab quotes what each waiting agent asks: read every 5 s while it shows.
-    if (role === "inbox") cx.timer.every(5000, (cx) => { if (this.tab === "board") pollQuestions(cx, snapshot().rows); });
     if (role === "composer") initComposer(this, cx);
     if (role === "usage" || role === "colors") popupOpened(role); // popup toggles: phone.js
     if (POPUPS.includes(role)) startEnter(this, cx);
