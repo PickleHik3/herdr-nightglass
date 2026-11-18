@@ -287,6 +287,27 @@ function allTile(view, snap, open) {
     .when(!!l, el => el.child(light({ light: l }, 6, 6)));
 }
 
+// Unreachable machines: a note under the tiles. Its x hides it until the set of unreachable machines changes.
+const offlineKey = (snap) => snap.offline.map(m => m.key).sort().join(",");
+function offlineNote(view, snap) {
+  const off = snap.offline;
+  const n = snap.rows.filter(r => r.agent && off.some(m => m.key === r.machine)).length;
+  const one = off.length === 1;
+  return h_flex().id("tn-offline").w_full().flex_none().pl(10).pr(4).py(6).gap(8).items_center().rounded(9)
+    .bg(alpha(C.amber, 0.08)).border(1).border_color(alpha(C.amber, 0.35))
+    .child(ico("wifi-off", 13, C.amber))
+    .child(v_flex().flex_1().min_w(0).gap(1)
+      .child(div().w_full().truncate().text_size(12).font_medium().text_color(C.fg)
+        .child(`${off.map(m => m.name).join(", ")} ${one ? "is" : "are"} unreachable`))
+      .when(n > 0, el => el.child(div().w_full().truncate().text_size(11).text_color(C.muted)
+        .child(`${one ? "its" : "their"} ${n} agent${n === 1 ? "" : "s"} show the last known state`))))
+    .child(h_flex().id("tn-offline-x").size(22).flex_none().justify_center().items_center().rounded(6)
+      .cursor_pointer().hover(s => s.bg(C.raisedHi)).tooltip("Dismiss")
+      .on_mouse_down("left", stop)
+      .on_click((_e, cx) => { cx.stop_propagation(); view.offlineDismissed = offlineKey(snap); cx.notify(); })
+      .child(ico("win-close", 9, C.muted)));
+}
+
 // ---- expanded ----
 function brand(view, snap) {
   return h_flex().w_full().h(28).flex_none().gap(4).items_center()
@@ -312,6 +333,7 @@ function full(base, view, snap, open, w) {
     .child(floatBox(v_flex().w_full().flex_1().min_h(0).px(10).pt(10).pb(6).gap(10))
       .child(brand(view, snap))
       .child(v_flex().w_full().flex_none().gap(6).children(tileRows))
+      .when(snap.offline.length > 0 && view.offlineDismissed !== offlineKey(snap), el => el.child(offlineNote(view, snap)))
       .when(all, el => el.child(v_flex().id("tn-caps").w_full().flex_1().min_h(0).gap(8).overflow_y_scrollbar()
         .children(allGroups(view, snap, false, (mm, cx) => { view.goMachine(mm.key); view.pollStats(cx, true); cx.notify(); }))
         .child(spacer)))

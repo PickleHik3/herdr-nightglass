@@ -1,4 +1,4 @@
-// nightglass: the strip (tab bar + status capsule, offline banner, "Needs you" cards), the pane header
+// nightglass: the strip (tab bar + status capsule, "Needs you" cards), the pane header
 // and the empty view (a machine with no spaces).
 import { div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
@@ -7,19 +7,17 @@ import { C, MONO, CLEAR, alpha, mix, revealMotion, dur, ico, prog, mark, stop, n
 import { snapshot, short, LOCAL, mArg, mname, mkey } from "./data.js";
 
 export const EMPTY_KEY = "nightglass.empty"; // machine key shown in the empty view, or null
-const BANNER = 44, TABS = 40, GAP = 8, CARD = 76, HEAD = 18, PAD = 22, MAX_CARDS = 6;
+const TABS = 40, GAP = 8, CARD = 76, HEAD = 18, PAD = 22, MAX_CARDS = 6;
 
 function plan(snap) {
   const att = snap.rows.filter(r => r.agent && (r.kind === "waiting" || r.kind === "done"))
     .sort((a, b) => (a.kind === "waiting" ? 0 : 1) - (b.kind === "waiting" ? 0 : 1) || a.ms - b.ms);
-  const offline = snap.offline;
   const parts = [TABS];
-  if (offline.length) parts.push(BANNER);
   if (att.length) {
     const rows = Math.ceil(Math.min(att.length, MAX_CARDS) / 2);
     parts.push(PAD + HEAD + GAP + rows * CARD + (rows - 1) * GAP);
   }
-  return { att, offline, px: parts.reduce((s, n) => s + n, 0) + GAP * (parts.length - 1) };
+  return { att, px: parts.reduce((s, n) => s + n, 0) + GAP * (parts.length - 1) };
 }
 
 function summary(snap) {
@@ -27,17 +25,6 @@ function summary(snap) {
   const w = live.filter(r => r.kind === "working").length;
   const i = live.filter(r => r.kind === "idle").length;
   return `${w} working · ${i} idle`;
-}
-
-function banner(snap, offline) {
-  const names = offline.map(m => m.name).join(", ");
-  const n = snap.rows.filter(r => r.agent && offline.some(m => m.key === r.machine)).length;
-  const its = offline.length === 1 ? "its" : "their";
-  return h_flex().w_full().h(BANNER).flex_none().px(14).gap(10).items_center().rounded(12)
-    .bg(C.glass).border(1).border_color(alpha(C.amber, 0.35)).shadow_md()
-    .child(ico("wifi-off", 15, C.amber))
-    .child(div().flex_none().font_medium().text_color(C.fg).child(`${names} ${offline.length === 1 ? "is" : "are"} unreachable`))
-    .child(div().flex_1().min_w(0).truncate().text_color(C.muted).child(`${its} ${n} agent${n === 1 ? "" : "s"} show their last known state`));
 }
 
 function card(r) {
@@ -83,7 +70,7 @@ function attention(snap, att) {
 
 export function renderStrip(view) {
   const snap = snapshot();
-  const { att, offline, px } = plan(snap);
+  const { att, px } = plan(snap);
   // Size our own block: only when it differs from the layout's current px (retried at most every 2 s).
   const cur = nodePx("strip");
   if (cur !== px) {
@@ -95,7 +82,6 @@ export function renderStrip(view) {
   }
   return v_flex().id("tn-strip").size_full().gap(GAP).overflow_hidden()
     .child(tabRow(view, snap, att))
-    .when(offline.length > 0, el => el.child(banner(snap, offline)))
     .when(att.length > 0, el => el.child(attention(snap, att)));
 }
 

@@ -1,7 +1,7 @@
 // nightglass: one multi-role mod for the "nightglass" layout.
 //   sidebar  machines, folder capsules, system stats (and the 56 px rail below 160 px wide)
 //   header   search pill, Files / Changes, settings, window buttons
-//   strip    "Nothing needs you" / offline banner / "Needs you" cards (sizes its own block)
+//   strip    "Nothing needs you" / "Needs you" cards (sizes its own block)
 //   pane     the pane header
 //   newmenu, agentmenu, spaces          popups opened by the roles above
 // Data comes from Herdr's live state; see data.js. Colors and icons: lib.js.
