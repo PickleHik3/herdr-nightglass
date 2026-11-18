@@ -129,12 +129,15 @@ export default class Nightglass extends View {
   }
   // The whole window wears the focused space's machine scheme (the empty view: the machine it
   // shows; All: its own Storm scheme). Checked every tick, so a color picked for the focused machine applies at once.
+  // The window wears the colour of the machine whose terminal is on screen, in the All view too (picking a space
+  // there shows that machine's terminal). The neutral Storm scheme is for when no one machine is on screen: the
+  // board, or All with nothing focused.
   applyScheme(snap) {
     const sp = snap.foc && snap.spaces.find(s => s.id === snap.foc.space);
     const key = shared(EMPTY_KEY) ?? sp?.machine;
-    const all = this.openKey(snap) === ALL;
-    if (key == null && !all) return;
-    const theme = all ? ALL_THEME : machineScheme(key).theme;
+    const neutral = boardShown() || (key == null && this.openKey(snap) === ALL);
+    if (key == null && !neutral) return;
+    const theme = neutral ? ALL_THEME : machineScheme(key).theme;
     if (theme === this.appliedTheme) return;
     this.appliedTheme = theme;
     run("app.theme", { name: theme });

@@ -106,14 +106,15 @@ export default class NightglassPhone extends View {
       if (v[sp.machine] !== id) { v[sp.machine] = id; try { localStorage.setItem("visited", JSON.stringify(v)); } catch { /* storage unavailable */ } }
     }
   }
-  // The whole window wears the focused space's machine scheme (All: its own Storm scheme). Checked every
-  // tick, so a color picked for the focused machine applies at once. app.theme sets the layout's theme click.
+  // The whole window wears the focused space's machine scheme. The inbox on All machines shows every machine, so it
+  // wears the neutral Storm scheme; an opened terminal (the detail view) wears its own machine's, from All too.
+  // Checked every tick, so a color picked for the focused machine applies at once. app.theme sets the layout's theme.
   applyScheme(snap) {
     const sp = snap.foc && snap.spaces.find(s => s.id === snap.foc.space);
     const key = sp?.machine;
-    const all = this.openKey(snap) === ALL;
-    if (key == null && !all) return;
-    const theme = all ? ALL_THEME : machineScheme(key).theme;
+    const neutral = this.openKey(snap) === ALL && !detailOpen();
+    if (key == null && !neutral) return;
+    const theme = neutral ? ALL_THEME : machineScheme(key).theme;
     if (theme === this.appliedTheme) return;
     this.appliedTheme = theme;
     run("app.theme", { name: theme });

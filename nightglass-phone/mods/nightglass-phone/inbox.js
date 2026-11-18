@@ -308,22 +308,34 @@ const newSpace = (view, id, m) => h_flex().id(id).w_full().h(40).flex_none().px(
   .on_click(tap(view, () => run("space.new", { machine: mArg(m.key) })))
   .child(ico("folder", 13, C.muted)).child(div().truncate().child("New space"));
 // One group per machine (the filter's, or all of them), tinted in its color (9% fill, 36% border), its capsules inside.
-// Machines without spaces are one compact line each, after the others.
+// Machines without spaces (and, under All machines, unreachable ones) are one compact line each.
 function groups(view, snap, filter) {
   const ms = filter && filter !== ALL ? [snap.mBy.get(filter)].filter(Boolean) : snap.machines;
   const ordered = [...ms.filter(m => m.spaces.length > 0), ...ms.filter(m => m.spaces.length === 0)];
   return ordered.map(m => {
     const color = machineColor(m.key);
     const n = m.spaces.reduce((k, sp) => k + sp.rows.filter(r => r.agent).length, 0);
+    // As the desktop's All view: a machine with no spaces is one row, its New space button where the summary would say
+    // "no terminals"; an unreachable machine is one row saying "offline" under All machines (its own machine card
+    // above still shows its spaces, their last known state).
+    const empty = m.spaces.length === 0;
+    const newBtn = empty && !m.offline;
+    const collapsed = empty || (m.offline && (!filter || filter === ALL));
     return v_flex().id(`tnp-grp-${m.key}`).w_full().flex_none().rounded(12).p(4).gap(4)
       .bg(alpha(color, 0.09)).border(1).border_color(alpha(color, 0.36)).opacity(m.offline ? 0.62 : 1)
-      .child(h_flex().w_full().h(32).flex_none().gap(8).px(6).items_center()
+      .child(h_flex().w_full().h(newBtn ? 40 : 32).flex_none().gap(8).pl(6).pr(newBtn ? 0 : 6).items_center()
         .child(machineIcon(m, 13, color))
         .child(div().flex_none().max_w(160).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name))
-        .child(div().flex_none().px(6).rounded(7).bg(C.raised).font_family(MONO).text_size(10.5).text_color(C.muted).child(String(n)))
-        .child(div().flex_1().min_w(0).truncate().text_right().text_size(11).text_color(m.offline ? C.amber : m.count.waiting ? C.red : C.muted).child(m.summary)))
-      .children(m.spaces.map(sp => capsule(view, sp, m)))
-      .when(!m.offline, el => el.child(newSpace(view, `tnp-grp-new-${m.key}`, m)));
+        .when(!empty, el => el.child(div().flex_none().px(6).rounded(7).bg(C.raised).font_family(MONO).text_size(10.5).text_color(C.muted).child(String(n))))
+        .when(!newBtn, el => el.child(div().flex_1().min_w(0).truncate().text_right().text_size(11)
+          .text_color(m.offline ? C.amber : m.count.waiting ? C.red : C.muted).child(m.summary)))
+        .when(newBtn, el => el.child(div().flex_1())
+          .child(h_flex().id(`tnp-grp-new-${m.key}`).h(40).flex_none().px(12).gap(7).items_center().rounded(9)
+            .bg(alpha(color, 0.14)).text_size(12).text_color(C.fg).cursor_pointer()
+            .on_click(tap(view, () => run("space.new", { machine: mArg(m.key) })))
+            .child(ico("folder", 13, C.fg)).child(div().child("New space")))))
+      .when(!collapsed, el => el.children(m.spaces.map(sp => capsule(view, sp, m)))
+        .when(!m.offline, e => e.child(newSpace(view, `tnp-grp-new-${m.key}`, m))));
   });
 }
 

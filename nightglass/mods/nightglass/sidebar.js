@@ -196,6 +196,12 @@ const newSpaceRow = (id, m, h, label) => h_flex().id(id).w_full().h(h).flex_none
 function allGroups(view, snap, compact, onHead, onPick) {
   return snap.machines.map(m => {
     const color = machineColor(m.key);
+    // A machine with no spaces is one row: its name, and a New space button where the summary would say "no
+    // terminals". An unreachable machine is one row too, saying "offline": its spaces are its last known state, and
+    // clicking the row opens the machine to see them.
+    const empty = m.spaces.length === 0;
+    const newBtn = empty && !m.offline;
+    const collapsed = empty || m.offline;
     return v_flex().id(`tn-all-${m.key}`).w_full().flex_none().rounded(12).p(4).gap(4)
       .bg(alpha(color, 0.09)).border(1).border_color(alpha(color, 0.36)).opacity(m.offline ? 0.62 : 1)
       .child(h_flex().id(`tn-all-h-${m.key}`).w_full().h(26).flex_none().gap(8).px(6).items_center().rounded(8)
@@ -204,10 +210,17 @@ function allGroups(view, snap, compact, onHead, onPick) {
         .child(machineIcon(m, 13, color))
         // The name keeps its width; a long summary is what gets cut.
         .child(div().flex_none().max_w(140).truncate().text_size(12).font_semibold().text_color(C.fg).child(m.name))
-        .child(div().flex_1().min_w(0).truncate().text_right().text_size(11).text_color(m.offline ? C.amber : m.count.waiting ? C.red : C.muted).child(m.summary)))
-      .children(m.spaces.map(sp => capsule(view, sp, m, compact, onPick)))
-      .when(m.spaces.length === 0, el => el.child(div().px(8).py(2).text_size(11).text_color(C.muted).child("No spaces")))
-      .child(newSpaceRow(`tn-all-new-${m.key}`, m, 28, "New space"));
+        .when(!newBtn, el => el.child(div().flex_1().min_w(0).truncate().text_right().text_size(11)
+          .text_color(m.offline ? C.amber : m.count.waiting ? C.red : C.muted).child(m.summary)))
+        .when(newBtn, el => el.child(div().flex_1())
+          .child(h_flex().id(`tn-all-new-${m.key}`).h(20).flex_none().px(7).gap(5).items_center().rounded(6)
+            .bg(alpha(color, 0.14)).hover(s => s.bg(alpha(color, 0.26))).cursor_pointer().tooltip(`New space on ${m.name}`)
+            .on_mouse_down("left", stop)
+            .on_click((_e, cx) => { cx.stop_propagation(); run("space.new", { machine: mArg(m.key) }); })
+            .child(ico("folder", 11, C.fg))
+            .child(div().text_size(11).text_color(C.fg).child("New space")))))
+      .when(!collapsed, el => el.children(m.spaces.map(sp => capsule(view, sp, m, compact, onPick)))
+        .child(newSpaceRow(`tn-all-new-${m.key}`, m, 28, "New space")));
   });
 }
 
