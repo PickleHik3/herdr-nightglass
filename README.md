@@ -2,7 +2,11 @@
 
 Two dark glass layouts for [Herdr](https://herdr.dev): one for the desk, one for your pocket.
 
-![Nightglass: the desktop and phone layouts](docs/infographic.png)
+![Nightglass: the desktop board and the phone inbox](docs/infographic.png)
+
+- **Desktop:** every machine and agent in the sidebar, one fixed bar under the tabs for what needs you, and a **Board** that lays every agent out in Needs you, Working, Done and Idle, quoting the question each waiting agent asks.
+- **Phone:** an inbox of the agents that need you; answer a permission prompt with one tap or open the terminal at full height.
+- **One colour per machine:** a machine's glyph and colour mark it on tiles, rows, cards and the window tint.
 
 ## Install
 
@@ -14,7 +18,7 @@ Read ~/.config/herdr-app/AGENTS.md, then add this layout: herdr.dev/layouts/Pick
 
 For the phone layout, use `herdr.dev/layouts/PickleHik3/nightglass-phone` instead.
 
-To install by hand, copy the `layouts/`, `mods/` and `themes/` folders from `nightglass/` (or from `nightglass-phone/`) into `~/.config/herdr-app/`. Then run `herdr-app do layout.switch --name nightglass` (or `--name nightglass-phone`). The desktop layout needs herdr-app 0.1.16 or newer.
+To install by hand, copy the `layouts/`, `mods/` and `themes/` folders from `nightglass/` (or from `nightglass-phone/`) into `~/.config/herdr-app/`. Then run `herdr-app do layout.switch --name nightglass` (or `--name nightglass-phone`). The desktop layout needs herdr-app 0.1.16 or newer. Updating an older copy: copy `layouts/nightglass.json` again (or add its `board` block to your `main-stack`) to get the Board pill.
 
 **Usage rings (optional).** Usage rings are off by default. To show them, add `"usage": "<machine>"` to the props of the sidebar block (desktop) or the inbox block (phone), naming the machine that runs `~/.local/bin/ai-usage-tui`.
 
@@ -42,4 +46,4 @@ The root `layouts/`, `mods/` and `themes/` folders are the source. `nightglass/`
 
 The design files are in `design/`.
 
-MIT licence. The palette started from Tokyo Night by enkia.
+MIT licence. The palette started from Tokyo Night by enkia. The Board follows the idea of the `board` layout in [jkuepker/herdr-layouts](https://github.com/jkuepker/herdr-layouts) (MIT), rebuilt on Herdr's own agent states.
