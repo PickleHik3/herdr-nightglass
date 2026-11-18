@@ -54,7 +54,7 @@ Clicks and hovers:
 
 `mods/nightglass/` (one mod, `place: none`, roles by `props.role`): `main.js` (state, polling, machine themes), `sidebar.js` (roles `sidebar`, `newmenu`, `agentmenu`, `spaces`, `colors`), `header.js` (role `header`, usage widget), `strip.js` (roles `strip`, `pane`, `empty`), `board.js` (role `board`, the Board pill), `lib.js` (tokens, icons, status marks, machine glyph, entrance easing), `data.js` (live data, stats, board columns, questions), about 40 SVG icons, 20 + 20 ring arcs (`ring-w-5..100.svg`, `ring-h-5..100.svg`) and `ring-track.svg`, `herdr.png`, `wallpaper.png`.
 
-`mods/nightglass-toast/`: replaces the shipped `toast` mod through the root `toast` key; on this layout it draws the stock look (340 x 72 px box, `popover` fill, status dot, title 13 px semibold, body 12 px muted; click runs the action and closes) and eases in. Its phone capsule only appears when the layout has a `drawer` node.
+`mods/nightglass-toast/`: replaces the shipped `toast` mod through the root `toast` key; on this layout it draws the stock look (340 x 72 px box, `popover` fill, status dot, title 13 px semibold, body 12 px muted; click runs the action and closes) and eases in. Its phone capsule only appears when the layout has an `inbox` node (the phone layout).
 
 `themes/nightglass.json`, `nightglass-{blue,frost,lagoon,forest,dune,ember,sakura,aurora,storm}.json`: all ten are used.
 
