@@ -102,11 +102,11 @@ export const machineScheme = (key) => {
 // A fixed default (not the live accent, which follows whichever machine is focused).
 export const machineColor = (key) => machineScheme(key).color;
 export const stop = (_e, cx) => cx.stop_propagation();
-// Hover-revealed controls (close buttons): wait a moment before sliding in, so passing the pointer
-// over a list doesn't make it twitch; leaving hides them at once.
+// Hover-revealed controls (close buttons): an opacity fade in place, no delay. A delayed reveal was not
+// cancelled when the pointer left first, so strips flashed on rows already passed.
 export const revealMotion = (shown) => shown
-  ? { duration: 160, delay: 350, easing: "ease-out" }
-  : { duration: 120, easing: "ease-out" };
+  ? { duration: 120, easing: "ease-out" }
+  : { duration: 90, easing: "ease-out" };
 
 export function dur(ms) {
   const m = Math.floor(Math.max(0, ms) / 60000);
@@ -136,7 +136,8 @@ export function prog(p, size, color) {
 export function mark(kind, slot = 10) {
   const box = h_flex().w(slot).h(slot).flex_none().justify_center().items_center();
   if (kind === "waiting") return box.child(div().size(7).rounded(2).bg(C.red).loop("opacity", { from: 0.3, to: 1, period: 1000 }));
-  if (kind === "working") return box.child(div().size(6).rounded(3).bg(C.green).loop("opacity", { from: 0.35, to: 1, period: 2000 }));
+  // Only "waiting" pulses: a loop redraws the whole window ~30 times a second, and every working agent had one.
+  if (kind === "working") return box.child(div().size(6).rounded(3).bg(C.green));
   if (kind === "done") return box.child(ico("check", 10, C.green));
   if (kind === "offline") return box.child(div().w(7).h(2).rounded(1).bg(C.idle));
   return box.child(div().size(8).rounded(4).border(1.5).border_color(C.idle));

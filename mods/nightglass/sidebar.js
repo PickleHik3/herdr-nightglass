@@ -95,16 +95,18 @@ function allLight(snap) {
 }
 
 // ---- capsules ----
-// Swipe-style close: a full-height strip on the right edge that slides open on hover (native width
-// and opacity transitions), pushing the content left. It stops the press so the row isn't picked.
+// Hover close: a full-height button laid over the right end of a relative() row. It fades in place (opacity
+// only, no delay) while what it covers fades out (fadeUnder), so nothing moves under the pointer. Hidden, it
+// takes no presses: they go to the row. Shown, it stops the press so the row isn't picked.
 // White mark on a strong red fill: a red mark on a faint red fill vanished on a red-tinted row.
-const closeSlot = (id, shown, radius, tip, act) => h_flex().id(id).h_full().flex_none().overflow_hidden()
-  .w(shown ? 30 : 0).opacity(shown ? 1 : 0)
-  .transition("width", revealMotion(shown)).transition("opacity", revealMotion(shown))
-  .child(h_flex().id(`${id}-btn`).w(30).h_full().flex_none().justify_center().items_center().rounded_r(radius)
-    .bg(alpha(C.red, 0.62)).hover(s => s.bg(alpha(C.red, 0.85))).cursor_pointer().tooltip(tip)
-    .on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); act(); })
-    .child(ico("win-close", 10, "#ffffff")));
+const closeSlot = (id, shown, radius, tip, act) => h_flex().id(id).absolute().top(0).right(0).w(30).h_full()
+  .justify_center().items_center().rounded_r(radius).bg(alpha(C.red, 0.62))
+  .opacity(shown ? 1 : 0).transition("opacity", revealMotion(shown))
+  .when(shown, el => el.hover(s => s.bg(alpha(C.red, 0.85))).cursor_pointer().tooltip(tip)
+    .on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); act(); }))
+  .child(ico("win-close", 10, "#ffffff"));
+// What the close button covers fades out under it on the same clock.
+const fadeUnder = (el, shown) => el.opacity(shown ? 0 : 1).transition("opacity", revealMotion(!shown));
 
 function rowEl(view, r, compact, onPick) {
   const hover = view.hover === r.address;
@@ -112,13 +114,14 @@ function rowEl(view, r, compact, onPick) {
   const mc = machineColor(r.machine);
   // Focused row: solid machine color, dark-of-hue text. No outline (the card holds the stack's one).
   const t1 = nearBlack(mc), t2 = darkOf(mc);
-  const pinned = r.focused || waiting;
-  const showNow = !compact && !!r.now && (hover || pinned);
+  // The "now" line shows only on the focused and waiting rows; elsewhere it is the row's tooltip. Hover never
+  // changes a row's height, so the rows below never move under the pointer.
+  const showNow = !compact && !!r.now && (r.focused || waiting);
   const closable = !compact && r.kind !== "offline";
-  const h = r.focused && !compact && !!r.now ? 42 : 30;
-  return h_flex().id(`tn-row-${r.address}`).w_full().min_w(0).flex_none().items_stretch().rounded(6).overflow_hidden()
+  const h = showNow ? 42 : 30;
+  return h_flex().id(`tn-row-${r.address}`).w_full().min_w(0).h(h).flex_none().relative().items_stretch().rounded(6).overflow_hidden()
     .bg(r.focused ? mc : waiting ? alpha(C.red, 0.2) : CLEAR).cursor_pointer().text_size(12).text_color(r.focused ? t1 : C.muted)
-    .when(!showNow, el => el.h(h))
+    .when(!compact && !showNow && !!r.now, el => el.tooltip(r.now))
     .when(r.focused, el => el.shadow_md())
     .hover(s => s.bg(r.focused ? mc : waiting ? alpha(C.red, 0.28) : C.raised))
     .on_hover((hv, cx) => { if (hv) view.hover = r.address; else if (view.hover === r.address) view.hover = null; cx.notify(); })
@@ -132,13 +135,9 @@ function rowEl(view, r, compact, onPick) {
       .child(mark(r.kind))
       .child(div().flex_1().min_w(0).truncate().text_size(12).when(r.focused, el => el.font_semibold()).child(r.title))
       .child(div().flex_none().font_family(MONO).text_size(10.5).text_color(r.focused ? t2 : C.dim).child(r.kind === "offline" ? "" : dur(r.ms)))
-      .child(h_flex().flex_none().h(18).px(6).rounded(5).items_center().font_family(MONO).text_size(10.5)
-        .bg(r.focused ? t1 : C.raised).text_color(r.focused ? lightOf(mc) : C.dim).child(r.short)))
-    // The "now" line: always shown for the focused and waiting rows; on hover it grows in after the
-    // same delay as the close strip, so sweeping the pointer down the list doesn't make rows jump.
-    .when(!compact && !!r.now, el => el.child(div().id(`tn-now-${r.address}`).pl(18).w_full().min_w(0).overflow_hidden()
-      .h(showNow ? 16 : 0).opacity(showNow ? 1 : 0)
-      .transition("height", revealMotion(showNow && !pinned)).transition("opacity", revealMotion(showNow && !pinned))
+      .child(fadeUnder(h_flex().id(`tn-row-c-${r.address}`).flex_none().h(18).px(6).rounded(5).items_center().font_family(MONO).text_size(10.5)
+        .bg(r.focused ? t1 : C.raised).text_color(r.focused ? lightOf(mc) : C.dim).child(r.short), closable && hover)))
+    .when(showNow, el => el.child(div().pl(18).w_full().min_w(0).h(16).overflow_hidden()
       .child(div().w_full().truncate().font_family(MONO).text_size(10.5).text_color(r.focused ? t2 : waiting ? C.red : C.dim).child(r.now)))))
     .when(closable, el => el.child(closeSlot(`tn-row-x-${r.address}`, hover, 6, "Close terminal",
       () => r.pane ? run("pane.close", { pane: r.pane }) : run("terminal.kill", { terminal: r.address }))));
@@ -155,15 +154,15 @@ function capsule(view, sp, m, compact, onPick) {
   const strong = wants === C.red;
   return v_flex().id(`tn-sp-${sp.id}`).w_full().flex_none().rounded(9).p(3).gap(1).bg(C.raised)
     .when(!!wants, el => el.bg(alpha(wants, strong ? 0.16 : 0.10)).border(1).border_color(alpha(wants, strong ? 0.45 : 0.35)).when(strong, e => e.shadow_md()))
-    .child(h_flex().id(`tn-sph-${sp.id}`).w_full().h(28).items_stretch().rounded(6).overflow_hidden()
+    .child(h_flex().id(`tn-sph-${sp.id}`).w_full().h(28).relative().items_stretch().rounded(6).overflow_hidden()
       .on_hover((h, cx) => { const id = h ? sp.id : view.spHover === sp.id ? null : view.spHover; if (id !== view.spHover) { view.spHover = id; cx.notify(); } })
       .child(h_flex().flex_1().min_w(0).gap(8).pl(4).pr(8).items_center()
       .child(h_flex().size(20).flex_none().rounded(6).justify_center().items_center().bg(C.raised)
         .text_color(C.fg).text_size(11).font_semibold().child(initial))
       .child(div().flex_1().min_w(0).truncate().text_size(12).font_semibold().text_color(C.fg).child(sp.name))
-      .when(!m.offline && !!sp.branch, el => el.child(h_flex().flex_none().max_w(96).gap(4).items_center()
+      .when(!m.offline && !!sp.branch, el => el.child(fadeUnder(h_flex().id(`tn-spb-${sp.id}`).flex_none().max_w(96).gap(4).items_center()
         .child(ico("branch", 11, C.muted))
-        .child(div().min_w(0).truncate().font_family(MONO).text_size(10.5).text_color(C.muted).child(sp.branch))))
+        .child(div().min_w(0).truncate().font_family(MONO).text_size(10.5).text_color(C.muted).child(sp.branch)), hover)))
       .when(m.offline, el => el.child(div().flex_none().font_family(MONO).text_size(10.5).text_color(C.amber).whitespace_nowrap()
         .child(seenAt ? `last seen ${dur(Date.now() - seenAt)}` : "offline"))))
       // space.close asks first, so a stray click can't take a whole space.
